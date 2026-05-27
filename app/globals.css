@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* YelhaDms — palette dark (par défaut) */
+    --primary: 18 100% 58%; /* #FF6B2B */
+    --primary-light: 19 100% 71%; /* #FF9C6B */
+    --primary-dark: 17 81% 47%; /* #D94F15 */
+    --primary-foreground: 30 50% 96%;
+
+    --bg-base: 40 13% 5%; /* #0F0E0B */
+    --bg-card: 40 8% 9%; /* #1A1916 */
+    --bg-input: 40 7% 14%; /* #252420 */
+    --border: 40 7% 17%; /* #2E2C27 */
+
+    --text-primary: 35 50% 93%; /* #F5F0E8 */
+    --text-secondary: 35 7% 50%; /* #8A8378 */
+
+    --success: 150 42% 49%; /* #4CAF82 */
+    --warning: 39 80% 53%; /* #E8A228 */
+    --error: 0 75% 61%; /* #E85050 */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans min-h-screen;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  /* Touch targets minimum 44x44 — accessibilité */
+  button, a {
+    @apply min-h-[44px] inline-flex items-center;
+  }
+
+  /* Focus visible cohérent */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
