@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    /* Yelha Delivery — palette light food-app (inspiré Deliveroo / UberEats) */
+    /* YelhaDelivery — palette light food-app (inspiré Deliveroo / UberEats) */
 
-    /* Accent principal — orange chaleureux Yelha Delivery */
+    /* Accent principal — orange chaleureux YelhaDelivery */
     --primary: 18 100% 52%; /* #FF5C1A */
     --primary-light: 19 100% 96%; /* fond hover ultra-clair */
     --primary-dark: 17 90% 42%; /* #CC3D0A pour hover boutons */

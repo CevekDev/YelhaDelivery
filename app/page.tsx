@@ -9,7 +9,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="font-display text-xl font-extrabold">
-            Yelha <span className="text-primary">Delivery</span>
+            Yelha<span className="text-primary">Delivery</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
@@ -86,20 +86,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats / trust band */}
-      <section className="border-y border-border bg-muted">
-        <div className="container grid grid-cols-2 gap-6 py-8 md:grid-cols-4">
-          {[
-            { v: '0%', l: 'Commission' },
-            { v: '< 1 min', l: 'Pour ajouter un plat' },
-            { v: '∞', l: 'Livreurs intégrés' },
-            { v: '24/7', l: 'Dashboard en ligne' },
-          ].map((s) => (
-            <div key={s.l} className="text-center">
-              <p className="font-display text-3xl font-extrabold text-primary">{s.v}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{s.l}</p>
-            </div>
-          ))}
+      {/* Trust band */}
+      <section className="border-y border-border bg-foreground py-6 text-background">
+        <div className="container flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm">
+          <span className="flex items-center gap-2 font-semibold">
+            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-success" />
+            Plateforme active 24/7
+          </span>
+          <span className="hidden text-background/30 md:inline">·</span>
+          <span className="opacity-90">
+            <strong className="text-primary">0%</strong> de commission
+          </span>
+          <span className="hidden text-background/30 md:inline">·</span>
+          <span className="opacity-90">Cash à la livraison</span>
+          <span className="hidden text-background/30 md:inline">·</span>
+          <span className="opacity-90">Données hébergées en Europe 🇪🇺</span>
         </div>
       </section>
 
@@ -214,7 +215,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} Yelha Delivery. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} YelhaDelivery. Tous droits réservés.</p>
           <div className="flex gap-4">
             <Link href="/login" className="hover:text-foreground">Restaurateur</Link>
             <Link href="/livreur/login" className="hover:text-foreground">Livreur</Link>

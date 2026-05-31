@@ -23,13 +23,15 @@ export function Sidebar({ restaurantName }: { restaurantName: string }) {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
       <div className="flex h-16 items-center border-b border-border px-6">
-        <Link href="/dashboard" className="font-display text-lg font-bold">
-          Yelha <span className="text-primary">Delivery</span>
+        <Link href="/dashboard" className="font-display text-lg font-extrabold">
+          Yelha<span className="text-primary">Delivery</span>
         </Link>
       </div>
-      <div className="border-b border-border px-6 py-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Restaurant</p>
-        <p className="mt-1 truncate font-medium">{restaurantName}</p>
+      <div className="border-b border-border px-6 py-5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Restaurant
+        </p>
+        <p className="mt-1 truncate font-display font-bold">{restaurantName}</p>
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {NAV.map((item) => {
@@ -40,13 +42,16 @@ export function Sidebar({ restaurantName }: { restaurantName: string }) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
                 active
-                  ? 'bg-primary/15 text-primary-light'
-                  : 'text-muted-foreground hover:bg-input hover:text-foreground',
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Icon className="h-4 w-4" />
+              {active && (
+                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+              )}
+              <Icon className={cn('h-4 w-4', active && 'text-primary')} />
               {item.label}
             </Link>
           );
@@ -55,7 +60,7 @@ export function Sidebar({ restaurantName }: { restaurantName: string }) {
       <form action="/api/auth/signout" method="post" className="border-t border-border p-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-input hover:text-foreground"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <LogOut className="h-4 w-4" />
           Se déconnecter
@@ -77,10 +82,13 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 py-2 text-[10px]',
+              'relative flex flex-col items-center justify-center gap-1 py-2 text-[10px] transition-colors',
               active ? 'text-primary' : 'text-muted-foreground',
             )}
           >
+            {active && (
+              <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary" />
+            )}
             <Icon className="h-5 w-5" />
             <span className="truncate px-1">{item.label.split(' ')[0]}</span>
           </Link>

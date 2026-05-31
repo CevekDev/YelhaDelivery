@@ -11,7 +11,7 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Yelha Delivery brand tokens (mapped to CSS variables in globals.css)
+        // YelhaDelivery brand tokens (mapped to CSS variables in globals.css)
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           light: 'hsl(var(--primary-light))',

@@ -20,9 +20,9 @@ function shell(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${baseStyles}</style></head>
 <body><div class="container"><div class="card">
-  <div class="brand">Yelha <span class="accent">Delivery</span></div>
+  <div class="brand">Yelha<span class="accent">Delivery</span></div>
   ${body}
-</div><p class="footer">Yelha Delivery · delivery.yelha.net</p></div></body></html>`;
+</div><p class="footer">YelhaDelivery · delivery.yelha.net</p></div></body></html>`;
 }
 
 function escapeHtml(s: string): string {
@@ -105,7 +105,7 @@ export function welcomeRestaurateurEmail(data: WelcomeEmailData): {
   html: string;
   text: string;
 } {
-  const subject = `Bienvenue sur Yelha Delivery, ${data.restaurantName}`;
+  const subject = `Bienvenue sur YelhaDelivery, ${data.restaurantName}`;
   const html = shell(
     subject,
     `

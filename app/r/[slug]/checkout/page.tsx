@@ -4,13 +4,14 @@ import { CheckoutClient } from './checkout-client';
 import type { Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Finaliser ma commande' };
 
 export default async function CheckoutPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('id, name, slug, delivery_fee, min_order, is_open, accept_orders, status')
+    .select('id, name, slug, delivery_fee, min_order, is_open, accept_orders, status, estimated_delivery_time')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle<Restaurant>();
@@ -18,14 +19,13 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
   if (!restaurant) notFound();
 
   return (
-    <main className="container max-w-xl py-6">
-      <CheckoutClient
-        slug={slug}
-        restaurantName={restaurant.name}
-        deliveryFee={Number(restaurant.delivery_fee)}
-        minOrder={Number(restaurant.min_order)}
-        canOrder={restaurant.is_open && restaurant.accept_orders}
-      />
-    </main>
+    <CheckoutClient
+      slug={slug}
+      restaurantName={restaurant.name}
+      deliveryFee={Number(restaurant.delivery_fee)}
+      minOrder={Number(restaurant.min_order)}
+      canOrder={restaurant.is_open && restaurant.accept_orders}
+      estimatedDeliveryTime={restaurant.estimated_delivery_time}
+    />
   );
 }

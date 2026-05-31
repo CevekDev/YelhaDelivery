@@ -1,4 +1,4 @@
-# Yelha Delivery
+# YelhaDelivery
 
 > Plateforme SaaS de gestion de livraison pour restaurants algériens.
 
@@ -79,7 +79,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=Yelha Delivery
+NEXT_PUBLIC_APP_NAME=YelhaDelivery
 ```
 
 ### 6. Lancer en local
@@ -121,7 +121,7 @@ yelha-dms/
 ├── middleware.ts                 Protection des routes par rôle
 ├── next.config.js                Headers de sécurité
 ├── vercel.json                   Config déploiement
-└── tailwind.config.ts            Design system Yelha Delivery
+└── tailwind.config.ts            Design system YelhaDelivery
 ```
 
 ---
