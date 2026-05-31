@@ -7,7 +7,7 @@ import { MenuItemButton } from './menu-item-button';
 import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
 import { formatPrice } from '@/lib/utils';
-import { Clock, MapPin, Phone, Star, Truck } from 'lucide-react';
+import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
 import type { MenuCategory, MenuItem, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -58,8 +58,14 @@ export default async function PublicRestaurantPage({
       .returns<MenuItem[]>(),
   ]);
 
+  // Sépare plats normaux et suppléments
+  const allItems = items ?? [];
+  const regularItems = allItems.filter((i) => !i.is_extra);
+  const extras = allItems.filter((i) => i.is_extra);
+  const promoItems = regularItems.filter((i) => i.promo_price != null && i.is_available);
+
   const byCategory = new Map<string | null, MenuItem[]>();
-  (items ?? []).forEach((i) => {
+  regularItems.forEach((i) => {
     const k = i.category_id;
     if (!byCategory.has(k)) byCategory.set(k, []);
     byCategory.get(k)!.push(i);
@@ -70,9 +76,12 @@ export default async function PublicRestaurantPage({
     (c) => (byCategory.get(c.id)?.length ?? 0) > 0,
   );
   const hasUncategorized = (byCategory.get(null)?.length ?? 0) > 0;
+  const hasExtras = extras.length > 0;
+  const hasPromos = promoItems.length > 0;
 
   return (
     <main className="min-h-screen bg-background pb-32">
+      {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="font-display text-base font-extrabold">
@@ -83,6 +92,29 @@ export default async function PublicRestaurantPage({
           </span>
         </div>
       </header>
+
+      {/* Bannière promotionnelle (si configurée) */}
+      {(restaurant.banner_text || restaurant.banner_image_url) && (
+        <div className="border-b border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+          <div className="container flex items-center gap-4 py-3">
+            {restaurant.banner_image_url && (
+              <div className="relative hidden h-12 w-20 shrink-0 overflow-hidden rounded sm:block">
+                <Image
+                  src={restaurant.banner_image_url}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              </div>
+            )}
+            <div className="flex min-w-0 items-center gap-2">
+              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+              <p className="truncate text-sm font-semibold">{restaurant.banner_text}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero restaurant */}
       <section className="relative">
@@ -115,13 +147,10 @@ export default async function PublicRestaurantPage({
                   </Badge>
                 </div>
                 {restaurant.description && (
-                  <p className="mt-2 max-w-prose text-sm text-muted-foreground">{restaurant.description}</p>
+                  <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+                    {restaurant.description}
+                  </p>
                 )}
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs">
-                <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-                <span className="font-semibold">Nouveau</span>
-                <span className="text-muted-foreground">sur YelhaDelivery</span>
               </div>
             </div>
 
@@ -129,7 +158,11 @@ export default async function PublicRestaurantPage({
               <InfoChip
                 icon={<Truck className="h-4 w-4" />}
                 label="Livraison"
-                value={restaurant.delivery_fee === 0 ? 'Gratuite' : formatPrice(restaurant.delivery_fee)}
+                value={
+                  restaurant.delivery_fee === 0
+                    ? 'Gratuite'
+                    : formatPrice(restaurant.delivery_fee)
+                }
               />
               <InfoChip
                 icon={<Clock className="h-4 w-4" />}
@@ -159,30 +192,60 @@ export default async function PublicRestaurantPage({
               )}
             </div>
 
-            {restaurant.min_order > 0 && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Commande minimum :{' '}
-                <strong className="text-foreground">{formatPrice(restaurant.min_order)}</strong>
-              </p>
+            {/* Hints livraison gratuite / minimum */}
+            {(restaurant.free_delivery_above || restaurant.min_order > 0) && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {restaurant.free_delivery_above && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 font-semibold text-success">
+                    🎁 Livraison offerte dès {formatPrice(restaurant.free_delivery_above)}
+                  </span>
+                )}
+                {restaurant.min_order > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                    Min. {formatPrice(restaurant.min_order)}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {(visibleCategories.length > 0 || hasUncategorized) && (
+      {/* Sticky category nav */}
+      {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos) && (
         <CategoryNav
           categories={visibleCategories.map((c) => ({ id: c.id, name: c.name }))}
           hasUncategorized={hasUncategorized}
+          hasExtras={hasExtras}
+          hasPromos={hasPromos}
         />
       )}
 
-      <section className="container mt-6 space-y-12">
-        {visibleCategories.length === 0 && !hasUncategorized && (
+      {/* === Section Promos en haut (si y'en a) === */}
+      {hasPromos && (
+        <section id="cat-promos" className="container mt-8 scroll-mt-32">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+              <Sparkles className="h-6 w-6 text-primary" />
+              Offres du moment
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {promoItems.length} en promo
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {promoItems.map((item) => (
+              <ItemCard key={item.id} item={item} slug={slug} canOrder={canOrder} promo />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Menu principal */}
+      <section className="container mt-10 space-y-12">
+        {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
           <div className="rounded-2xl border border-dashed border-border bg-muted py-20 text-center">
             <p className="text-sm font-medium">Menu en cours de préparation</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Revenez bientôt — le restaurant prépare ses plats.
-            </p>
           </div>
         )}
 
@@ -223,9 +286,31 @@ export default async function PublicRestaurantPage({
             </div>
           </section>
         )}
+
+        {/* === Section Suppléments / Sauces === */}
+        {hasExtras && (
+          <section id="cat-extras" className="scroll-mt-32">
+            <div className="mb-5 flex items-baseline justify-between">
+              <div>
+                <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+                  Suppléments
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Sauces, accompagnements, boissons à ajouter à votre commande.
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground">{extras.length}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {extras.map((item) => (
+                <ExtraCard key={item.id} item={item} slug={slug} canOrder={canOrder} />
+              ))}
+            </div>
+          </section>
+        )}
       </section>
 
-      <CartButton slug={slug} deliveryFee={restaurant.delivery_fee} canOrder={canOrder} />
+      <CartButton slug={slug} restaurant={restaurant} canOrder={canOrder} />
     </main>
   );
 }
@@ -249,13 +334,21 @@ function ItemCard({
   slug,
   canOrder,
   featured,
+  promo,
 }: {
   item: MenuItem;
   slug: string;
   canOrder: boolean;
   featured?: boolean;
+  promo?: boolean;
 }) {
   const disabled = !item.is_available || !canOrder;
+  const activePrice = item.promo_price ?? item.price;
+  const discount =
+    item.promo_price != null
+      ? Math.round(((item.price - item.promo_price) / item.price) * 100)
+      : 0;
+
   return (
     <article
       className={
@@ -277,12 +370,22 @@ function ItemCard({
             🍽️
           </div>
         )}
-        {featured && item.is_available && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-background">
-            <Star className="h-3 w-3 fill-current" />
-            Populaire
-          </span>
-        )}
+
+        {/* Badges en surimpression */}
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {discount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+              -{discount}%
+            </span>
+          )}
+          {featured && item.is_available && !promo && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-background shadow-sm">
+              <Star className="h-3 w-3 fill-current" />
+              Populaire
+            </span>
+          )}
+        </div>
+
         {!item.is_available && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
             <span className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold shadow-card">
@@ -300,17 +403,78 @@ function ItemCard({
             </p>
           )}
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <span className="font-display text-lg font-extrabold tabular-nums">
-            {formatPrice(item.price)}
-          </span>
+        <div className="mt-4 flex items-end justify-between">
+          <div className="flex items-baseline gap-2">
+            {item.promo_price != null && (
+              <span className="text-sm text-muted-foreground line-through">
+                {formatPrice(item.price)}
+              </span>
+            )}
+            <span
+              className={
+                'font-display text-lg font-extrabold tabular-nums ' +
+                (item.promo_price != null ? 'text-primary' : '')
+              }
+            >
+              {formatPrice(activePrice)}
+            </span>
+          </div>
           <MenuItemButton
             slug={slug}
-            item={{ menu_item_id: item.id, name: item.name, price: Number(item.price) }}
+            item={{
+              menu_item_id: item.id,
+              name: item.name,
+              price: Number(activePrice),
+            }}
             disabled={disabled}
           />
         </div>
       </div>
     </article>
+  );
+}
+
+function ExtraCard({
+  item,
+  slug,
+  canOrder,
+}: {
+  item: MenuItem;
+  slug: string;
+  canOrder: boolean;
+}) {
+  const disabled = !item.is_available || !canOrder;
+  const activePrice = item.promo_price ?? item.price;
+
+  return (
+    <div
+      className={
+        'flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover ' +
+        (disabled ? 'opacity-60' : '')
+      }
+    >
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+        {item.image_url ? (
+          <Image src={item.image_url} alt="" fill className="object-cover" sizes="56px" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-2xl opacity-40">
+            🥫
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{item.name}</p>
+        <p className="text-xs font-bold text-primary">+{formatPrice(activePrice)}</p>
+      </div>
+      <MenuItemButton
+        slug={slug}
+        item={{
+          menu_item_id: item.id,
+          name: item.name,
+          price: Number(activePrice),
+        }}
+        disabled={disabled}
+      />
+    </div>
   );
 }

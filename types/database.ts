@@ -39,6 +39,9 @@ export interface Restaurant {
   phone: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  banner_text: string | null;
+  banner_image_url: string | null;
+  free_delivery_above: number | null;
   is_open: boolean;
   accept_orders: boolean;
   delivery_fee: number;
@@ -65,6 +68,8 @@ export interface MenuItem {
   name: string;
   description: string | null;
   price: number;
+  promo_price: number | null;
+  is_extra: boolean;
   image_url: string | null;
   is_available: boolean;
   sort_order: number;

@@ -19,15 +19,17 @@ interface Props {
   minOrder: number;
   canOrder: boolean;
   estimatedDeliveryTime: number;
+  freeDeliveryAbove: number | null;
 }
 
 export function CheckoutClient({
   slug,
   restaurantName,
-  deliveryFee,
+  deliveryFee: baseDeliveryFee,
   minOrder,
   canOrder,
   estimatedDeliveryTime,
+  freeDeliveryAbove,
 }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -46,10 +48,14 @@ export function CheckoutClient({
 
   const relevant = cartSlug === slug ? lines : [];
   const subtotal = relevant.reduce((s, l) => s + l.price * l.quantity, 0);
+  const isFreeDelivery = freeDeliveryAbove != null && subtotal >= freeDeliveryAbove;
+  const deliveryFee = isFreeDelivery ? 0 : baseDeliveryFee;
   const total = subtotal + deliveryFee;
   const empty = relevant.length === 0;
   const belowMin = subtotal < minOrder;
   const itemsCount = relevant.reduce((n, l) => n + l.quantity, 0);
+  const remainingForFree =
+    freeDeliveryAbove != null && !isFreeDelivery ? freeDeliveryAbove - subtotal : 0;
 
   if (empty) {
     return (
@@ -231,7 +237,8 @@ export function CheckoutClient({
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">Espèces à la livraison</p>
                     <p className="text-xs text-muted-foreground">
-                      Vous payez {formatPrice(total)} au livreur à la réception.
+                      Vous payez <strong>{formatPrice(total)}</strong> au livreur à la réception
+                      {isFreeDelivery && ' (livraison offerte)'}.
                     </p>
                   </div>
                 </div>
@@ -308,13 +315,26 @@ export function CheckoutClient({
                 </ul>
 
                 <div className="space-y-2 border-t border-border p-5 text-sm">
+                  {remainingForFree > 0 && (
+                    <div className="mb-2 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+                      🎁 Encore <strong>{formatPrice(remainingForFree)}</strong> et la livraison
+                      vous est offerte !
+                    </div>
+                  )}
                   <div className="flex justify-between text-muted-foreground">
                     <span>Sous-total</span>
                     <span className="tabular-nums">{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Frais de livraison</span>
-                    <span className="tabular-nums">{formatPrice(deliveryFee)}</span>
+                    {isFreeDelivery ? (
+                      <span className="font-semibold text-success">
+                        <span className="line-through opacity-50">{formatPrice(baseDeliveryFee)}</span>{' '}
+                        Offerte
+                      </span>
+                    ) : (
+                      <span className="tabular-nums">{formatPrice(deliveryFee)}</span>
+                    )}
                   </div>
                   <div className="flex justify-between border-t border-border pt-3 font-display text-base font-bold">
                     <span>Total</span>

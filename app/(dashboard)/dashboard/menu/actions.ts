@@ -64,18 +64,21 @@ async function uploadImageIfPresent(
   return res.publicUrl;
 }
 
-const itemFormSchema = menuItemSchema.extend({
-  // category_id arrive en string vide depuis le form -> null
-});
-
 function parseItemForm(formData: FormData) {
   const rawCategory = formData.get('category_id');
   const category_id = rawCategory && String(rawCategory).length > 0 ? String(rawCategory) : null;
+
+  const promoRaw = formData.get('promo_price');
+  const promo_price =
+    promoRaw && String(promoRaw).trim() !== '' ? Number(promoRaw) : null;
+
   return menuItemSchema.safeParse({
     category_id,
     name: formData.get('name'),
     description: formData.get('description') ?? '',
     price: Number(formData.get('price')),
+    promo_price,
+    is_extra: formData.get('is_extra') === 'true',
     is_available: formData.get('is_available') !== 'false',
     sort_order: Number(formData.get('sort_order') ?? 0),
   });
@@ -183,6 +186,3 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData): Prom
   revalidatePath('/dashboard/menu');
   return { ok: true };
 }
-
-// avoid unused import lint
-void itemFormSchema;

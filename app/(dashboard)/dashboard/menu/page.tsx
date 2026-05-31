@@ -134,7 +134,17 @@ function ItemsTable({ items }: { items: MenuItem[] }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{item.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate font-semibold">{item.name}</p>
+              {item.is_extra && (
+                <Badge variant="info" className="shrink-0">Supplément</Badge>
+              )}
+              {item.promo_price != null && (
+                <Badge variant="default" className="shrink-0">
+                  -{Math.round(((item.price - item.promo_price) / item.price) * 100)}%
+                </Badge>
+              )}
+            </div>
             {item.description && (
               <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
             )}
@@ -143,9 +153,22 @@ function ItemsTable({ items }: { items: MenuItem[] }) {
             <Badge variant={item.is_available ? 'success' : 'secondary'}>
               {item.is_available ? 'Disponible' : 'Indispo'}
             </Badge>
-            <span className="hidden font-display text-sm font-bold tabular-nums sm:inline">
-              {formatPrice(item.price)}
-            </span>
+            <div className="hidden text-right sm:block">
+              {item.promo_price != null ? (
+                <>
+                  <span className="block text-[10px] text-muted-foreground line-through">
+                    {formatPrice(item.price)}
+                  </span>
+                  <span className="block font-display text-sm font-bold text-primary tabular-nums">
+                    {formatPrice(item.promo_price)}
+                  </span>
+                </>
+              ) : (
+                <span className="font-display text-sm font-bold tabular-nums">
+                  {formatPrice(item.price)}
+                </span>
+              )}
+            </div>
             <ItemRowActions item={item} />
           </div>
         </li>

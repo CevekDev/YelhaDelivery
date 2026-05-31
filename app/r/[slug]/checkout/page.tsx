@@ -11,7 +11,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
   const supabase = await createClient();
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('id, name, slug, delivery_fee, min_order, is_open, accept_orders, status, estimated_delivery_time')
+    .select('id, name, slug, delivery_fee, min_order, is_open, accept_orders, status, estimated_delivery_time, free_delivery_above')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle<Restaurant>();
@@ -26,6 +26,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
       minOrder={Number(restaurant.min_order)}
       canOrder={restaurant.is_open && restaurant.accept_orders}
       estimatedDeliveryTime={restaurant.estimated_delivery_time}
+      freeDeliveryAbove={
+        restaurant.free_delivery_above != null ? Number(restaurant.free_delivery_above) : null
+      }
     />
   );
 }

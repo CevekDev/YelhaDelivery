@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { restaurantUpdateSchema } from '@/lib/validators/restaurant';
+import { uploadMenuImage } from '@/lib/storage/upload';
 
 export interface SettingsResult {
   ok: boolean;
@@ -13,6 +14,10 @@ export interface SettingsResult {
 
 export async function updateRestaurantAction(formData: FormData): Promise<SettingsResult> {
   const { profile } = await requireRole('restaurateur');
+
+  const freeDeliveryRaw = formData.get('free_delivery_above');
+  const freeDelivery =
+    freeDeliveryRaw && String(freeDeliveryRaw).trim() !== '' ? Number(freeDeliveryRaw) : undefined;
 
   const parsed = restaurantUpdateSchema.safeParse({
     name: formData.get('name'),
@@ -26,6 +31,8 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     estimated_delivery_time: Number(formData.get('estimated_delivery_time')),
     is_open: formData.get('is_open') === 'true',
     accept_orders: formData.get('accept_orders') === 'true',
+    banner_text: formData.get('banner_text') ?? '',
+    free_delivery_above: freeDelivery && freeDelivery > 0 ? freeDelivery : undefined,
   });
 
   if (!parsed.success) {
@@ -57,13 +64,28 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     }
   }
 
-  const payload = {
+  // Upload bannière si présente
+  let bannerImageUrl: string | null | undefined;
+  const bannerFile = formData.get('banner_image');
+  if (bannerFile instanceof File && bannerFile.size > 0 && existing) {
+    const up = await uploadMenuImage(existing.id, bannerFile);
+    if ('error' in up) return { ok: false, error: up.error };
+    bannerImageUrl = up.publicUrl;
+  }
+
+  const removeBanner = formData.get('remove_banner_image') === 'true';
+
+  const payload: Record<string, unknown> = {
     ...parsed.data,
     description: parsed.data.description || null,
     address: parsed.data.address || null,
     city: parsed.data.city || null,
     phone: parsed.data.phone || null,
+    banner_text: parsed.data.banner_text || null,
+    free_delivery_above: parsed.data.free_delivery_above ?? null,
   };
+  if (removeBanner) payload.banner_image_url = null;
+  else if (bannerImageUrl !== undefined) payload.banner_image_url = bannerImageUrl;
 
   if (existing) {
     const { error } = await supabase

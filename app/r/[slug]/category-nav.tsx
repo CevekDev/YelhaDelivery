@@ -6,15 +6,23 @@ import { cn } from '@/lib/utils';
 interface Props {
   categories: { id: string; name: string }[];
   hasUncategorized: boolean;
+  hasExtras?: boolean;
+  hasPromos?: boolean;
 }
 
-export function CategoryNav({ categories, hasUncategorized }: Props) {
-  const [active, setActive] = useState<string | null>(categories[0]?.id ?? null);
+export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos }: Props) {
+  const all = [
+    ...(hasPromos ? [{ id: 'promos', name: '🏷️ Offres' }] : []),
+    ...categories.map((c) => ({ id: c.id, name: c.name })),
+    ...(hasUncategorized ? [{ id: 'other', name: 'Autres' }] : []),
+    ...(hasExtras ? [{ id: 'extras', name: 'Suppléments' }] : []),
+  ];
+
+  const [active, setActive] = useState<string | null>(all[0]?.id ?? null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
-  // Highlight la catégorie actuellement à l'écran
   useEffect(() => {
-    const ids = [...categories.map((c) => `cat-${c.id}`), ...(hasUncategorized ? ['cat-other'] : [])];
+    const ids = all.map((c) => `cat-${c.id}`);
     const sections = ids
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el !== null);
@@ -35,19 +43,14 @@ export function CategoryNav({ categories, hasUncategorized }: Props) {
 
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
-  }, [categories, hasUncategorized]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.length, hasUncategorized, hasExtras, hasPromos]);
 
-  // Scrolle le bouton actif dans la vue
   useEffect(() => {
     if (!active || !scrollerRef.current) return;
     const btn = scrollerRef.current.querySelector<HTMLAnchorElement>(`[data-cat="${active}"]`);
     btn?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [active]);
-
-  const all = [
-    ...categories.map((c) => ({ id: c.id, name: c.name })),
-    ...(hasUncategorized ? [{ id: 'other', name: 'Autres' }] : []),
-  ];
 
   return (
     <nav className="sticky top-14 z-30 border-b border-border bg-background/95 backdrop-blur">
