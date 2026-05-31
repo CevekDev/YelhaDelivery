@@ -35,11 +35,29 @@ console.log(`Connecting to ${HOST}:${PORT} as ${USER}...`);
 await client.connect();
 console.log('Connected.');
 
+// Crée la table de tracking si elle n'existe pas
+await client.query(`
+  create table if not exists public._migrations (
+    filename text primary key,
+    applied_at timestamptz not null default now()
+  );
+`);
+
 for (const file of files) {
+  const { rows } = await client.query(
+    'select 1 from public._migrations where filename = $1',
+    [file],
+  );
+  if (rows.length > 0) {
+    console.log(`[migration] ${file} — already applied, skip`);
+    continue;
+  }
+
   const sql = readFileSync(join(migrationsDir, file), 'utf-8');
   console.log(`\n[migration] ${file} (${sql.length} chars)`);
   try {
     await client.query(sql);
+    await client.query('insert into public._migrations (filename) values ($1)', [file]);
     console.log(`[migration] ${file} OK`);
   } catch (e) {
     console.error(`[migration] ${file} FAILED:`, e.message);
