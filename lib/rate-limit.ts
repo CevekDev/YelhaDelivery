@@ -12,8 +12,6 @@ interface Bucket {
 }
 
 const buckets = new Map<string, Bucket>();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -21,16 +19,24 @@ export interface RateLimitResult {
   resetInSeconds: number;
 }
 
-export function checkRateLimit(key: string): RateLimitResult {
+export interface RateLimitConfig {
+  max: number;
+  windowMs: number;
+}
+
+const LOGIN: RateLimitConfig = { max: 5, windowMs: 15 * 60 * 1000 };
+const SIGNUP: RateLimitConfig = { max: 3, windowMs: 60 * 60 * 1000 };
+
+function check(key: string, cfg: RateLimitConfig): RateLimitResult {
   const now = Date.now();
   const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt < now) {
-    buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, remaining: MAX_ATTEMPTS - 1, resetInSeconds: WINDOW_MS / 1000 };
+    buckets.set(key, { count: 1, resetAt: now + cfg.windowMs });
+    return { allowed: true, remaining: cfg.max - 1, resetInSeconds: cfg.windowMs / 1000 };
   }
 
-  if (bucket.count >= MAX_ATTEMPTS) {
+  if (bucket.count >= cfg.max) {
     return {
       allowed: false,
       remaining: 0,
@@ -41,12 +47,20 @@ export function checkRateLimit(key: string): RateLimitResult {
   bucket.count += 1;
   return {
     allowed: true,
-    remaining: MAX_ATTEMPTS - bucket.count,
+    remaining: cfg.max - bucket.count,
     resetInSeconds: Math.ceil((bucket.resetAt - now) / 1000),
   };
 }
 
-/** Réinitialise un bucket (à appeler après un login réussi). */
+export function checkRateLimit(key: string): RateLimitResult {
+  return check(key, LOGIN);
+}
+
+export function checkSignupRateLimit(key: string): RateLimitResult {
+  return check(key, SIGNUP);
+}
+
+/** Réinitialise un bucket (à appeler après une opération réussie). */
 export function resetRateLimit(key: string): void {
   buckets.delete(key);
 }

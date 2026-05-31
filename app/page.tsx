@@ -13,10 +13,10 @@ export default function LandingPage() {
           </Link>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/login">Espace restaurateur</Link>
+              <Link href="/login">Se connecter</Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="#contact">Demander une démo</Link>
+              <Link href="/register">Inscrire mon restaurant</Link>
             </Button>
           </nav>
         </div>
@@ -38,14 +38,17 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild size="lg">
-              <Link href="#contact">
-                Démarrer maintenant <ArrowRight className="h-4 w-4" />
+              <Link href="/register">
+                Inscrire mon restaurant <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href="/r/el-bahia-alger">Voir un menu démo</Link>
             </Button>
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Gratuit. Sans engagement. Configuration en 2 minutes.
+          </p>
         </div>
       </section>
 
@@ -93,11 +96,18 @@ export default function LandingPage() {
             Prêt à digitaliser votre livraison ?
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Contactez-nous pour créer votre compte restaurateur.
+            Créez votre compte en 2 minutes. Aucune carte bancaire demandée.
           </p>
-          <Button asChild size="lg" className="mt-8">
-            <a href="mailto:contact@yelha.net">contact@yelha.net</a>
-          </Button>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button asChild size="lg">
+              <Link href="/register">
+                Créer mon compte gratuit <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <a href="mailto:contact@yelha.net">Nous contacter</a>
+            </Button>
+          </div>
         </div>
       </section>
 
