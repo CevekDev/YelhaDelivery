@@ -2,13 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Bike, Settings, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  UtensilsCrossed,
+  Bike,
+  Settings,
+  LogOut,
+  Ticket,
+  Clock,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/commandes', label: 'Commandes', icon: ShoppingBag },
   { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed },
+  { href: '/dashboard/promos', label: 'Codes promo', icon: Ticket },
+  { href: '/dashboard/horaires', label: 'Horaires', icon: Clock },
   { href: '/dashboard/livreurs', label: 'Livreurs', icon: Bike },
   { href: '/dashboard/parametres', label: 'Paramètres', icon: Settings },
 ] as const;
@@ -70,11 +81,20 @@ export function Sidebar({ restaurantName }: { restaurantName: string }) {
   );
 }
 
+// Mobile bottom nav — limité aux 5 items les plus utilisés pour rester lisible
+const MOBILE_NAV = [
+  { href: '/dashboard', label: 'Vue', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/commandes', label: 'Commandes', icon: ShoppingBag },
+  { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed },
+  { href: '/dashboard/promos', label: 'Promos', icon: Ticket },
+  { href: '/dashboard/parametres', label: 'Plus', icon: Settings },
+] as const;
+
 export function BottomNav() {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card md:hidden">
-      {NAV.map((item) => {
+      {MOBILE_NAV.map((item) => {
         const Icon = item.icon;
         const active = isActive(pathname, item.href, 'exact' in item ? item.exact : false);
         return (

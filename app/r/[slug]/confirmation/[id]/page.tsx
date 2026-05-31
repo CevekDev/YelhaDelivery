@@ -22,6 +22,8 @@ interface PublicOrder {
   customer_address: string;
   subtotal: number;
   delivery_fee: number;
+  discount_amount: number;
+  promo_code: string | null;
   total: number;
   estimated_delivery_time: number;
 }
@@ -143,9 +145,23 @@ export default async function ConfirmationPage({
               <span>Sous-total</span>
               <span className="tabular-nums">{formatPrice(order.subtotal)}</span>
             </div>
+            {order.discount_amount > 0 && order.promo_code && (
+              <div className="flex justify-between text-success">
+                <span>
+                  Réduction (<code className="font-mono">{order.promo_code}</code>)
+                </span>
+                <span className="tabular-nums">−{formatPrice(order.discount_amount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-muted-foreground">
               <span>Livraison</span>
-              <span className="tabular-nums">{formatPrice(order.delivery_fee)}</span>
+              <span className="tabular-nums">
+                {order.delivery_fee === 0 ? (
+                  <span className="font-semibold text-success">Offerte</span>
+                ) : (
+                  formatPrice(order.delivery_fee)
+                )}
+              </span>
             </div>
             <div className="flex justify-between border-t border-border pt-2 font-display text-base font-bold">
               <span>Total</span>

@@ -53,6 +53,8 @@ export async function placeOrderAction(formData: FormData): Promise<CheckoutResu
 
   const supabase = await createClient();
 
+  const promoCode = String(formData.get('promo_code') ?? '').trim();
+
   // RPC : crée la commande en transaction, recalcule les prix côté serveur.
   const { data, error } = await supabase.rpc('place_order', {
     p_restaurant_slug: slug,
@@ -64,6 +66,7 @@ export async function placeOrderAction(formData: FormData): Promise<CheckoutResu
       menu_item_id: i.menu_item_id,
       quantity: i.quantity,
     })),
+    p_promo_code: promoCode || null,
   });
 
   if (error) {
@@ -148,11 +151,52 @@ async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): P
 
 function humanizeRpcError(msg: string): string {
   if (msg.includes('Restaurant indisponible')) return 'Ce restaurant n’accepte pas de commande pour le moment.';
+  if (msg.includes('Restaurant fermé')) return 'Le restaurant est fermé en ce moment.';
   if (msg.includes('Montant minimum')) return 'Montant minimum de commande non atteint.';
   if (msg.includes('Plat indisponible')) return 'Un des plats n’est plus disponible. Veuillez rafraîchir.';
   if (msg.includes('Téléphone')) return 'Numéro de téléphone invalide.';
   if (msg.includes('Nom')) return 'Nom invalide.';
   if (msg.includes('Adresse')) return 'Adresse invalide.';
   if (msg.includes('Quantité')) return 'Quantité invalide.';
+  if (msg.includes('Code promo invalide')) return 'Code promo invalide.';
+  if (msg.includes('Code promo expiré')) return 'Code promo expiré.';
+  if (msg.includes('Code promo épuisé')) return 'Code promo épuisé.';
+  if (msg.includes('Commande minimum non atteinte pour ce code'))
+    return 'Montant minimum non atteint pour ce code promo.';
   return 'Impossible de passer la commande. Réessayez.';
+}
+
+// === RPC publique : preview de la réduction (avant envoi commande) ===
+export async function validatePromoAction(
+  slug: string,
+  code: string,
+  subtotal: number,
+): Promise<
+  | { ok: true; discount: number; discountType: 'percent' | 'fixed_amount'; discountValue: number }
+  | { ok: false; reason: string }
+> {
+  if (!code.trim()) return { ok: false, reason: 'Code vide' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('validate_promo_code', {
+    p_restaurant_slug: slug,
+    p_code: code,
+    p_subtotal: subtotal,
+  });
+  if (error) return { ok: false, reason: 'Erreur de validation' };
+  type Row = {
+    ok: boolean;
+    reason: string;
+    discount_type: 'percent' | 'fixed_amount' | null;
+    discount_value: number | null;
+    discount_amount: number;
+  };
+  const row = ((data ?? []) as unknown as Row[])[0];
+  if (!row) return { ok: false, reason: 'Code invalide' };
+  if (!row.ok) return { ok: false, reason: row.reason };
+  return {
+    ok: true,
+    discount: Number(row.discount_amount),
+    discountType: row.discount_type!,
+    discountValue: Number(row.discount_value),
+  };
 }

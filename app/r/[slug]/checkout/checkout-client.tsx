@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/stores/cart';
-import { placeOrderAction } from './actions';
-import { ArrowLeft, Banknote, Clock, MapPin, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { placeOrderAction, validatePromoAction } from './actions';
+import { ArrowLeft, Banknote, Clock, MapPin, Minus, Plus, ShoppingBag, Tag, Trash2, X } from 'lucide-react';
 
 interface Props {
   slug: string;
@@ -43,6 +43,15 @@ export function CheckoutClient({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
+  // Promo state
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoPending, startPromoTransition] = useTransition();
+
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
@@ -50,12 +59,26 @@ export function CheckoutClient({
   const subtotal = relevant.reduce((s, l) => s + l.price * l.quantity, 0);
   const isFreeDelivery = freeDeliveryAbove != null && subtotal >= freeDeliveryAbove;
   const deliveryFee = isFreeDelivery ? 0 : baseDeliveryFee;
-  const total = subtotal + deliveryFee;
+  const discount = appliedPromo ? Math.min(appliedPromo.discount, subtotal) : 0;
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
   const empty = relevant.length === 0;
   const belowMin = subtotal < minOrder;
   const itemsCount = relevant.reduce((n, l) => n + l.quantity, 0);
   const remainingForFree =
     freeDeliveryAbove != null && !isFreeDelivery ? freeDeliveryAbove - subtotal : 0;
+
+  const handleApplyPromo = () => {
+    startPromoTransition(async () => {
+      setPromoError(null);
+      const res = await validatePromoAction(slug, promoInput, subtotal);
+      if (!res.ok) {
+        setPromoError(res.reason);
+        setAppliedPromo(null);
+      } else {
+        setAppliedPromo({ code: promoInput.trim().toUpperCase(), discount: res.discount });
+      }
+    });
+  };
 
   if (empty) {
     return (
@@ -120,6 +143,7 @@ export function CheckoutClient({
                       setError(null);
                       setFieldErrors({});
                       fd.set('slug', slug);
+                      if (appliedPromo) fd.set('promo_code', appliedPromo.code);
                       fd.set(
                         'items',
                         JSON.stringify(
@@ -314,27 +338,97 @@ export function CheckoutClient({
                   ))}
                 </ul>
 
-                <div className="space-y-2 border-t border-border p-5 text-sm">
+                <div className="space-y-3 border-t border-border p-5 text-sm">
+                  {/* Promo input */}
+                  {!appliedPromo ? (
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                        <Tag className="h-3.5 w-3.5" /> Code promo
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => {
+                            setPromoInput(e.target.value);
+                            setPromoError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleApplyPromo();
+                            }
+                          }}
+                          placeholder="EX: BIENVENUE20"
+                          className="h-9 flex-1 rounded-md border border-border bg-input px-2 font-mono text-xs uppercase"
+                          style={{ textTransform: 'uppercase' }}
+                          maxLength={30}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={promoPending || !promoInput.trim()}
+                          onClick={handleApplyPromo}
+                        >
+                          {promoPending ? '…' : 'Appliquer'}
+                        </Button>
+                      </div>
+                      {promoError && <p className="text-xs text-destructive">{promoError}</p>}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs">
+                      <span className="flex items-center gap-2 text-success">
+                        <Tag className="h-3.5 w-3.5" />
+                        Code <code className="font-mono font-bold">{appliedPromo.code}</code>{' '}
+                        appliqué
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppliedPromo(null);
+                          setPromoInput('');
+                          setPromoError(null);
+                        }}
+                        aria-label="Retirer le code"
+                        className="text-success hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   {remainingForFree > 0 && (
-                    <div className="mb-2 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+                    <div className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
                       🎁 Encore <strong>{formatPrice(remainingForFree)}</strong> et la livraison
                       vous est offerte !
                     </div>
                   )}
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Sous-total</span>
-                    <span className="tabular-nums">{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Frais de livraison</span>
-                    {isFreeDelivery ? (
-                      <span className="font-semibold text-success">
-                        <span className="line-through opacity-50">{formatPrice(baseDeliveryFee)}</span>{' '}
-                        Offerte
-                      </span>
-                    ) : (
-                      <span className="tabular-nums">{formatPrice(deliveryFee)}</span>
+
+                  <div className="space-y-1.5 border-t border-border pt-3">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Sous-total</span>
+                      <span className="tabular-nums">{formatPrice(subtotal)}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-success">
+                        <span>Réduction ({appliedPromo!.code})</span>
+                        <span className="tabular-nums">−{formatPrice(discount)}</span>
+                      </div>
                     )}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Frais de livraison</span>
+                      {isFreeDelivery ? (
+                        <span className="font-semibold text-success">
+                          <span className="line-through opacity-50">
+                            {formatPrice(baseDeliveryFee)}
+                          </span>{' '}
+                          Offerte
+                        </span>
+                      ) : (
+                        <span className="tabular-nums">{formatPrice(deliveryFee)}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between border-t border-border pt-3 font-display text-base font-bold">
                     <span>Total</span>

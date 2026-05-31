@@ -80,6 +80,8 @@ export interface MenuItem {
 export interface Order {
   id: string;
   order_number: string;
+  promo_code: string | null;
+  discount_amount: number;
   restaurant_id: string;
   driver_id: string | null;
   customer_name: string;
@@ -103,6 +105,32 @@ export interface OrderItem {
   item_price: number;
   quantity: number;
   subtotal: number;
+}
+
+export type PromoDiscountType = 'percent' | 'fixed_amount';
+
+export interface PromoCode {
+  id: string;
+  restaurant_id: string;
+  code: string;
+  discount_type: PromoDiscountType;
+  discount_value: number;
+  min_order: number;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface OpeningHour {
+  id: string;
+  restaurant_id: string;
+  day_of_week: number; // 1=Lun .. 7=Dim (ISO)
+  opens_at: string;    // 'HH:MM:SS'
+  closes_at: string;
+  is_closed: boolean;
+  created_at: string;
 }
 
 export interface Notification {

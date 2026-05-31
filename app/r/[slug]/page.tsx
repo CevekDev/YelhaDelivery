@@ -8,7 +8,8 @@ import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
-import type { MenuCategory, MenuItem, Restaurant } from '@/types/database';
+import type { MenuCategory, MenuItem, OpeningHour, Restaurant } from '@/types/database';
+import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ export default async function PublicRestaurantPage({
 
   if (!restaurant) notFound();
 
-  const [{ data: categories }, { data: items }] = await Promise.all([
+  const [{ data: categories }, { data: items }, { data: hours }] = await Promise.all([
     supabase
       .from('menu_categories')
       .select('*')
@@ -56,7 +57,14 @@ export default async function PublicRestaurantPage({
       .eq('restaurant_id', restaurant.id)
       .order('sort_order')
       .returns<MenuItem[]>(),
+    supabase
+      .from('opening_hours')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('day_of_week')
+      .returns<OpeningHour[]>(),
   ]);
+  const openNow = isOpenNow(hours ?? []);
 
   // Sépare plats normaux et suppléments
   const allItems = items ?? [];
@@ -71,7 +79,7 @@ export default async function PublicRestaurantPage({
     byCategory.get(k)!.push(i);
   });
 
-  const canOrder = restaurant.is_open && restaurant.accept_orders;
+  const canOrder = restaurant.is_open && restaurant.accept_orders && openNow;
   const visibleCategories = (categories ?? []).filter(
     (c) => (byCategory.get(c.id)?.length ?? 0) > 0,
   );
@@ -143,7 +151,13 @@ export default async function PublicRestaurantPage({
                     {restaurant.name}
                   </h1>
                   <Badge variant={canOrder ? 'success' : 'secondary'}>
-                    {canOrder ? '● Ouvert' : restaurant.is_open ? 'Commandes désactivées' : 'Fermé'}
+                    {canOrder
+                      ? '● Ouvert'
+                      : !restaurant.is_open
+                        ? 'Fermé'
+                        : !openNow
+                          ? 'Fermé en ce moment'
+                          : 'Commandes désactivées'}
                   </Badge>
                 </div>
                 {restaurant.description && (
@@ -208,6 +222,31 @@ export default async function PublicRestaurantPage({
               </div>
             )}
           </div>
+
+          {/* Horaires (collapsible card) */}
+          {(hours?.length ?? 0) > 0 && (
+            <details className="group mt-3 rounded-2xl border border-border bg-card shadow-card">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-3 text-sm font-semibold">
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  Horaires d&apos;ouverture
+                </span>
+                <span className="text-xs text-muted-foreground group-open:hidden">Voir</span>
+                <span className="hidden text-xs text-muted-foreground group-open:inline">Masquer</span>
+              </summary>
+              <div className="border-t border-border px-5 py-3">
+                <HoursInfo hours={hours ?? []} />
+              </div>
+            </details>
+          )}
+
+          {/* Closed-now warning */}
+          {restaurant.is_open && restaurant.accept_orders && !openNow && (hours?.length ?? 0) > 0 && (
+            <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+              ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires. Vous
+              pouvez consulter le menu mais pas commander.
+            </div>
+          )}
         </div>
       </section>
 
