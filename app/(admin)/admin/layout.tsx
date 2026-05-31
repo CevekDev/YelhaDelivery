@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
         <div className="flex h-16 items-center border-b border-border px-6">
           <Link href="/admin/dashboard" className="font-display text-lg font-bold">
-            Yelha<span className="text-primary">Dms</span> · Admin
+            Yelha <span className="text-primary">Delivery</span> · Admin
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-3">

@@ -10,7 +10,7 @@ export function getResend(): Resend | null {
 }
 
 export const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || 'YelhaDms <noreply@delivery.yelha.net>';
+  process.env.RESEND_FROM_EMAIL || 'Yelha Delivery <noreply@delivery.yelha.net>';
 
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://delivery.yelha.net';

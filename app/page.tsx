@@ -9,7 +9,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="font-display text-xl font-extrabold">
-            Yelha<span className="text-primary">Dms</span>
+            Yelha <span className="text-primary">Delivery</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
@@ -214,7 +214,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} YelhaDms. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} Yelha Delivery. Tous droits réservés.</p>
           <div className="flex gap-4">
             <Link href="/login" className="hover:text-foreground">Restaurateur</Link>
             <Link href="/livreur/login" className="hover:text-foreground">Livreur</Link>

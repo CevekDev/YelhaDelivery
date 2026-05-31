@@ -1,5 +1,5 @@
 -- =====================================================================
--- YelhaDms — Schéma initial
+-- Yelha Delivery — Schéma initial
 -- Tables, contraintes, index, RLS policies, triggers, fonctions
 -- =====================================================================
 

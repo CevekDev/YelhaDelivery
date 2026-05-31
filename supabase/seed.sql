@@ -1,5 +1,5 @@
 -- =====================================================================
--- YelhaDms — Données de seed (développement local uniquement)
+-- Yelha Delivery — Données de seed (développement local uniquement)
 -- =====================================================================
 -- ATTENTION : ce script ne crée PAS de comptes auth.users.
 -- Pour créer le compte admin :

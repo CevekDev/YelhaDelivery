@@ -5,7 +5,7 @@ import { Sparkles, ShieldCheck, Clock } from 'lucide-react';
 export const metadata = {
   title: 'Créer mon compte restaurateur',
   description:
-    'Inscrivez votre restaurant sur YelhaDms en 2 minutes. Gratuit. Paiement cash à la livraison.',
+    'Inscrivez votre restaurant sur Yelha Delivery en 2 minutes. Gratuit. Paiement cash à la livraison.',
 };
 
 export default function RegisterPage() {
@@ -14,7 +14,7 @@ export default function RegisterPage() {
       <header className="border-b border-border">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="font-display text-xl font-extrabold">
-            Yelha<span className="text-primary">Dms</span>
+            Yelha <span className="text-primary">Delivery</span>
           </Link>
           <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
             Déjà inscrit ?{' '}

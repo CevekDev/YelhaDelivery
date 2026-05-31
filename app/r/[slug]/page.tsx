@@ -72,7 +72,7 @@ export default async function PublicRestaurantPage({
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="font-display text-base font-extrabold">
-            Yelha<span className="text-primary">Dms</span>
+            Yelha <span className="text-primary">Delivery</span>
           </Link>
           <span className="truncate text-sm text-muted-foreground">
             Commander chez <strong className="text-foreground">{restaurant.name}</strong>

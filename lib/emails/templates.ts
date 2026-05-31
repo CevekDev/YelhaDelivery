@@ -5,10 +5,10 @@ const baseStyles = `
   .container { max-width: 560px; margin: 0 auto; padding: 32px 20px; }
   .card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   .brand { font-weight: 800; font-size: 22px; color: #1a1916; letter-spacing: -0.3px; }
-  .brand .accent { color: #FF6B2B; }
+  .brand .accent { color: #FF5C1A; }
   .h1 { font-size: 22px; font-weight: 700; margin: 18px 0 8px; }
   .muted { color: #777; font-size: 14px; }
-  .btn { display: inline-block; background: #FF6B2B; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; }
+  .btn { display: inline-block; background: #FF5C1A; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; }
   .row { display: flex; justify-content: space-between; padding: 6px 0; }
   table { width: 100%; border-collapse: collapse; margin: 14px 0; }
   th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
@@ -20,9 +20,9 @@ function shell(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${baseStyles}</style></head>
 <body><div class="container"><div class="card">
-  <div class="brand">Yelha<span class="accent">Dms</span></div>
+  <div class="brand">Yelha <span class="accent">Delivery</span></div>
   ${body}
-</div><p class="footer">YelhaDms · delivery.yelha.net</p></div></body></html>`;
+</div><p class="footer">Yelha Delivery · delivery.yelha.net</p></div></body></html>`;
 }
 
 function escapeHtml(s: string): string {
@@ -105,7 +105,7 @@ export function welcomeRestaurateurEmail(data: WelcomeEmailData): {
   html: string;
   text: string;
 } {
-  const subject = `Bienvenue sur YelhaDms, ${data.restaurantName}`;
+  const subject = `Bienvenue sur Yelha Delivery, ${data.restaurantName}`;
   const html = shell(
     subject,
     `

@@ -17,8 +17,8 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: {
-    default: 'YelhaDms — Livraison pour restaurants en Algérie',
-    template: '%s — YelhaDms',
+    default: 'Yelha Delivery — Livraison pour restaurants en Algérie',
+    template: '%s — Yelha Delivery',
   },
   description:
     'Plateforme de gestion de livraison pour restaurants algériens. Menu en ligne, commandes en temps réel, livreurs intégrés.',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'fr_DZ',
-    siteName: 'YelhaDms',
+    siteName: 'Yelha Delivery',
   },
   robots: { index: true, follow: true },
 };

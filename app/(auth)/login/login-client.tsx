@@ -30,7 +30,7 @@ export function LoginClient() {
     <div className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-8 animate-fade-in">
       <div className="space-y-2 text-center">
         <Link href="/" className="font-display text-2xl font-bold">
-          Yelha<span className="text-primary">Dms</span>
+          Yelha <span className="text-primary">Delivery</span>
         </Link>
         <h1 className="font-display text-2xl font-bold">Espace restaurateur</h1>
         <p className="text-sm text-muted-foreground">

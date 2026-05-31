@@ -19,7 +19,7 @@ export default function CguPage() {
         <section>
           <h2 className="font-display text-xl font-bold">1. Objet</h2>
           <p className="text-muted-foreground">
-            YelhaDms est une plateforme SaaS de gestion de livraison destinée aux restaurants
+            Yelha Delivery est une plateforme SaaS de gestion de livraison destinée aux restaurants
             algériens. Elle met à disposition un dashboard, un menu en ligne public et un espace
             livreur. L&apos;utilisation du service implique l&apos;acceptation pleine et entière
             des présentes conditions.
@@ -31,8 +31,8 @@ export default function CguPage() {
           <p className="text-muted-foreground">
             La création d&apos;un compte restaurateur est gratuite. Vous garantissez fournir des
             informations exactes (nom du restaurant, adresse, téléphone). Vous êtes responsable
-            de la confidentialité de votre mot de passe. Tout compte nouvellement créé est en
-            attente de validation par notre équipe avant d&apos;être visible publiquement.
+            de la confidentialité de votre mot de passe. Votre page publique est mise en ligne
+            dès l&apos;inscription.
           </p>
         </section>
 
@@ -50,7 +50,7 @@ export default function CguPage() {
           <h2 className="font-display text-xl font-bold">4. Paiement et commandes</h2>
           <p className="text-muted-foreground">
             Le paiement entre client et restaurant s&apos;effectue exclusivement en espèces à la
-            livraison. YelhaDms n&apos;intervient pas dans la transaction monétaire. Les
+            livraison. Yelha Delivery n&apos;intervient pas dans la transaction monétaire. Les
             informations clients (nom, téléphone, adresse) sont transmises au restaurant pour
             l&apos;exécution de la commande uniquement.
           </p>
@@ -72,7 +72,7 @@ export default function CguPage() {
         <section>
           <h2 className="font-display text-xl font-bold">6. Suspension et résiliation</h2>
           <p className="text-muted-foreground">
-            YelhaDms se réserve le droit de suspendre ou supprimer tout compte en cas de
+            Yelha Delivery se réserve le droit de suspendre ou supprimer tout compte en cas de
             violation des présentes conditions. Vous pouvez supprimer votre compte à tout moment
             sur simple demande.
           </p>
