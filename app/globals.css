@@ -4,23 +4,29 @@
 
 @layer base {
   :root {
-    /* YelhaDms — palette dark (par défaut) */
-    --primary: 18 100% 58%; /* #FF6B2B */
-    --primary-light: 19 100% 71%; /* #FF9C6B */
-    --primary-dark: 17 81% 47%; /* #D94F15 */
-    --primary-foreground: 30 50% 96%;
+    /* YelhaDms — palette light food-app (inspiré Deliveroo / UberEats) */
 
-    --bg-base: 40 13% 5%; /* #0F0E0B */
-    --bg-card: 40 8% 9%; /* #1A1916 */
-    --bg-input: 40 7% 14%; /* #252420 */
-    --border: 40 7% 17%; /* #2E2C27 */
+    /* Accent principal — orange chaleureux YelhaDms */
+    --primary: 18 100% 52%; /* #FF5C1A */
+    --primary-light: 19 100% 96%; /* fond hover ultra-clair */
+    --primary-dark: 17 90% 42%; /* #CC3D0A pour hover boutons */
+    --primary-foreground: 0 0% 100%; /* texte sur fond orange = blanc */
 
-    --text-primary: 35 50% 93%; /* #F5F0E8 */
-    --text-secondary: 35 7% 50%; /* #8A8378 */
+    /* Surfaces */
+    --bg-base: 0 0% 100%; /* blanc pur */
+    --bg-card: 0 0% 100%; /* cartes blanches */
+    --bg-input: 30 20% 98%; /* gris très légèrement chaud pour inputs */
+    --bg-muted: 30 14% 96%; /* fond de sections alternées */
+    --border: 30 10% 90%; /* bordures discrètes */
 
-    --success: 150 42% 49%; /* #4CAF82 */
-    --warning: 39 80% 53%; /* #E8A228 */
-    --error: 0 75% 61%; /* #E85050 */
+    /* Typo */
+    --text-primary: 24 10% 10%; /* presque noir, légèrement chaud */
+    --text-secondary: 25 8% 42%; /* gris medium pour textes secondaires */
+
+    /* États */
+    --success: 145 63% 38%; /* vert Uber */
+    --warning: 38 92% 50%; /* jaune ambré */
+    --error: 0 75% 50%; /* rouge classique */
   }
 
   * {
@@ -31,6 +37,7 @@
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
   }
 
   body {
@@ -38,7 +45,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-display tracking-tight;
   }
 
   /* Touch targets minimum 44x44 — accessibilité */
@@ -55,5 +62,21 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Pattern décoratif pour les zones sans photo */
+  .bg-food-pattern {
+    background-color: hsl(var(--bg-muted));
+    background-image: radial-gradient(circle at 1px 1px, hsl(var(--border)) 1px, transparent 0);
+    background-size: 16px 16px;
+  }
+
+  /* Ombre douce style food-app */
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  }
+
+  .shadow-card-hover {
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.06);
   }
 }

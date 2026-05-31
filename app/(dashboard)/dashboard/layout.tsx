@@ -32,14 +32,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             )}
           </div>
         </header>
-        {restaurant?.status === 'pending' && (
-          <div className="border-b border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning md:px-6">
-            <strong>⏳ Compte en attente d&apos;approbation.</strong> Votre page publique{' '}
-            <code className="rounded bg-warning/15 px-1">/r/{restaurant.slug}</code> sera activée
-            dès que notre équipe aura validé votre restaurant. Vous pouvez dès maintenant configurer
-            votre menu et vos livreurs.
-          </div>
-        )}
         {restaurant?.status === 'suspended' && (
           <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive md:px-6">
             <strong>⛔ Compte suspendu.</strong> Contactez le support pour réactiver votre

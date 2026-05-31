@@ -27,14 +27,14 @@ const config: Config = {
         border: 'hsl(var(--border))',
         foreground: 'hsl(var(--text-primary))',
         muted: {
-          DEFAULT: 'hsl(var(--bg-input))',
+          DEFAULT: 'hsl(var(--bg-muted))',
           foreground: 'hsl(var(--text-secondary))',
         },
         success: 'hsl(var(--success))',
         warning: 'hsl(var(--warning))',
         destructive: {
           DEFAULT: 'hsl(var(--error))',
-          foreground: 'hsl(var(--text-primary))',
+          foreground: 'hsl(0 0% 100%)',
         },
         ring: 'hsl(var(--primary))',
       },
@@ -43,6 +43,7 @@ const config: Config = {
         display: ['var(--font-syne)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
+        xl: '1rem',
         lg: '0.75rem',
         md: '0.5rem',
         sm: '0.375rem',

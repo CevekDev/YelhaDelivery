@@ -18,13 +18,26 @@ const supabaseHost = (() => {
   }
 })();
 
+const r2Host = (() => {
+  if (!process.env.R2_PUBLIC_URL) return null;
+  try {
+    return new URL(process.env.R2_PUBLIC_URL).hostname;
+  } catch {
+    return null;
+  }
+})();
+
+const remotePatterns = [
+  { protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' },
+  ...(r2Host ? [{ protocol: 'https', hostname: r2Host, pathname: '/**' }] : []),
+  { protocol: 'https', hostname: '*.r2.dev', pathname: '/**' },
+];
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' },
-    ],
+    remotePatterns,
   },
   async headers() {
     return [

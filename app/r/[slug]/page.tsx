@@ -1,11 +1,12 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MenuItemButton } from './menu-item-button';
 import { CartButton } from './cart-button';
 import { formatPrice } from '@/lib/utils';
+import { Clock, MapPin, Phone, Truck } from 'lucide-react';
 import type { MenuCategory, MenuItem, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -66,38 +67,92 @@ export default async function PublicRestaurantPage({
   const canOrder = restaurant.is_open && restaurant.accept_orders;
 
   return (
-    <main className="min-h-screen pb-32">
-      {/* Hero */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-3xl font-extrabold md:text-4xl">{restaurant.name}</h1>
-            <Badge variant={canOrder ? 'success' : 'secondary'}>
-              {canOrder ? 'Ouvert' : restaurant.is_open ? 'Commandes désactivées' : 'Fermé'}
-            </Badge>
-          </div>
-          {restaurant.description && (
-            <p className="mt-2 text-muted-foreground">{restaurant.description}</p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-            {restaurant.address && <span>📍 {restaurant.address}</span>}
-            {restaurant.city && <span>{restaurant.city}</span>}
-            {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`} className="hover:text-foreground">
-                ☎ {restaurant.phone}
-              </a>
-            )}
-            <span>🚚 {formatPrice(restaurant.delivery_fee)} de livraison</span>
-            <span>⏱ ~{restaurant.estimated_delivery_time} min</span>
-            {restaurant.min_order > 0 && <span>Min. {formatPrice(restaurant.min_order)}</span>}
-          </div>
+    <main className="min-h-screen bg-background pb-32">
+      {/* Top bar minimaliste */}
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+        <div className="container flex h-14 items-center justify-between">
+          <Link href="/" className="font-display text-base font-extrabold">
+            Yelha<span className="text-primary">Dms</span>
+          </Link>
+          <span className="truncate text-sm text-muted-foreground">
+            Commander chez <strong className="text-foreground">{restaurant.name}</strong>
+          </span>
         </div>
       </header>
 
+      {/* Hero restaurant — style Deliveroo */}
+      <section className="relative">
+        {/* Image de couverture (placeholder pattern si pas d'image) */}
+        <div className="relative h-48 w-full bg-food-pattern md:h-64">
+          {restaurant.cover_url ? (
+            <Image
+              src={restaurant.cover_url}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent" />
+          )}
+        </div>
+
+        <div className="container -mt-12 md:-mt-16">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-card md:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-display text-2xl font-extrabold md:text-3xl">
+                    {restaurant.name}
+                  </h1>
+                  <Badge variant={canOrder ? 'success' : 'secondary'}>
+                    {canOrder ? 'Ouvert' : restaurant.is_open ? 'Commandes désactivées' : 'Fermé'}
+                  </Badge>
+                </div>
+                {restaurant.description && (
+                  <p className="mt-2 text-sm text-muted-foreground">{restaurant.description}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
+              {restaurant.address && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {restaurant.address}{restaurant.city && `, ${restaurant.city}`}
+                </span>
+              )}
+              {restaurant.phone && (
+                <a href={`tel:${restaurant.phone}`} className="flex items-center gap-1.5 hover:text-foreground">
+                  <Phone className="h-4 w-4 text-primary" />
+                  {restaurant.phone}
+                </a>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Truck className="h-4 w-4 text-primary" />
+                {formatPrice(restaurant.delivery_fee)} de livraison
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-primary" />
+                ~{restaurant.estimated_delivery_time} min
+              </span>
+              {restaurant.min_order > 0 && (
+                <span>
+                  Min. <strong className="text-foreground">{formatPrice(restaurant.min_order)}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Menu */}
-      <section className="container space-y-8 py-8">
+      <section className="container mt-10 space-y-10">
         {(categories ?? []).length === 0 && !byCategory.has(null) && (
-          <p className="py-10 text-center text-sm text-muted-foreground">Menu en cours de préparation.</p>
+          <p className="rounded-xl border border-dashed border-border bg-muted py-16 text-center text-sm text-muted-foreground">
+            Menu en cours de préparation.
+          </p>
         )}
 
         {(categories ?? []).map((cat) => {
@@ -105,8 +160,8 @@ export default async function PublicRestaurantPage({
           if (list.length === 0) return null;
           return (
             <div key={cat.id}>
-              <h2 className="mb-3 font-display text-xl font-bold">{cat.name}</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <h2 className="mb-4 font-display text-xl font-extrabold md:text-2xl">{cat.name}</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((item) => (
                   <ItemCard
                     key={item.id}
@@ -122,8 +177,8 @@ export default async function PublicRestaurantPage({
 
         {byCategory.has(null) && (
           <div>
-            <h2 className="mb-3 font-display text-xl font-bold">Autres plats</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <h2 className="mb-4 font-display text-xl font-extrabold md:text-2xl">Autres plats</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {byCategory.get(null)!.map((item) => (
                 <ItemCard key={item.id} item={item} slug={slug} canOrder={canOrder} />
               ))}
@@ -132,7 +187,7 @@ export default async function PublicRestaurantPage({
         )}
       </section>
 
-      {/* Bouton panier fixe */}
+      {/* Sticky cart button bas mobile + desktop */}
       <CartButton slug={slug} deliveryFee={restaurant.delivery_fee} canOrder={canOrder} />
     </main>
   );
@@ -141,23 +196,43 @@ export default async function PublicRestaurantPage({
 function ItemCard({ item, slug, canOrder }: { item: MenuItem; slug: string; canOrder: boolean }) {
   const disabled = !item.is_available || !canOrder;
   return (
-    <Card className={`flex overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
-      {item.image_url ? (
-        <div className="relative h-28 w-28 shrink-0 sm:h-32 sm:w-32">
-          <Image src={item.image_url} alt="" fill className="object-cover" sizes="128px" />
-        </div>
-      ) : (
-        <div className="h-28 w-28 shrink-0 bg-input sm:h-32 sm:w-32" />
-      )}
-      <div className="flex flex-1 flex-col justify-between p-3">
-        <div>
-          <p className="font-medium leading-tight">{item.name}</p>
+    <article
+      className={
+        'group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover ' +
+        (disabled ? 'opacity-60' : '')
+      }
+    >
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+        {item.image_url ? (
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-food-pattern text-4xl">
+            🍽️
+          </div>
+        )}
+        {!item.is_available && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+            <span className="rounded-full bg-background px-3 py-1 text-xs font-semibold">
+              Indisponible
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex-1">
+          <h3 className="font-semibold leading-tight">{item.name}</h3>
           {item.description && (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
           )}
         </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="font-display font-bold">{formatPrice(item.price)}</span>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="font-display text-base font-bold">{formatPrice(item.price)}</span>
           <MenuItemButton
             slug={slug}
             item={{ menu_item_id: item.id, name: item.name, price: Number(item.price) }}
@@ -165,6 +240,6 @@ function ItemCard({ item, slug, canOrder }: { item: MenuItem; slug: string; canO
           />
         </div>
       </div>
-    </Card>
+    </article>
   );
 }

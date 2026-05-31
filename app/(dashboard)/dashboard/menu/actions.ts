@@ -5,12 +5,8 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
-import {
-  ALLOWED_IMAGE_TYPES,
-  MAX_IMAGE_BYTES,
-  menuCategorySchema,
-  menuItemSchema,
-} from '@/lib/validators/menu';
+import { menuCategorySchema, menuItemSchema } from '@/lib/validators/menu';
+import { uploadMenuImage } from '@/lib/storage/upload';
 
 export interface FormResult {
   ok: boolean;
@@ -63,25 +59,9 @@ async function uploadImageIfPresent(
 ): Promise<string | null | { error: string }> {
   const file = formData.get('image');
   if (!(file instanceof File) || file.size === 0) return null;
-
-  if (file.size > MAX_IMAGE_BYTES) return { error: 'Image trop volumineuse (max 5 Mo)' };
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
-    return { error: 'Type d’image non autorisé (jpg, png, webp uniquement)' };
-  }
-
-  const supabase = await createClient();
-  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
-  const path = `${restaurantId}/menu/${crypto.randomUUID()}.${ext}`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error } = await supabase.storage
-    .from('restaurant-images')
-    .upload(path, buffer, { contentType: file.type, upsert: false });
-
-  if (error) return { error: `Upload échoué : ${error.message}` };
-
-  const { data } = supabase.storage.from('restaurant-images').getPublicUrl(path);
-  return data.publicUrl;
+  const res = await uploadMenuImage(restaurantId, file);
+  if ('error' in res) return res;
+  return res.publicUrl;
 }
 
 const itemFormSchema = menuItemSchema.extend({
