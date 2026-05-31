@@ -1,8 +1,11 @@
+import Link from 'next/link';
 import { requireRestaurateur } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, PanelCard } from '@/components/dashboard/page-header';
+import { Button } from '@/components/ui/button';
 import { ItemForm } from '../item-form';
 import { createMenuItemAction } from '../actions';
+import { ArrowLeft } from 'lucide-react';
 import type { MenuCategory } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -18,15 +21,23 @@ export default async function NouveauPlatPage() {
     .returns<MenuCategory[]>();
 
   return (
-    <div className="container max-w-2xl py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Nouveau plat</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ItemForm mode="create" categories={categories ?? []} action={createMenuItemAction} />
-        </CardContent>
-      </Card>
+    <div className="container max-w-2xl space-y-6 py-6 md:py-8">
+      <PageHeader
+        eyebrow="Menu"
+        title="Nouveau plat"
+        description="Ajoutez les informations qui apparaîtront sur votre page publique."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/menu">
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Link>
+          </Button>
+        }
+      />
+      <PanelCard>
+        <ItemForm mode="create" categories={categories ?? []} action={createMenuItemAction} />
+      </PanelCard>
     </div>
   );
 }

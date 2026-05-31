@@ -1,9 +1,12 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRestaurateur } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, PanelCard } from '@/components/dashboard/page-header';
+import { Button } from '@/components/ui/button';
 import { ItemForm } from '../../item-form';
 import { updateMenuItemAction } from '../../actions';
+import { ArrowLeft } from 'lucide-react';
 import type { MenuCategory, MenuItem } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -31,20 +34,28 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
   if (!item) notFound();
 
   return (
-    <div className="container max-w-2xl py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Modifier « {item.name} »</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ItemForm
-            mode="edit"
-            categories={categories ?? []}
-            item={item}
-            action={updateMenuItemAction}
-          />
-        </CardContent>
-      </Card>
+    <div className="container max-w-2xl space-y-6 py-6 md:py-8">
+      <PageHeader
+        eyebrow="Menu"
+        title={item.name}
+        description="Modifier ce plat. Les changements sont visibles immédiatement sur votre page publique."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/menu">
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Link>
+          </Button>
+        }
+      />
+      <PanelCard>
+        <ItemForm
+          mode="edit"
+          categories={categories ?? []}
+          item={item}
+          action={updateMenuItemAction}
+        />
+      </PanelCard>
     </div>
   );
 }

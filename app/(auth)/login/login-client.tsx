@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AuthShell } from '@/components/auth-shell';
 import { loginAction, type LoginState } from './actions';
 
 const initial: LoginState = {};
@@ -14,7 +15,7 @@ const initial: LoginState = {};
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button type="submit" size="lg" disabled={pending} className="w-full">
       {pending ? 'Connexion…' : 'Se connecter'}
     </Button>
   );
@@ -27,32 +28,54 @@ export function LoginClient() {
   const errorParam = searchParams.get('error');
 
   return (
-    <div className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-8 animate-fade-in">
-      <div className="space-y-2 text-center">
-        <Link href="/" className="font-display text-2xl font-bold">
-          Yelha<span className="text-primary">Delivery</span>
-        </Link>
-        <h1 className="font-display text-2xl font-bold">Espace restaurateur</h1>
-        <p className="text-sm text-muted-foreground">
-          Connectez-vous pour gérer votre restaurant.
-        </p>
-      </div>
-
+    <AuthShell
+      title="Espace restaurateur"
+      subtitle="Connectez-vous pour gérer votre restaurant."
+      marketing={{
+        eyebrow: 'Espace restaurateur',
+        headline: (
+          <>
+            Vos commandes, <span className="text-primary">en temps réel.</span>
+          </>
+        ),
+        bullets: [
+          'Menu en ligne illimité avec photos',
+          'Commandes en temps réel + notification sonore',
+          'Gestion intégrée de vos livreurs',
+          'Cash à la livraison — 0% commission',
+        ],
+      }}
+      footer={
+        <>
+          <p className="text-muted-foreground">
+            Pas encore inscrit ?{' '}
+            <Link href="/register" className="font-semibold text-primary hover:underline">
+              Créer mon compte
+            </Link>
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <Link href="/livreur/login" className="hover:text-foreground">
+              Espace livreur →
+            </Link>
+          </p>
+        </>
+      }
+    >
       {justCreated && (
         <div
           role="status"
-          className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
+          className="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
         >
           ✓ Votre compte a été créé. Connectez-vous pour accéder à votre dashboard.
         </div>
       )}
       {errorParam === 'compte_inactif' && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Votre compte est désactivé. Contactez le support.
         </div>
       )}
       {errorParam === 'acces_refuse' && (
-        <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+        <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
           Vous n&apos;avez pas accès à cet espace.
         </div>
       )}
@@ -67,6 +90,7 @@ export function LoginClient() {
             autoComplete="email"
             required
             autoFocus
+            placeholder="vous@exemple.com"
             aria-invalid={!!state?.fieldErrors?.email}
           />
           {state?.fieldErrors?.email && (
@@ -92,7 +116,7 @@ export function LoginClient() {
         {state?.error && (
           <div
             role="alert"
-            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
             {state.error}
           </div>
@@ -100,24 +124,6 @@ export function LoginClient() {
 
         <SubmitButton />
       </form>
-
-      <div className="space-y-3 border-t border-border pt-4 text-center text-sm">
-        <p className="text-muted-foreground">
-          Pas encore de compte ?{' '}
-          <Link href="/register" className="font-semibold text-primary hover:underline">
-            Inscrire mon restaurant
-          </Link>
-        </p>
-        <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-          <Link href="/livreur/login" className="hover:text-foreground">
-            Espace livreur
-          </Link>
-          <span>·</span>
-          <Link href="/" className="hover:text-foreground">
-            ← Accueil
-          </Link>
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

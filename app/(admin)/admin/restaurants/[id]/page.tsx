@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { StatusActions } from './status-actions';
+import { ArrowLeft, ExternalLink, ShoppingBag, Bike, Truck } from 'lucide-react';
 import type { Profile, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -39,85 +41,101 @@ export default async function AdminRestaurantDetailPage({
   ]);
 
   return (
-    <div className="container max-w-3xl space-y-6 py-6">
-      <div>
-        <Link
-          href="/admin/restaurants"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Restaurants
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-2xl font-bold">{restaurant.name}</h1>
-          <Badge
-            variant={
-              restaurant.status === 'active'
-                ? 'success'
-                : restaurant.status === 'suspended'
-                  ? 'destructive'
-                  : 'warning'
-            }
-          >
-            {restaurant.status}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          <a
-            href={`/r/${restaurant.slug}`}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-foreground"
-          >
-            /r/{restaurant.slug}
-          </a>{' '}
-          · créé {formatRelativeTime(restaurant.created_at)}
-        </p>
+    <div className="container max-w-4xl space-y-6 py-6 md:py-8">
+      <PageHeader
+        eyebrow="Restaurant"
+        title={restaurant.name}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                restaurant.status === 'active'
+                  ? 'success'
+                  : restaurant.status === 'suspended'
+                    ? 'destructive'
+                    : 'warning'
+              }
+            >
+              {restaurant.status}
+            </Badge>
+            {restaurant.is_open && <Badge variant="info">ouvert</Badge>}
+            <span className="text-xs">· créé {formatRelativeTime(restaurant.created_at)}</span>
+          </span>
+        }
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/restaurants">
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/r/${restaurant.slug}`} target="_blank" rel="noreferrer">
+                Voir la page
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <Stat icon={ShoppingBag} label="Commandes (total)" value={(ordersCount ?? 0).toString()} />
+        <Stat icon={Bike} label="Livreurs" value={(livreursCount ?? 0).toString()} />
+        <Stat icon={Truck} label="Frais livraison" value={formatPrice(restaurant.delivery_fee)} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Statistiques</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Commandes (total)</p>
-            <p className="font-display text-xl font-bold">{ordersCount ?? 0}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Livreurs</p>
-            <p className="font-display text-xl font-bold">{livreursCount ?? 0}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Frais livraison</p>
-            <p className="font-display text-xl font-bold">{formatPrice(restaurant.delivery_fee)}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Propriétaire</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
+      <PanelCard padded={false}>
+        <PanelHeader title="Propriétaire" />
+        <div className="px-5 py-4 md:px-6">
           {owner ? (
-            <>
-              <p>{owner.full_name}</p>
-              <p className="text-muted-foreground">{owner.phone}</p>
-            </>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                {owner.full_name?.charAt(0).toUpperCase() ?? '?'}
+              </div>
+              <div>
+                <p className="font-semibold">{owner.full_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {owner.phone || 'Aucun téléphone'}
+                </p>
+              </div>
+            </div>
           ) : (
-            <p className="text-muted-foreground">Aucun propriétaire associé.</p>
+            <p className="text-sm text-muted-foreground">Aucun propriétaire associé.</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Modération</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Modération"
+          description="Modifier le statut du restaurant. Un statut suspendu masque le restaurant publiquement."
+        />
+        <div className="px-5 py-5 md:px-6">
           <StatusActions id={restaurant.id} current={restaurant.status} />
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof ShoppingBag;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4 shadow-card">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="mt-3 truncate font-display text-xl font-extrabold tabular-nums">{value}</p>
+      <p className="mt-0.5 truncate text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }

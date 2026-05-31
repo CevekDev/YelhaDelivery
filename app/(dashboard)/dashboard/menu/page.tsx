@@ -2,11 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { requireRestaurateur } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, UtensilsCrossed } from 'lucide-react';
 import { CategoryForm } from './category-form';
 import { ItemRowActions } from './item-row-actions';
 import type { MenuCategory, MenuItem } from '@/types/database';
@@ -39,63 +39,70 @@ export default async function MenuPage() {
     itemsByCategory.get(key)!.push(i);
   });
 
+  const totalItems = items?.length ?? 0;
+
   return (
-    <div className="container space-y-6 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Menu</h1>
-          <p className="text-sm text-muted-foreground">
-            Catégories et plats visibles sur votre page publique.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/menu/nouveau">
-            <Plus className="h-4 w-4" /> Ajouter un plat
-          </Link>
-        </Button>
-      </div>
+    <div className="container space-y-6 py-6 md:py-8">
+      <PageHeader
+        eyebrow="Menu"
+        title="Mes plats"
+        description={`${totalItems} plat${totalItems > 1 ? 's' : ''} · ${categories?.length ?? 0} catégorie${(categories?.length ?? 0) > 1 ? 's' : ''}`}
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/menu/nouveau">
+              <Plus className="h-4 w-4" />
+              Nouveau plat
+            </Link>
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catégories</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Catégories"
+          description="Regroupez vos plats par sections (Entrées, Plats, Desserts…)"
+        />
+        <div className="p-5 md:p-6">
           <CategoryForm categories={categories ?? []} />
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
 
-      <div className="space-y-6">
-        {(categories ?? []).length === 0 && (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Créez d’abord au moins une catégorie ci-dessus.
-            </CardContent>
-          </Card>
+      <div className="space-y-5">
+        {(categories ?? []).length === 0 && totalItems === 0 && (
+          <PanelCard className="py-16 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <UtensilsCrossed className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="mt-4 font-display text-lg font-bold">Votre menu est vide</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Commencez par créer une catégorie ci-dessus, puis ajoutez vos premiers plats.
+            </p>
+          </PanelCard>
         )}
 
         {(categories ?? []).map((cat) => (
-          <Card key={cat.id}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{cat.name}</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {itemsByCategory.get(cat.id)?.length ?? 0} plat(s)
-              </span>
-            </CardHeader>
-            <CardContent>
-              <ItemsTable items={itemsByCategory.get(cat.id) ?? []} />
-            </CardContent>
-          </Card>
+          <PanelCard key={cat.id} padded={false}>
+            <PanelHeader
+              title={cat.name}
+              description={`${itemsByCategory.get(cat.id)?.length ?? 0} plat(s)`}
+              actions={
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/dashboard/menu/nouveau?category=${cat.id}`}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Ajouter
+                  </Link>
+                </Button>
+              }
+            />
+            <ItemsTable items={itemsByCategory.get(cat.id) ?? []} />
+          </PanelCard>
         ))}
 
         {itemsByCategory.has(null) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sans catégorie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ItemsTable items={itemsByCategory.get(null) ?? []} />
-            </CardContent>
-          </Card>
+          <PanelCard padded={false}>
+            <PanelHeader title="Sans catégorie" />
+            <ItemsTable items={itemsByCategory.get(null) ?? []} />
+          </PanelCard>
         )}
       </div>
     </div>
@@ -104,25 +111,30 @@ export default async function MenuPage() {
 
 function ItemsTable({ items }: { items: MenuItem[] }) {
   if (items.length === 0) {
-    return <p className="py-4 text-sm text-muted-foreground">Aucun plat dans cette catégorie.</p>;
+    return (
+      <p className="px-5 py-8 text-center text-sm text-muted-foreground md:px-6">
+        Aucun plat dans cette catégorie.
+      </p>
+    );
   }
   return (
     <ul className="divide-y divide-border">
       {items.map((item) => (
-        <li key={item.id} className="flex items-center gap-4 py-3">
-          {item.image_url ? (
-            <Image
-              src={item.image_url}
-              alt=""
-              width={56}
-              height={56}
-              className="h-14 w-14 rounded-md object-cover"
-            />
-          ) : (
-            <div className="h-14 w-14 rounded-md border border-dashed border-border" />
-          )}
+        <li
+          key={item.id}
+          className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/40 md:px-6"
+        >
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+            {item.image_url ? (
+              <Image src={item.image_url} alt="" fill className="object-cover" sizes="56px" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-2xl opacity-40">
+                🍽️
+              </div>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{item.name}</p>
+            <p className="truncate font-semibold">{item.name}</p>
             {item.description && (
               <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
             )}
@@ -131,7 +143,9 @@ function ItemsTable({ items }: { items: MenuItem[] }) {
             <Badge variant={item.is_available ? 'success' : 'secondary'}>
               {item.is_available ? 'Disponible' : 'Indispo'}
             </Badge>
-            <span className="font-semibold">{formatPrice(item.price)}</span>
+            <span className="hidden font-display text-sm font-bold tabular-nums sm:inline">
+              {formatPrice(item.price)}
+            </span>
             <ItemRowActions item={item} />
           </div>
         </li>

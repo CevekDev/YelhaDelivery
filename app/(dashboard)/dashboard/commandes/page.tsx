@@ -1,5 +1,6 @@
 import { requireRestaurateur } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { PageHeader } from '@/components/dashboard/page-header';
 import { OrdersLive } from '@/components/dashboard/orders-live';
 import type { Order, Profile } from '@/types/database';
 
@@ -26,12 +27,24 @@ export default async function CommandesPage() {
       .returns<Pick<Profile, 'id' | 'full_name' | 'username'>[]>(),
   ]);
 
+  const activeCount =
+    orders?.filter((o) => !['delivered', 'cancelled'].includes(o.status)).length ?? 0;
+
   return (
-    <div className="container space-y-4 py-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Commandes</h1>
-        <p className="text-sm text-muted-foreground">Mises à jour en direct.</p>
-      </div>
+    <div className="container space-y-6 py-6 md:py-8">
+      <PageHeader
+        eyebrow="Activité"
+        title="Commandes"
+        description={
+          <span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-success" />
+              Mises à jour en direct
+            </span>{' '}
+            · {activeCount} en cours · {orders?.length ?? 0} au total
+          </span>
+        }
+      />
       <OrdersLive
         restaurantId={restaurant.id}
         initialOrders={orders ?? []}
