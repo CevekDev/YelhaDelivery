@@ -43,28 +43,32 @@ export default async function PublicRestaurantPage({
 
   if (!restaurant) notFound();
 
-  const [{ data: categories }, { data: items }, { data: hours }] = await Promise.all([
-    supabase
-      .from('menu_categories')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_visible', true)
-      .order('sort_order')
-      .returns<MenuCategory[]>(),
-    supabase
-      .from('menu_items')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('sort_order')
-      .returns<MenuItem[]>(),
-    supabase
-      .from('opening_hours')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('day_of_week')
-      .returns<OpeningHour[]>(),
-  ]);
+  const [{ data: categories }, { data: items }, { data: hours }, { data: etaData }] =
+    await Promise.all([
+      supabase
+        .from('menu_categories')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .eq('is_visible', true)
+        .order('sort_order')
+        .returns<MenuCategory[]>(),
+      supabase
+        .from('menu_items')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('sort_order')
+        .returns<MenuItem[]>(),
+      supabase
+        .from('opening_hours')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('day_of_week')
+        .returns<OpeningHour[]>(),
+      supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
+    ]);
   const openNow = isOpenNow(hours ?? []);
+  const estimatedDeliveryTime =
+    typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
   // Sépare plats normaux et suppléments
   const allItems = items ?? [];
@@ -181,7 +185,7 @@ export default async function PublicRestaurantPage({
               <InfoChip
                 icon={<Clock className="h-4 w-4" />}
                 label="Temps"
-                value={`~${restaurant.estimated_delivery_time} min`}
+                value={`~${estimatedDeliveryTime} min`}
               />
               <InfoChip
                 icon={<MapPin className="h-4 w-4" />}

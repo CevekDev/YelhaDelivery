@@ -212,7 +212,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="estimated_delivery_time">Délai (min)</Label>
+            <Label htmlFor="estimated_delivery_time">Délai initial (min)</Label>
             <Input
               id="estimated_delivery_time"
               name="estimated_delivery_time"
@@ -221,6 +221,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
               max="240"
               defaultValue={restaurant?.estimated_delivery_time ?? 30}
             />
+            <p className="text-xs text-muted-foreground">
+              S&apos;ajuste automatiquement selon le temps réel de vos livraisons (moyenne des
+              dernières commandes).
+            </p>
           </div>
         </div>
         <div className="space-y-2">

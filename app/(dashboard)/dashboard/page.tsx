@@ -27,37 +27,46 @@ export default async function DashboardHome() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [{ data: todayOrders }, { data: recentOrders }, { count: pendingCount }, { count: itemsCount }, { count: driversCount }] =
-    await Promise.all([
-      supabase
-        .from('orders')
-        .select('total, status')
-        .eq('restaurant_id', restaurant.id)
-        .gte('created_at', startOfDay.toISOString())
-        .returns<Pick<Order, 'total' | 'status'>[]>(),
-      supabase
-        .from('orders')
-        .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-        .returns<Order[]>(),
-      supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id)
-        .eq('status', 'pending'),
-      supabase
-        .from('menu_items')
-        .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id),
-      supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id)
-        .eq('role', 'livreur')
-        .eq('is_active', true),
-    ]);
+  const [
+    { data: todayOrders },
+    { data: recentOrders },
+    { count: pendingCount },
+    { count: itemsCount },
+    { count: driversCount },
+    { data: etaData },
+  ] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('total, status')
+      .eq('restaurant_id', restaurant.id)
+      .gte('created_at', startOfDay.toISOString())
+      .returns<Pick<Order, 'total' | 'status'>[]>(),
+    supabase
+      .from('orders')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .returns<Order[]>(),
+    supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id)
+      .eq('status', 'pending'),
+    supabase
+      .from('menu_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id),
+    supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id)
+      .eq('role', 'livreur')
+      .eq('is_active', true),
+    supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
+  ]);
+  const currentEta = typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
+  const etaDelta = currentEta - restaurant.estimated_delivery_time;
 
   const todayCount = todayOrders?.length ?? 0;
   const todayRevenue = (todayOrders ?? [])
@@ -116,6 +125,41 @@ export default async function DashboardHome() {
           value={deliveredToday.toString()}
         />
         <StatCard icon={TrendingUp} label="CA du jour" value={formatPrice(todayRevenue)} />
+      </div>
+
+      {/* ETA dynamique */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background p-5 shadow-card">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Temps de livraison affiché
+            </p>
+            <p className="mt-0.5 font-display text-xl font-extrabold">
+              ~{currentEta} <span className="text-sm font-normal text-muted-foreground">min</span>
+            </p>
+          </div>
+        </div>
+        <div className="text-right text-xs">
+          {etaDelta === 0 ? (
+            <span className="text-muted-foreground">
+              = baseline ({restaurant.estimated_delivery_time} min)
+            </span>
+          ) : etaDelta > 0 ? (
+            <span className="text-warning">
+              +{etaDelta} min vs baseline ({restaurant.estimated_delivery_time} min)
+            </span>
+          ) : (
+            <span className="text-success">
+              {etaDelta} min vs baseline ({restaurant.estimated_delivery_time} min)
+            </span>
+          )}
+          <p className="mt-1 text-muted-foreground">
+            Recalculé sur les 30 derniers jours
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
