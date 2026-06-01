@@ -71,10 +71,19 @@ export interface MenuItem {
   promo_price: number | null;
   is_extra: boolean;
   image_url: string | null;
+  image_urls: string[];
   is_available: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface MenuItemExtra {
+  id: string;
+  menu_item_id: string;
+  extra_item_id: string;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface Order {

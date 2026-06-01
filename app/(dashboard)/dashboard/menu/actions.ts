@@ -51,18 +51,43 @@ export async function deleteCategoryAction(formData: FormData): Promise<FormResu
   return { ok: true };
 }
 
-// ============================ Plats ============================
+// ============================ Images ============================
 
-async function uploadImageIfPresent(
+async function uploadImageFile(
   restaurantId: string,
-  formData: FormData,
-): Promise<string | null | { error: string }> {
-  const file = formData.get('image');
-  if (!(file instanceof File) || file.size === 0) return null;
+  file: File,
+): Promise<string | { error: string }> {
   const res = await uploadMenuImage(restaurantId, file);
   if ('error' in res) return res;
   return res.publicUrl;
 }
+
+/** Upload la photo principale + jusqu'à 3 photos supplémentaires. */
+async function uploadAllImages(
+  restaurantId: string,
+  formData: FormData,
+): Promise<{ mainUrl: string | null; extraUrls: string[] } | { error: string }> {
+  const mainFile = formData.get('image');
+  let mainUrl: string | null = null;
+  if (mainFile instanceof File && mainFile.size > 0) {
+    const res = await uploadImageFile(restaurantId, mainFile);
+    if (typeof res === 'object' && 'error' in res) return res;
+    mainUrl = res;
+  }
+
+  const extraUrls: string[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const file = formData.get(`image_${i}`);
+    if (!(file instanceof File) || file.size === 0) continue;
+    const res = await uploadImageFile(restaurantId, file);
+    if (typeof res === 'object' && 'error' in res) return res;
+    extraUrls.push(res);
+  }
+
+  return { mainUrl, extraUrls };
+}
+
+// ============================ Plats ============================
 
 function parseItemForm(formData: FormData) {
   const rawCategory = formData.get('category_id');
@@ -84,6 +109,30 @@ function parseItemForm(formData: FormData) {
   });
 }
 
+/** Récupère les IDs des extras cochés dans le formulaire. */
+function parseLinkedExtraIds(formData: FormData): string[] {
+  return formData.getAll('extra_ids[]').map(String).filter((v) => v.length > 0);
+}
+
+/** Synchronise la table menu_item_extras après création/mise à jour d'un plat. */
+async function syncExtras(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  menuItemId: string,
+  extraIds: string[],
+) {
+  // Supprime toutes les liaisons existantes pour ce plat
+  await supabase.from('menu_item_extras').delete().eq('menu_item_id', menuItemId);
+
+  if (extraIds.length === 0) return;
+
+  const rows = extraIds.map((extra_item_id, i) => ({
+    menu_item_id: menuItemId,
+    extra_item_id,
+    sort_order: i,
+  }));
+  await supabase.from('menu_item_extras').insert(rows);
+}
+
 export async function createMenuItemAction(formData: FormData): Promise<FormResult> {
   const { restaurant } = await requireRestaurateur();
   const parsed = parseItemForm(formData);
@@ -99,19 +148,29 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
     };
   }
 
-  const upload = await uploadImageIfPresent(restaurant.id, formData);
-  if (upload && typeof upload === 'object' && 'error' in upload) {
-    return { ok: false, error: upload.error };
-  }
+  const uploads = await uploadAllImages(restaurant.id, formData);
+  if ('error' in uploads) return { ok: false, error: uploads.error };
 
   const supabase = await createClient();
-  const { error } = await supabase.from('menu_items').insert({
-    restaurant_id: restaurant.id,
-    ...parsed.data,
-    description: parsed.data.description || null,
-    image_url: typeof upload === 'string' ? upload : null,
-  });
+  const { data: newItem, error } = await supabase
+    .from('menu_items')
+    .insert({
+      restaurant_id: restaurant.id,
+      ...parsed.data,
+      description: parsed.data.description || null,
+      image_url: uploads.mainUrl ?? null,
+      image_urls: uploads.extraUrls,
+    })
+    .select('id')
+    .single();
   if (error) return { ok: false, error: error.message };
+
+  // Si ce n'est pas un supplément lui-même, on lie les extras sélectionnés
+  if (!parsed.data.is_extra) {
+    const extraIds = parseLinkedExtraIds(formData);
+    await syncExtras(supabase, newItem.id, extraIds);
+  }
+
   revalidatePath('/dashboard/menu');
   redirect('/dashboard/menu');
 }
@@ -134,17 +193,20 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     };
   }
 
-  const upload = await uploadImageIfPresent(restaurant.id, formData);
-  if (upload && typeof upload === 'object' && 'error' in upload) {
-    return { ok: false, error: upload.error };
-  }
+  const uploads = await uploadAllImages(restaurant.id, formData);
+  if ('error' in uploads) return { ok: false, error: uploads.error };
 
   const supabase = await createClient();
+
+  // Gestion des images supplémentaires existantes
+  const keepUrlsRaw = formData.getAll('keep_image_url[]').map(String).filter(Boolean);
+
   const patch: Record<string, unknown> = {
     ...parsed.data,
     description: parsed.data.description || null,
+    image_urls: [...keepUrlsRaw, ...uploads.extraUrls],
   };
-  if (typeof upload === 'string') patch.image_url = upload;
+  if (uploads.mainUrl) patch.image_url = uploads.mainUrl;
 
   const { error } = await supabase
     .from('menu_items')
@@ -152,6 +214,13 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     .eq('id', id.data)
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
+
+  // Sync extras
+  if (!parsed.data.is_extra) {
+    const extraIds = parseLinkedExtraIds(formData);
+    await syncExtras(supabase, id.data, extraIds);
+  }
+
   revalidatePath('/dashboard/menu');
   redirect('/dashboard/menu');
 }

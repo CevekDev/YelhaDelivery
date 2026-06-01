@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
+import { X } from 'lucide-react';
 import type { MenuCategory, MenuItem } from '@/types/database';
 import type { FormResult } from './actions';
 
@@ -14,10 +16,14 @@ interface Props {
   mode: 'create' | 'edit';
   categories: MenuCategory[];
   item?: MenuItem;
+  /** Tous les suppléments/sauces du restaurant (is_extra = true) */
+  allExtras: MenuItem[];
+  /** IDs des suppléments déjà liés à ce plat */
+  linkedExtraIds: string[];
   action: (fd: FormData) => Promise<FormResult>;
 }
 
-export function ItemForm({ mode, categories, item, action }: Props) {
+export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, action }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +32,10 @@ export function ItemForm({ mode, categories, item, action }: Props) {
   const [promoPrice, setPromoPrice] = useState<string>(
     item?.promo_price != null ? String(item.promo_price) : '',
   );
+  const [isExtra, setIsExtra] = useState(item?.is_extra ?? false);
+
+  // Images supplémentaires existantes (on peut en retirer)
+  const [keptImageUrls, setKeptImageUrls] = useState<string[]>(item?.image_urls ?? []);
 
   const promoNum = promoPrice ? Number(promoPrice) : null;
   const discount =
@@ -39,6 +49,8 @@ export function ItemForm({ mode, categories, item, action }: Props) {
         startTransition(async () => {
           setError(null);
           setFieldErrors({});
+          // On transmet les URLs d'images conservées
+          keptImageUrls.forEach((url) => fd.append('keep_image_url[]', url));
           const res = await action(fd);
           if (!res.ok) {
             setError(res.error ?? null);
@@ -50,6 +62,7 @@ export function ItemForm({ mode, categories, item, action }: Props) {
     >
       {item && <input type="hidden" name="id" value={item.id} />}
 
+      {/* Nom */}
       <div className="space-y-2">
         <Label htmlFor="name">Nom du plat *</Label>
         <Input
@@ -64,6 +77,7 @@ export function ItemForm({ mode, categories, item, action }: Props) {
         {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
       </div>
 
+      {/* Prix + catégorie */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price">Prix (DA) *</Label>
@@ -99,7 +113,7 @@ export function ItemForm({ mode, categories, item, action }: Props) {
         </div>
       </div>
 
-      {/* === Promo === */}
+      {/* Promo */}
       <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="promo_price" className="flex items-center gap-2">
@@ -129,11 +143,9 @@ export function ItemForm({ mode, categories, item, action }: Props) {
             <span className="font-bold text-primary">{formatPrice(promoNum!)}</span>
           </p>
         )}
-        {fieldErrors.promo_price && (
-          <p className="text-xs text-destructive">{fieldErrors.promo_price}</p>
-        )}
       </div>
 
+      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
@@ -145,6 +157,7 @@ export function ItemForm({ mode, categories, item, action }: Props) {
         />
       </div>
 
+      {/* Ordre + dispo */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="sort_order">Ordre d&apos;affichage</Label>
@@ -171,26 +184,32 @@ export function ItemForm({ mode, categories, item, action }: Props) {
         </div>
       </div>
 
-      {/* === Supplément === */}
+      {/* Marquer comme supplément */}
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background p-4 hover:border-primary/40">
         <input
           type="checkbox"
           name="is_extra"
           value="true"
-          defaultChecked={item?.is_extra ?? false}
+          checked={isExtra}
+          onChange={(e) => setIsExtra(e.target.checked)}
           className="mt-0.5 h-4 w-4 accent-primary"
         />
         <div className="flex-1 text-sm">
           <p className="font-semibold">Marquer comme supplément / sauce</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Le plat apparaîtra dans une section « Suppléments » sur votre page publique
-            (idéal pour les sauces, accompagnements, boissons à ajouter).
+            Apparaîtra dans la section « Suppléments » et pourra être attaché à d&apos;autres plats.
           </p>
         </div>
       </label>
 
+      {/* === Photo principale === */}
       <div className="space-y-2">
-        <Label htmlFor="image">Image (jpg, png, webp — max 5 Mo)</Label>
+        <Label htmlFor="image">Photo principale (jpg, png, webp — max 5 Mo)</Label>
+        {item?.image_url && (
+          <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
+            <Image src={item.image_url} alt="" fill className="object-cover" sizes="80px" />
+          </div>
+        )}
         <Input
           id="image"
           name="image"
@@ -199,11 +218,91 @@ export function ItemForm({ mode, categories, item, action }: Props) {
           className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:text-primary-foreground"
         />
         {item?.image_url && (
-          <p className="text-xs text-muted-foreground">
-            Une image est déjà associée. Laissez vide pour la conserver.
-          </p>
+          <p className="text-xs text-muted-foreground">Laissez vide pour conserver l&apos;image actuelle.</p>
         )}
       </div>
+
+      {/* === Photos supplémentaires === */}
+      <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+        <div>
+          <p className="text-sm font-semibold">Photos supplémentaires</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Jusqu&apos;à 3 photos supplémentaires affichées dans la galerie du plat.
+          </p>
+        </div>
+
+        {/* Vignettes existantes */}
+        {keptImageUrls.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {keptImageUrls.map((url) => (
+              <div key={url} className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border">
+                <Image src={url} alt="" fill className="object-cover" sizes="64px" />
+                <button
+                  type="button"
+                  onClick={() => setKeptImageUrls((prev) => prev.filter((u) => u !== url))}
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Nouveaux fichiers */}
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-1">
+            <Label htmlFor={`image_${i}`} className="text-xs text-muted-foreground">
+              Photo {i}
+            </Label>
+            <Input
+              id={`image_${i}`}
+              name={`image_${i}`}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1 file:text-xs file:text-foreground"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* === Suppléments liés (uniquement si ce n'est pas un supplément) === */}
+      {!isExtra && allExtras.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+          <div>
+            <p className="text-sm font-semibold">Suppléments disponibles pour ce plat</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Le client pourra les ajouter à sa commande depuis la page du plat.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {allExtras.map((extra) => (
+              <label
+                key={extra.id}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40"
+              >
+                <input
+                  type="checkbox"
+                  name="extra_ids[]"
+                  value={extra.id}
+                  defaultChecked={linkedExtraIds.includes(extra.id)}
+                  className="h-4 w-4 shrink-0 accent-primary"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{extra.name}</p>
+                  <p className="text-xs text-primary">+{formatPrice(extra.promo_price ?? extra.price)}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isExtra && allExtras.length === 0 && (
+        <p className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+          Aucun supplément défini. Créez d&apos;abord un plat marqué « supplément/sauce » pour pouvoir l&apos;attacher ici.
+        </p>
+      )}
 
       {error && (
         <div

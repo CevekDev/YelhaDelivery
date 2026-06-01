@@ -2,12 +2,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { MenuItemButton } from './menu-item-button';
 import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
+import { ItemRow } from './item-row';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Truck, ChevronRight } from 'lucide-react';
-import type { MenuCategory, MenuItem, OpeningHour, Restaurant } from '@/types/database';
+import type { MenuCategory, MenuItem, MenuItemExtra, OpeningHour, Restaurant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
 export const dynamic = 'force-dynamic';
@@ -42,37 +42,56 @@ export default async function PublicRestaurantPage({
 
   if (!restaurant) notFound();
 
-  const [{ data: categories }, { data: items }, { data: hours }, { data: etaData }] =
-    await Promise.all([
-      supabase
-        .from('menu_categories')
-        .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_visible', true)
-        .order('sort_order')
-        .returns<MenuCategory[]>(),
-      supabase
-        .from('menu_items')
-        .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .order('sort_order')
-        .returns<MenuItem[]>(),
-      supabase
-        .from('opening_hours')
-        .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .order('day_of_week')
-        .returns<OpeningHour[]>(),
-      supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
-    ]);
+  const [
+    { data: categories },
+    { data: items },
+    { data: hours },
+    { data: etaData },
+    { data: extrasLinks },
+  ] = await Promise.all([
+    supabase
+      .from('menu_categories')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_visible', true)
+      .order('sort_order')
+      .returns<MenuCategory[]>(),
+    supabase
+      .from('menu_items')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('sort_order')
+      .returns<MenuItem[]>(),
+    supabase
+      .from('opening_hours')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('day_of_week')
+      .returns<OpeningHour[]>(),
+    supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
+    supabase
+      .from('menu_item_extras')
+      .select('menu_item_id, extra_item_id')
+      .returns<Pick<MenuItemExtra, 'menu_item_id' | 'extra_item_id'>[]>(),
+  ]);
+
   const openNow = isOpenNow(hours ?? []);
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
   const allItems = items ?? [];
   const regularItems = allItems.filter((i) => !i.is_extra);
-  const extras = allItems.filter((i) => i.is_extra);
+  const extrasById = new Map<string, MenuItem>(allItems.filter((i) => i.is_extra).map((e) => [e.id, e]));
   const promoItems = regularItems.filter((i) => i.promo_price != null && i.is_available);
+
+  // Build map: menu_item_id → available MenuItem[]
+  const itemExtrasMap = new Map<string, MenuItem[]>();
+  for (const link of extrasLinks ?? []) {
+    const extra = extrasById.get(link.extra_item_id);
+    if (!extra) continue;
+    if (!itemExtrasMap.has(link.menu_item_id)) itemExtrasMap.set(link.menu_item_id, []);
+    itemExtrasMap.get(link.menu_item_id)!.push(extra);
+  }
 
   const byCategory = new Map<string | null, MenuItem[]>();
   regularItems.forEach((i) => {
@@ -86,7 +105,7 @@ export default async function PublicRestaurantPage({
     (c) => (byCategory.get(c.id)?.length ?? 0) > 0,
   );
   const hasUncategorized = (byCategory.get(null)?.length ?? 0) > 0;
-  const hasExtras = extras.length > 0;
+  const hasExtras = extrasById.size > 0;
   const hasPromos = promoItems.length > 0;
 
   return (
@@ -134,10 +153,9 @@ export default async function PublicRestaurantPage({
         )}
       </div>
 
-      {/* Restaurant info card — UberEats style */}
+      {/* Restaurant info card */}
       <div className="mx-auto max-w-5xl px-4 md:px-6">
         <div className="rounded-b-2xl bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
-          {/* Name + status */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
@@ -150,17 +168,10 @@ export default async function PublicRestaurantPage({
             <span
               className={
                 'mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ' +
-                (canOrder
-                  ? 'bg-green-50 text-green-700'
-                  : 'bg-gray-100 text-gray-500')
+                (canOrder ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500')
               }
             >
-              <span
-                className={
-                  'h-1.5 w-1.5 rounded-full ' +
-                  (canOrder ? 'bg-green-500' : 'bg-gray-400')
-                }
-              />
+              <span className={'h-1.5 w-1.5 rounded-full ' + (canOrder ? 'bg-green-500' : 'bg-gray-400')} />
               {canOrder
                 ? 'Ouvert'
                 : !restaurant.is_open
@@ -171,7 +182,6 @@ export default async function PublicRestaurantPage({
             </span>
           </div>
 
-          {/* Delivery info pills */}
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4 text-sm text-gray-600">
             <div className="flex items-center gap-1.5">
               <Truck className="h-4 w-4 text-primary" />
@@ -196,10 +206,7 @@ export default async function PublicRestaurantPage({
             {restaurant.phone && (
               <>
                 <span className="text-gray-300">·</span>
-                <a
-                  href={`tel:${restaurant.phone}`}
-                  className="flex items-center gap-1.5 text-primary hover:underline"
-                >
+                <a href={`tel:${restaurant.phone}`} className="flex items-center gap-1.5 text-primary hover:underline">
                   <Phone className="h-4 w-4" />
                   <span className="font-semibold">{restaurant.phone}</span>
                 </a>
@@ -207,7 +214,6 @@ export default async function PublicRestaurantPage({
             )}
           </div>
 
-          {/* Free delivery / min order hints */}
           {(restaurant.free_delivery_above || restaurant.min_order > 0) && (
             <div className="mt-3 flex flex-wrap gap-2">
               {restaurant.free_delivery_above && (
@@ -223,7 +229,6 @@ export default async function PublicRestaurantPage({
             </div>
           )}
 
-          {/* Opening hours */}
           {(hours?.length ?? 0) > 0 && (
             <details className="group mt-4 border-t border-gray-100 pt-3">
               <summary className="flex cursor-pointer list-none items-center justify-between text-sm text-gray-500">
@@ -240,16 +245,14 @@ export default async function PublicRestaurantPage({
           )}
         </div>
 
-        {/* Closed warning */}
         {restaurant.is_open && restaurant.accept_orders && !openNow && (hours?.length ?? 0) > 0 && (
           <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires. Vous
-            pouvez consulter le menu mais pas commander.
+            ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires.
           </div>
         )}
       </div>
 
-      {/* Sticky category nav */}
+      {/* Category nav */}
       {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos) && (
         <CategoryNav
           categories={visibleCategories.map((c) => ({ id: c.id, name: c.name }))}
@@ -259,33 +262,32 @@ export default async function PublicRestaurantPage({
         />
       )}
 
-      {/* Menu content */}
+      {/* Menu */}
       <div className="mx-auto max-w-5xl space-y-2 px-4 py-4 md:px-6">
 
-        {/* Promo section */}
         {hasPromos && (
           <section id="cat-promos" className="scroll-mt-32">
-            <SectionHeader
-              icon={<Sparkles className="h-5 w-5 text-primary" />}
-              title="Offres du moment"
-              count={promoItems.length}
-            />
+            <SectionHeader icon={<Sparkles className="h-5 w-5 text-primary" />} title="Offres du moment" count={promoItems.length} />
             <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
               {promoItems.map((item) => (
-                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  slug={slug}
+                  canOrder={canOrder}
+                  availableExtras={itemExtrasMap.get(item.id) ?? []}
+                />
               ))}
             </div>
           </section>
         )}
 
-        {/* Empty state */}
         {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
           <div className="rounded-2xl bg-white py-20 text-center shadow-sm">
             <p className="text-sm font-medium text-gray-400">Menu en cours de préparation</p>
           </div>
         )}
 
-        {/* Categories */}
         {visibleCategories.map((cat) => {
           const list = byCategory.get(cat.id) ?? [];
           return (
@@ -293,36 +295,49 @@ export default async function PublicRestaurantPage({
               <SectionHeader title={cat.name} count={list.length} />
               <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
                 {list.map((item) => (
-                  <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    slug={slug}
+                    canOrder={canOrder}
+                    availableExtras={itemExtrasMap.get(item.id) ?? []}
+                  />
                 ))}
               </div>
             </section>
           );
         })}
 
-        {/* Uncategorized */}
         {hasUncategorized && (
           <section id="cat-other" className="scroll-mt-32">
             <SectionHeader title="Autres plats" count={byCategory.get(null)!.length} />
             <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
               {byCategory.get(null)!.map((item) => (
-                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  slug={slug}
+                  canOrder={canOrder}
+                  availableExtras={itemExtrasMap.get(item.id) ?? []}
+                />
               ))}
             </div>
           </section>
         )}
 
-        {/* Extras */}
         {hasExtras && (
           <section id="cat-extras" className="scroll-mt-32">
-            <SectionHeader
-              title="Suppléments"
-              subtitle="Sauces, accompagnements, boissons"
-              count={extras.length}
-            />
+            <SectionHeader title="Suppléments" subtitle="Sauces, accompagnements, boissons" count={extrasById.size} />
             <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
-              {extras.map((item) => (
-                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} extra />
+              {[...extrasById.values()].map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  slug={slug}
+                  canOrder={canOrder}
+                  availableExtras={[]}
+                  extra
+                />
               ))}
             </div>
           </section>
@@ -334,7 +349,6 @@ export default async function PublicRestaurantPage({
   );
 }
 
-/* ─── Section header ─── */
 function SectionHeader({
   icon,
   title,
@@ -356,97 +370,8 @@ function SectionHeader({
         {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
       </div>
       {count != null && (
-        <span className="text-xs text-gray-400">
-          {count} article{count > 1 ? 's' : ''}
-        </span>
+        <span className="text-xs text-gray-400">{count} article{count > 1 ? 's' : ''}</span>
       )}
-    </div>
-  );
-}
-
-/* ─── UberEats-style horizontal item row ─── */
-function UberEatsItemRow({
-  item,
-  slug,
-  canOrder,
-  extra,
-}: {
-  item: MenuItem;
-  slug: string;
-  canOrder: boolean;
-  extra?: boolean;
-}) {
-  const disabled = !item.is_available || !canOrder;
-  const activePrice = item.promo_price ?? item.price;
-  const discount =
-    item.promo_price != null
-      ? Math.round(((item.price - item.promo_price) / item.price) * 100)
-      : 0;
-
-  return (
-    <div
-      className={
-        'flex items-start gap-4 px-5 py-4 transition-colors hover:bg-gray-50 ' +
-        (disabled ? 'opacity-50' : '')
-      }
-    >
-      {/* Text content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold text-gray-900 leading-snug">{item.name}</p>
-          {discount > 0 && (
-            <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-              -{discount}%
-            </span>
-          )}
-          {!item.is_available && (
-            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
-              Indisponible
-            </span>
-          )}
-        </div>
-        {item.description && (
-          <p className="mt-1 line-clamp-2 text-sm leading-snug text-gray-500">{item.description}</p>
-        )}
-        <div className="mt-2 flex items-center gap-2">
-          <span className="font-display text-base font-extrabold text-gray-900 tabular-nums">
-            {extra ? '+' : ''}{formatPrice(activePrice)}
-          </span>
-          {item.promo_price != null && (
-            <span className="text-sm text-gray-400 line-through tabular-nums">
-              {formatPrice(item.price)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Image + button */}
-      <div className="flex shrink-0 flex-col items-center gap-2">
-        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-gray-100 md:h-24 md:w-24">
-          {item.image_url ? (
-            <Image
-              src={item.image_url}
-              alt={item.name}
-              fill
-              sizes="96px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-3xl opacity-40">
-              🍽️
-            </div>
-          )}
-        </div>
-        <MenuItemButton
-          slug={slug}
-          item={{
-            menu_item_id: item.id,
-            name: item.name,
-            price: Number(activePrice),
-          }}
-          disabled={disabled}
-        />
-      </div>
     </div>
   );
 }
