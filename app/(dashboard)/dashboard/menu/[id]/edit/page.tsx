@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ItemForm } from '../../item-form';
 import { updateMenuItemAction } from '../../actions';
 import { ArrowLeft } from 'lucide-react';
-import type { MenuCategory, MenuItem, MenuItemExtra } from '@/types/database';
+import type { MenuCategory, MenuItem, MenuItemExtra, MenuItemVariant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,7 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
   const { restaurant } = await requireRestaurateur();
   const supabase = await createClient();
 
-  const [{ data: item }, { data: categories }, { data: extras }, { data: linkedRows }] =
+  const [{ data: item }, { data: categories }, { data: extras }, { data: linkedRows }, { data: variantRows }] =
     await Promise.all([
       supabase
         .from('menu_items')
@@ -43,11 +43,18 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
         .select('extra_item_id')
         .eq('menu_item_id', id)
         .returns<Pick<MenuItemExtra, 'extra_item_id'>[]>(),
+      supabase
+        .from('menu_item_variants')
+        .select('*')
+        .eq('menu_item_id', id)
+        .order('sort_order')
+        .returns<MenuItemVariant[]>(),
     ]);
 
   if (!item) notFound();
 
   const linkedExtraIds = (linkedRows ?? []).map((r) => r.extra_item_id);
+  const existingVariants = variantRows ?? [];
 
   return (
     <div className="container max-w-2xl space-y-6 py-6 md:py-8">
@@ -71,6 +78,7 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
           item={item}
           allExtras={extras ?? []}
           linkedExtraIds={linkedExtraIds}
+          existingVariants={existingVariants}
           action={updateMenuItemAction}
         />
       </PanelCard>

@@ -14,7 +14,11 @@ export interface CheckoutResult {
 }
 
 const itemsSchema = z.array(
-  z.object({ menu_item_id: z.string().uuid(), quantity: z.number().int().min(1).max(100) }),
+  z.object({
+    menu_item_id: z.string().uuid(),
+    quantity: z.number().int().min(1).max(100),
+    variant_id: z.string().uuid().optional(),
+  }),
 );
 
 export async function placeOrderAction(formData: FormData): Promise<CheckoutResult> {
@@ -65,7 +69,8 @@ export async function placeOrderAction(formData: FormData): Promise<CheckoutResu
     p_items: parsed.data.items.map((i) => ({
       menu_item_id: i.menu_item_id,
       quantity: i.quantity,
-    })),
+      ...(i.variant_id ? { variant_id: i.variant_id } : {}),
+    } as Record<string, unknown>)),
     p_promo_code: promoCode || null,
   });
 

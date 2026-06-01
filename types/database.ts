@@ -1,6 +1,5 @@
 // =====================================================================
-// Types Supabase générés à la main (à régénérer avec `supabase gen types typescript`
-// une fois le projet Supabase connecté en CLI).
+// Types Supabase — mis à jour manuellement
 // =====================================================================
 
 export type UserRole = 'admin' | 'restaurateur' | 'livreur';
@@ -78,6 +77,16 @@ export interface MenuItem {
   updated_at: string;
 }
 
+export interface MenuItemVariant {
+  id: string;
+  menu_item_id: string;
+  name: string;
+  price: number;
+  is_available: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface MenuItemExtra {
   id: string;
   menu_item_id: string;
@@ -102,6 +111,8 @@ export interface Order {
   delivery_fee: number;
   total: number;
   notes: string | null;
+  cancellation_reason: string | null;
+  estimated_delivery_time: number;
   created_at: string;
   updated_at: string;
 }
@@ -136,9 +147,18 @@ export interface OpeningHour {
   id: string;
   restaurant_id: string;
   day_of_week: number; // 1=Lun .. 7=Dim (ISO)
-  opens_at: string;    // 'HH:MM:SS'
+  opens_at: string;   // 'HH:MM:SS'
   closes_at: string;
   is_closed: boolean;
+  created_at: string;
+}
+
+export interface OrderReview {
+  id: string;
+  order_id: string;
+  restaurant_id: string;
+  rating: number;
+  comment: string | null;
   created_at: string;
 }
 

@@ -5,39 +5,34 @@ import Image from 'next/image';
 import { Plus, Minus, X, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/stores/cart';
 import { formatPrice } from '@/lib/utils';
-import type { MenuItem } from '@/types/database';
-
-/* ─── Types partagés ─── */
-interface ItemBase {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  promo_price: number | null;
-  image_url: string | null;
-  image_urls: string[];
-  is_available: boolean;
-}
+import type { MenuItem, MenuItemVariant } from '@/types/database';
 
 /* ═══════════════════════════════════════════════════════════
    ItemRow — ligne UberEats-style
-   Affiche le plat + ouvre le modal si des extras sont liés
+   Ouvre un modal si des variantes ou des extras sont définis
 ═══════════════════════════════════════════════════════════ */
 export function ItemRow({
   item,
   slug,
   canOrder,
   availableExtras,
+  availableVariants,
   extra: isExtraItem,
 }: {
   item: MenuItem;
   slug: string;
   canOrder: boolean;
   availableExtras: MenuItem[];
+  availableVariants: MenuItemVariant[];
   extra?: boolean;
 }) {
   const [showModal, setShowModal] = useState(false);
-  const line = useCart((s) => s.lines.find((l) => l.menu_item_id === item.id));
+
+  // All cart lines for this menu_item_id (across all variants)
+  const lines = useCart((s) => s.lines.filter((l) => l.menu_item_id === item.id));
+  const totalQty = lines.reduce((n, l) => n + l.quantity, 0);
+  const singleLine = lines.length === 1 ? lines[0] : null;
+
   const add = useCart((s) => s.add);
   const setQty = useCart((s) => s.setQty);
 
@@ -49,13 +44,21 @@ export function ItemRow({
       : 0;
 
   const hasExtras = availableExtras.length > 0 && !isExtraItem;
+  const hasVariants = availableVariants.length > 0 && !isExtraItem;
+  const needsModal = hasExtras || hasVariants;
 
   const handleAdd = () => {
     if (disabled) return;
-    if (hasExtras) {
+    if (needsModal) {
       setShowModal(true);
     } else {
-      add(slug, { menu_item_id: item.id, name: item.name, price: Number(activePrice) });
+      add(slug, {
+        menu_item_id: item.id,
+        variant_id: null,
+        variant_name: null,
+        name: item.name,
+        price: Number(activePrice),
+      });
     }
   };
 
@@ -85,7 +88,12 @@ export function ItemRow({
           {item.description && (
             <p className="mt-1 line-clamp-2 text-sm leading-snug text-gray-500">{item.description}</p>
           )}
-          {hasExtras && (
+          {hasVariants && (
+            <p className="mt-1 text-xs text-primary font-medium">
+              {availableVariants.length} taille{availableVariants.length > 1 ? 's' : ''} disponible{availableVariants.length > 1 ? 's' : ''}
+            </p>
+          )}
+          {!hasVariants && hasExtras && (
             <p className="mt-1 text-xs text-primary font-medium">
               Personnalisable · {availableExtras.length} option{availableExtras.length > 1 ? 's' : ''}
             </p>
@@ -118,7 +126,6 @@ export function ItemRow({
                 🍽️
               </div>
             )}
-            {/* Indicateur multi-photos */}
             {item.image_urls.length > 0 && (
               <div className="absolute bottom-1 right-1 flex gap-0.5">
                 {item.image_urls.slice(0, 3).map((_, i) => (
@@ -129,7 +136,7 @@ export function ItemRow({
           </div>
 
           {/* Bouton add / qty */}
-          {!line ? (
+          {totalQty === 0 ? (
             <button
               type="button"
               onClick={handleAdd}
@@ -139,26 +146,42 @@ export function ItemRow({
             >
               <Plus className="h-4 w-4" />
             </button>
+          ) : hasVariants ? (
+            /* Items with variants: show total qty badge + open modal again */
+            <div className="flex items-center gap-1.5 rounded-full border-2 border-gray-900 bg-white p-0.5">
+              <span className="min-w-[44px] text-center text-sm font-bold tabular-nums text-gray-900 px-1">
+                {totalQty} ajouté{totalQty > 1 ? 's' : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                aria-label="Ajouter une autre variante"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-700"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ) : (
+            /* Simple item (no variants): inline stepper */
             <div className="flex items-center gap-1.5 rounded-full border-2 border-gray-900 bg-white p-0.5">
               <button
                 type="button"
-                onClick={() => setQty(item.id, line.quantity - 1)}
+                onClick={() => singleLine && setQty(singleLine.cart_key, singleLine.quantity - 1)}
                 aria-label="Diminuer"
                 className="flex h-7 w-7 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-gray-100"
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
               <span className="min-w-[20px] text-center text-sm font-bold tabular-nums text-gray-900">
-                {line.quantity}
+                {totalQty}
               </span>
               <button
                 type="button"
                 onClick={() => {
                   if (hasExtras) {
                     setShowModal(true);
-                  } else {
-                    setQty(item.id, line.quantity + 1);
+                  } else if (singleLine) {
+                    setQty(singleLine.cart_key, singleLine.quantity + 1);
                   }
                 }}
                 aria-label="Augmenter"
@@ -171,11 +194,12 @@ export function ItemRow({
         </div>
       </div>
 
-      {/* Modal extras */}
+      {/* Modal extras + variantes */}
       {showModal && (
-        <ExtrasModal
+        <ItemModal
           item={item}
           availableExtras={availableExtras}
+          availableVariants={availableVariants}
           slug={slug}
           canOrder={canOrder}
           onClose={() => setShowModal(false)}
@@ -186,33 +210,40 @@ export function ItemRow({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ExtrasModal — bottom sheet pour choisir les suppléments
+   ItemModal — bottom sheet variantes + suppléments
 ═══════════════════════════════════════════════════════════ */
-function ExtrasModal({
+function ItemModal({
   item,
   availableExtras,
+  availableVariants,
   slug,
   canOrder,
   onClose,
 }: {
-  item: ItemBase;
+  item: MenuItem;
   availableExtras: MenuItem[];
+  availableVariants: MenuItemVariant[];
   slug: string;
   canOrder: boolean;
   onClose: () => void;
 }) {
   const add = useCart((s) => s.add);
+  const [selectedVariant, setSelectedVariant] = useState<MenuItemVariant | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<Set<string>>(new Set());
   const [gallery, setGallery] = useState(0);
 
+  const hasVariants = availableVariants.length > 0;
   const allImages = [item.image_url, ...item.image_urls].filter(Boolean) as string[];
-  const activePrice = item.promo_price ?? item.price;
+  const basePrice = hasVariants
+    ? (selectedVariant?.price ?? null)
+    : (item.promo_price ?? item.price);
 
   const extrasTotal = availableExtras
     .filter((e) => selectedExtras.has(e.id))
     .reduce((s, e) => s + Number(e.promo_price ?? e.price), 0);
 
-  const total = Number(activePrice) + extrasTotal;
+  const total = (basePrice != null ? Number(basePrice) : 0) + extrasTotal;
+  const canConfirm = canOrder && (!hasVariants || selectedVariant !== null);
 
   const toggleExtra = (id: string) => {
     setSelectedExtras((prev) => {
@@ -223,13 +254,20 @@ function ExtrasModal({
   };
 
   const handleConfirm = () => {
-    // Ajoute le plat principal
-    add(slug, { menu_item_id: item.id, name: item.name, price: Number(activePrice) });
-    // Ajoute chaque supplément sélectionné
+    const price = hasVariants ? Number(selectedVariant!.price) : Number(item.promo_price ?? item.price);
+    add(slug, {
+      menu_item_id: item.id,
+      variant_id: selectedVariant?.id ?? null,
+      variant_name: selectedVariant?.name ?? null,
+      name: item.name,
+      price,
+    });
     availableExtras.forEach((extra) => {
       if (!selectedExtras.has(extra.id)) return;
       add(slug, {
         menu_item_id: extra.id,
+        variant_id: null,
+        variant_name: null,
         name: extra.name,
         price: Number(extra.promo_price ?? extra.price),
       });
@@ -239,16 +277,13 @@ function ExtrasModal({
 
   return (
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
 
-      {/* Sheet */}
       <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl">
-        {/* Close */}
         <button
           type="button"
           onClick={onClose}
@@ -258,7 +293,7 @@ function ExtrasModal({
           <X className="h-4 w-4" />
         </button>
 
-        {/* Galerie d'images */}
+        {/* Galerie */}
         {allImages.length > 0 && (
           <div className="relative h-52 w-full overflow-hidden bg-gray-100">
             <Image
@@ -287,78 +322,133 @@ function ExtrasModal({
         )}
 
         <div className="p-5">
-          {/* Infos plat */}
           <h2 className="font-display text-xl font-extrabold text-gray-900">{item.name}</h2>
           {item.description && (
             <p className="mt-1 text-sm text-gray-500">{item.description}</p>
           )}
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-lg font-bold text-gray-900 tabular-nums">
-              {formatPrice(activePrice)}
-            </span>
-            {item.promo_price != null && (
-              <span className="text-sm text-gray-400 line-through">{formatPrice(item.price)}</span>
-            )}
-          </div>
 
-          {/* Suppléments */}
-          <div className="mt-5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-              Ajouter des suppléments
-            </p>
-            <ul className="mt-3 divide-y divide-gray-100">
-              {availableExtras.map((extra) => {
-                const checked = selectedExtras.has(extra.id);
-                const ePrice = extra.promo_price ?? extra.price;
-                const eDisabled = !extra.is_available || !canOrder;
-                return (
-                  <li key={extra.id}>
+          {/* === Variantes === */}
+          {hasVariants && (
+            <div className="mt-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                Choisir une taille <span className="text-destructive">*</span>
+              </p>
+              <div className="mt-3 space-y-2">
+                {availableVariants.map((v) => {
+                  const selected = selectedVariant?.id === v.id;
+                  return (
                     <label
+                      key={v.id}
                       className={
-                        'flex cursor-pointer items-center gap-4 py-3 ' +
-                        (eDisabled ? 'opacity-40 cursor-not-allowed' : '')
+                        'flex cursor-pointer items-center justify-between rounded-xl border-2 px-4 py-3 transition-all ' +
+                        (selected
+                          ? 'border-gray-900 bg-gray-50'
+                          : 'border-gray-200 hover:border-gray-400')
                       }
                     >
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                        {extra.image_url ? (
-                          <Image src={extra.image_url} alt="" fill className="object-cover" sizes="56px" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xl opacity-40">🥫</div>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={
+                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ' +
+                            (selected ? 'border-gray-900 bg-gray-900' : 'border-gray-300')
+                          }
+                        >
+                          {selected && <span className="h-2 w-2 rounded-full bg-white" />}
+                        </span>
+                        <span className="font-semibold text-gray-900">{v.name}</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{extra.name}</p>
-                        {extra.description && (
-                          <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{extra.description}</p>
-                        )}
-                        <p className="mt-0.5 text-xs font-bold text-primary">+{formatPrice(ePrice)}</p>
-                      </div>
+                      <span className="font-display font-bold text-gray-900 tabular-nums">
+                        {formatPrice(v.price)}
+                      </span>
                       <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={eDisabled}
-                        onChange={() => toggleExtra(extra.id)}
-                        className="h-5 w-5 shrink-0 accent-gray-900"
+                        type="radio"
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => setSelectedVariant(v)}
                       />
                     </label>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Prix de base (quand pas de variantes) */}
+          {!hasVariants && (
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-display text-lg font-bold text-gray-900 tabular-nums">
+                {formatPrice(item.promo_price ?? item.price)}
+              </span>
+              {item.promo_price != null && (
+                <span className="text-sm text-gray-400 line-through">{formatPrice(item.price)}</span>
+              )}
+            </div>
+          )}
+
+          {/* === Suppléments === */}
+          {availableExtras.length > 0 && (
+            <div className="mt-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                Ajouter des suppléments
+              </p>
+              <ul className="mt-3 divide-y divide-gray-100">
+                {availableExtras.map((extra) => {
+                  const checked = selectedExtras.has(extra.id);
+                  const ePrice = extra.promo_price ?? extra.price;
+                  const eDisabled = !extra.is_available || !canOrder;
+                  return (
+                    <li key={extra.id}>
+                      <label
+                        className={
+                          'flex cursor-pointer items-center gap-4 py-3 ' +
+                          (eDisabled ? 'opacity-40 cursor-not-allowed' : '')
+                        }
+                      >
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                          {extra.image_url ? (
+                            <Image src={extra.image_url} alt="" fill className="object-cover" sizes="56px" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xl opacity-40">🥫</div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900">{extra.name}</p>
+                          {extra.description && (
+                            <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{extra.description}</p>
+                          )}
+                          <p className="mt-0.5 text-xs font-bold text-primary">+{formatPrice(ePrice)}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={eDisabled}
+                          onChange={() => toggleExtra(extra.id)}
+                          className="h-5 w-5 shrink-0 accent-gray-900"
+                        />
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* CTA */}
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={!canOrder}
+            disabled={!canConfirm}
             className="mt-6 flex w-full items-center justify-between rounded-xl bg-gray-900 px-5 py-4 text-white transition-all hover:bg-gray-800 active:scale-[0.99] disabled:opacity-50"
           >
             <span className="flex items-center gap-2 font-semibold">
               <ShoppingBag className="h-4 w-4" />
-              Ajouter au panier
+              {hasVariants && !selectedVariant ? 'Choisir une taille' : 'Ajouter au panier'}
             </span>
-            <span className="font-display text-base font-bold tabular-nums">{formatPrice(total)}</span>
+            {(selectedVariant || !hasVariants) && basePrice != null && (
+              <span className="font-display text-base font-bold tabular-nums">
+                {formatPrice(total)}
+              </span>
+            )}
           </button>
         </div>
       </div>

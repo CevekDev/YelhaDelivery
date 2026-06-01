@@ -16,6 +16,7 @@ interface PublicOrder {
   total: number;
   created_at: string;
   estimated_delivery_time: number;
+  cancellation_reason: string | null;
 }
 
 export default async function SuiviPage({

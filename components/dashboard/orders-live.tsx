@@ -14,6 +14,7 @@ import {
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { assignDriverAction, updateOrderStatusAction } from '@/app/(dashboard)/dashboard/commandes/actions';
 import type { Order, OrderStatus, Profile } from '@/types/database';
+import { X } from 'lucide-react';
 
 interface Props {
   restaurantId: string;
@@ -28,7 +29,6 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
   const [isPending, startTransition] = useTransition();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Beep généré dynamiquement via WebAudio (pas besoin de fichier).
   const playBeep = useCallback(() => {
     try {
       const AC =
@@ -147,95 +147,189 @@ function OrderCard({
   startTransition: (cb: () => void) => void;
 }) {
   const next = RESTAURATEUR_TRANSITIONS[order.status] ?? [];
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const handleCancel = () => {
+    const fd = new FormData();
+    fd.set('order_id', order.id);
+    fd.set('next_status', 'cancelled');
+    if (cancelReason.trim()) fd.set('cancellation_reason', cancelReason.trim());
+    startTransition(async () => {
+      await updateOrderStatusAction(fd);
+      setCancelModal(false);
+      setCancelReason('');
+    });
+  };
 
   return (
-    <Card className="animate-fade-in">
-      <CardContent className="space-y-3 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-mono text-sm font-semibold text-primary-light">{order.order_number}</p>
-            <p className="font-medium">{order.customer_name}</p>
-            <p className="text-xs text-muted-foreground">
-              {formatRelativeTime(order.created_at)} ·{' '}
-              <a href={`tel:${order.customer_phone}`} className="hover:text-foreground">
-                {order.customer_phone}
-              </a>
-            </p>
-            <p className="text-xs text-muted-foreground">{order.customer_address}</p>
-            {order.notes && (
-              <p className="mt-1 text-xs italic text-muted-foreground">« {order.notes} »</p>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
-              {ORDER_STATUS_LABELS[order.status]}
-            </Badge>
-            <p className="font-display text-lg font-bold">{formatPrice(order.total)}</p>
-          </div>
-        </div>
-
-        {/* Actions */}
-        {!['delivered', 'cancelled'].includes(order.status) && (
-          <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-            {next
-              .filter((s) => s !== 'assigned') // l'assignation passe par le select livreur ci-dessous
-              .map((s) => (
-                <form
-                  key={s}
-                  action={(fd) =>
-                    startTransition(async () => {
-                      fd.set('order_id', order.id);
-                      fd.set('next_status', s);
-                      await updateOrderStatusAction(fd);
-                    })
-                  }
-                >
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant={s === 'cancelled' ? 'destructive' : 'default'}
-                    disabled={disabled}
-                  >
-                    {ORDER_STATUS_LABELS[s]}
-                  </Button>
-                </form>
-              ))}
-
-            {/* Assigner livreur */}
-            {(order.status === 'preparing' || order.status === 'confirmed' || order.status === 'assigned') &&
-              drivers.length > 0 && (
-                <form
-                  action={(fd) =>
-                    startTransition(async () => {
-                      fd.set('order_id', order.id);
-                      await assignDriverAction(fd);
-                    })
-                  }
-                  className="flex items-center gap-2"
-                >
-                  <select
-                    name="driver_id"
-                    defaultValue={order.driver_id ?? ''}
-                    required
-                    className="h-9 rounded-md border border-border bg-input px-2 text-xs"
-                  >
-                    <option value="" disabled>
-                      Assigner à…
-                    </option>
-                    {drivers.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.full_name || d.username}
-                      </option>
-                    ))}
-                  </select>
-                  <Button type="submit" size="sm" disabled={disabled}>
-                    Assigner
-                  </Button>
-                </form>
+    <>
+      <Card className="animate-fade-in">
+        <CardContent className="space-y-3 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-mono text-sm font-semibold text-primary-light">{order.order_number}</p>
+              <p className="font-medium">{order.customer_name}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatRelativeTime(order.created_at)} ·{' '}
+                <a href={`tel:${order.customer_phone}`} className="hover:text-foreground">
+                  {order.customer_phone}
+                </a>
+              </p>
+              <p className="text-xs text-muted-foreground">{order.customer_address}</p>
+              {order.notes && (
+                <p className="mt-1 text-xs italic text-muted-foreground">« {order.notes} »</p>
               )}
+              {order.cancellation_reason && (
+                <p className="mt-1 text-xs text-destructive">
+                  Annulation : {order.cancellation_reason}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
+                {ORDER_STATUS_LABELS[order.status]}
+              </Badge>
+              <p className="font-display text-lg font-bold">{formatPrice(order.total)}</p>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Actions */}
+          {!['delivered', 'cancelled'].includes(order.status) && (
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              {next
+                .filter((s) => s !== 'assigned' && s !== 'cancelled')
+                .map((s) => (
+                  <form
+                    key={s}
+                    action={(fd) =>
+                      startTransition(async () => {
+                        fd.set('order_id', order.id);
+                        fd.set('next_status', s);
+                        await updateOrderStatusAction(fd);
+                      })
+                    }
+                  >
+                    <Button type="submit" size="sm" disabled={disabled}>
+                      {ORDER_STATUS_LABELS[s]}
+                    </Button>
+                  </form>
+                ))}
+
+              {/* Bouton annuler — ouvre modal */}
+              {next.includes('cancelled') && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={disabled}
+                  onClick={() => setCancelModal(true)}
+                >
+                  {ORDER_STATUS_LABELS['cancelled']}
+                </Button>
+              )}
+
+              {/* Assigner livreur */}
+              {(order.status === 'preparing' || order.status === 'confirmed' || order.status === 'assigned') &&
+                drivers.length > 0 && (
+                  <form
+                    action={(fd) =>
+                      startTransition(async () => {
+                        fd.set('order_id', order.id);
+                        await assignDriverAction(fd);
+                      })
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <select
+                      name="driver_id"
+                      defaultValue={order.driver_id ?? ''}
+                      required
+                      className="h-9 rounded-md border border-border bg-input px-2 text-xs"
+                    >
+                      <option value="" disabled>
+                        Assigner à…
+                      </option>
+                      {drivers.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.full_name || d.username}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" size="sm" disabled={disabled}>
+                      Assigner
+                    </Button>
+                  </form>
+                )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal d'annulation */}
+      {cancelModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            onClick={() => setCancelModal(false)}
+            aria-hidden
+          />
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Annuler la commande</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {order.order_number} · {order.customer_name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancelModal(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/70"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <label className="text-sm font-medium">
+                Raison d&apos;annulation{' '}
+                <span className="text-muted-foreground">(optionnel)</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                maxLength={500}
+                rows={3}
+                placeholder="Ex: Stock épuisé, restaurant fermé, etc."
+                className="w-full resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <Button
+                type="button"
+                variant="destructive"
+                className="flex-1"
+                disabled={disabled}
+                onClick={handleCancel}
+              >
+                Confirmer l&apos;annulation
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setCancelModal(false);
+                  setCancelReason('');
+                }}
+              >
+                Retour
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

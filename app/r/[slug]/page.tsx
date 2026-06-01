@@ -7,7 +7,7 @@ import { CategoryNav } from './category-nav';
 import { ItemRow } from './item-row';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Truck, ChevronRight } from 'lucide-react';
-import type { MenuCategory, MenuItem, MenuItemExtra, OpeningHour, Restaurant } from '@/types/database';
+import type { MenuCategory, MenuItem, MenuItemExtra, MenuItemVariant, OpeningHour, Restaurant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +48,7 @@ export default async function PublicRestaurantPage({
     { data: hours },
     { data: etaData },
     { data: extrasLinks },
+    { data: variantRows },
   ] = await Promise.all([
     supabase
       .from('menu_categories')
@@ -73,6 +74,12 @@ export default async function PublicRestaurantPage({
       .from('menu_item_extras')
       .select('menu_item_id, extra_item_id')
       .returns<Pick<MenuItemExtra, 'menu_item_id' | 'extra_item_id'>[]>(),
+    supabase
+      .from('menu_item_variants')
+      .select('*')
+      .eq('is_available', true)
+      .order('sort_order')
+      .returns<MenuItemVariant[]>(),
   ]);
 
   const openNow = isOpenNow(hours ?? []);
@@ -91,6 +98,13 @@ export default async function PublicRestaurantPage({
     if (!extra) continue;
     if (!itemExtrasMap.has(link.menu_item_id)) itemExtrasMap.set(link.menu_item_id, []);
     itemExtrasMap.get(link.menu_item_id)!.push(extra);
+  }
+
+  // Build map: menu_item_id → MenuItemVariant[]
+  const itemVariantsMap = new Map<string, MenuItemVariant[]>();
+  for (const v of variantRows ?? []) {
+    if (!itemVariantsMap.has(v.menu_item_id)) itemVariantsMap.set(v.menu_item_id, []);
+    itemVariantsMap.get(v.menu_item_id)!.push(v);
   }
 
   const byCategory = new Map<string | null, MenuItem[]>();
@@ -276,6 +290,7 @@ export default async function PublicRestaurantPage({
                   slug={slug}
                   canOrder={canOrder}
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
+                  availableVariants={itemVariantsMap.get(item.id) ?? []}
                 />
               ))}
             </div>
@@ -301,6 +316,7 @@ export default async function PublicRestaurantPage({
                     slug={slug}
                     canOrder={canOrder}
                     availableExtras={itemExtrasMap.get(item.id) ?? []}
+                    availableVariants={itemVariantsMap.get(item.id) ?? []}
                   />
                 ))}
               </div>
@@ -319,6 +335,7 @@ export default async function PublicRestaurantPage({
                   slug={slug}
                   canOrder={canOrder}
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
+                  availableVariants={itemVariantsMap.get(item.id) ?? []}
                 />
               ))}
             </div>
@@ -336,6 +353,7 @@ export default async function PublicRestaurantPage({
                   slug={slug}
                   canOrder={canOrder}
                   availableExtras={[]}
+                  availableVariants={[]}
                   extra
                 />
               ))}

@@ -150,6 +150,7 @@ export function CheckoutClient({
                           relevant.map((l) => ({
                             menu_item_id: l.menu_item_id,
                             quantity: l.quantity,
+                            ...(l.variant_id ? { variant_id: l.variant_id } : {}),
                           })),
                         ),
                       );
@@ -295,11 +296,11 @@ export function CheckoutClient({
 
                 <ul className="max-h-80 divide-y divide-border overflow-y-auto px-5">
                   {relevant.map((l) => (
-                    <li key={l.menu_item_id} className="flex items-start gap-3 py-3">
+                    <li key={l.cart_key} className="flex items-start gap-3 py-3">
                       <div className="flex shrink-0 items-center gap-1 rounded-md border border-border bg-muted p-1">
                         <button
                           type="button"
-                          onClick={() => setQty(l.menu_item_id, l.quantity - 1)}
+                          onClick={() => setQty(l.cart_key, l.quantity - 1)}
                           aria-label="Diminuer"
                           className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground"
                         >
@@ -310,7 +311,7 @@ export function CheckoutClient({
                         </span>
                         <button
                           type="button"
-                          onClick={() => setQty(l.menu_item_id, l.quantity + 1)}
+                          onClick={() => setQty(l.cart_key, l.quantity + 1)}
                           aria-label="Augmenter"
                           className="flex h-6 w-6 items-center justify-center rounded text-primary hover:bg-primary hover:text-primary-foreground"
                         >
@@ -319,6 +320,9 @@ export function CheckoutClient({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium leading-tight">{l.name}</p>
+                        {l.variant_name && (
+                          <p className="text-xs text-primary font-medium">{l.variant_name}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">{formatPrice(l.price)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -327,7 +331,7 @@ export function CheckoutClient({
                         </span>
                         <button
                           type="button"
-                          onClick={() => remove(l.menu_item_id)}
+                          onClick={() => remove(l.cart_key)}
                           aria-label="Retirer"
                           className="text-muted-foreground hover:text-destructive"
                         >

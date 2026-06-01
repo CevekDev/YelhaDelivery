@@ -8,22 +8,27 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
-import { X } from 'lucide-react';
-import type { MenuCategory, MenuItem } from '@/types/database';
+import { Plus, X } from 'lucide-react';
+import type { MenuCategory, MenuItem, MenuItemVariant } from '@/types/database';
 import type { FormResult } from './actions';
+
+interface VariantRow {
+  id?: string;
+  name: string;
+  price: string;
+}
 
 interface Props {
   mode: 'create' | 'edit';
   categories: MenuCategory[];
   item?: MenuItem;
-  /** Tous les suppléments/sauces du restaurant (is_extra = true) */
   allExtras: MenuItem[];
-  /** IDs des suppléments déjà liés à ce plat */
   linkedExtraIds: string[];
+  existingVariants?: MenuItemVariant[];
   action: (fd: FormData) => Promise<FormResult>;
 }
 
-export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, action }: Props) {
+export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, existingVariants, action }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +38,10 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
     item?.promo_price != null ? String(item.promo_price) : '',
   );
   const [isExtra, setIsExtra] = useState(item?.is_extra ?? false);
-
-  // Images supplémentaires existantes (on peut en retirer)
   const [keptImageUrls, setKeptImageUrls] = useState<string[]>(item?.image_urls ?? []);
+  const [variants, setVariants] = useState<VariantRow[]>(
+    (existingVariants ?? []).map((v) => ({ id: v.id, name: v.name, price: String(v.price) })),
+  );
 
   const promoNum = promoPrice ? Number(promoPrice) : null;
   const discount =
@@ -43,14 +49,22 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
       ? Math.round(((price - promoNum) / price) * 100)
       : 0;
 
+  const updateVariant = (i: number, field: 'name' | 'price', value: string) => {
+    setVariants((prev) => prev.map((v, idx) => (idx === i ? { ...v, [field]: value } : v)));
+  };
+
+  const removeVariant = (i: number) => {
+    setVariants((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
   return (
     <form
       action={(fd) =>
         startTransition(async () => {
           setError(null);
           setFieldErrors({});
-          // On transmet les URLs d'images conservées
           keptImageUrls.forEach((url) => fd.append('keep_image_url[]', url));
+          fd.set('variant_count', String(variants.length));
           const res = await action(fd);
           if (!res.ok) {
             setError(res.error ?? null);
@@ -202,6 +216,71 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
         </div>
       </label>
 
+      {/* === Variantes (uniquement si ce n'est pas un supplément) === */}
+      {!isExtra && (
+        <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+          <div>
+            <p className="text-sm font-semibold">Variantes (ex: Petit / Grand / XXL)</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Si des variantes sont définies, le client devra en choisir une avant d&apos;ajouter au panier.
+              Le prix de base ci-dessus sera ignoré au profit du prix de la variante.
+            </p>
+          </div>
+
+          {variants.map((v, i) => (
+            <div key={i} className="flex items-end gap-2">
+              {v.id && <input type="hidden" name={`variant_id_${i}`} value={v.id} />}
+              <div className="flex-1 space-y-1">
+                <Label htmlFor={`variant_name_${i}`} className="text-xs text-muted-foreground">
+                  Nom
+                </Label>
+                <Input
+                  id={`variant_name_${i}`}
+                  name={`variant_name_${i}`}
+                  value={v.name}
+                  onChange={(e) => updateVariant(i, 'name', e.target.value)}
+                  placeholder="Ex: Grand"
+                  maxLength={60}
+                />
+              </div>
+              <div className="w-28 space-y-1">
+                <Label htmlFor={`variant_price_${i}`} className="text-xs text-muted-foreground">
+                  Prix (DA)
+                </Label>
+                <Input
+                  id={`variant_price_${i}`}
+                  name={`variant_price_${i}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={v.price}
+                  onChange={(e) => updateVariant(i, 'price', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeVariant(i)}
+                className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10"
+                aria-label="Supprimer la variante"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setVariants((prev) => [...prev, { name: '', price: '' }])}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Ajouter une variante
+          </Button>
+        </div>
+      )}
+
       {/* === Photo principale === */}
       <div className="space-y-2">
         <Label htmlFor="image">Photo principale (jpg, png, webp — max 5 Mo)</Label>
@@ -231,7 +310,6 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
           </p>
         </div>
 
-        {/* Vignettes existantes */}
         {keptImageUrls.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {keptImageUrls.map((url) => (
@@ -249,7 +327,6 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
           </div>
         )}
 
-        {/* Nouveaux fichiers */}
         {[1, 2, 3].map((i) => (
           <div key={i} className="space-y-1">
             <Label htmlFor={`image_${i}`} className="text-xs text-muted-foreground">
@@ -266,7 +343,7 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ac
         ))}
       </div>
 
-      {/* === Suppléments liés (uniquement si ce n'est pas un supplément) === */}
+      {/* === Suppléments liés === */}
       {!isExtra && allExtras.length > 0 && (
         <div className="space-y-3 rounded-xl border border-border bg-background p-4">
           <div>

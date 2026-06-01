@@ -18,6 +18,7 @@ const updateSchema = z.object({
     'delivered',
     'cancelled',
   ]),
+  cancellation_reason: z.string().max(500).optional(),
 });
 
 const assignSchema = z.object({
@@ -35,6 +36,7 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
   const parsed = updateSchema.safeParse({
     order_id: formData.get('order_id'),
     next_status: formData.get('next_status'),
+    cancellation_reason: formData.get('cancellation_reason') ?? undefined,
   });
   if (!parsed.success) return { ok: false, error: 'Requête invalide' };
 
@@ -60,9 +62,14 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
     return { ok: false, error: 'Commande déjà livrée' };
   }
 
+  const updatePayload: Record<string, unknown> = { status: parsed.data.next_status };
+  if (parsed.data.next_status === 'cancelled' && parsed.data.cancellation_reason?.trim()) {
+    updatePayload.cancellation_reason = parsed.data.cancellation_reason.trim();
+  }
+
   const { error } = await supabase
     .from('orders')
-    .update({ status: parsed.data.next_status })
+    .update(updatePayload)
     .eq('id', parsed.data.order_id);
 
   if (error) return { ok: false, error: error.message };

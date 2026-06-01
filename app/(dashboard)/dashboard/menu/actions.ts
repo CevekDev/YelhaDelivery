@@ -114,6 +114,38 @@ function parseLinkedExtraIds(formData: FormData): string[] {
   return formData.getAll('extra_ids[]').map(String).filter((v) => v.length > 0);
 }
 
+/** Parse les variantes soumises dans le formulaire. */
+function parseVariants(formData: FormData): Array<{ id?: string; name: string; price: number }> {
+  const count = Number(formData.get('variant_count') ?? 0);
+  const result: Array<{ id?: string; name: string; price: number }> = [];
+  for (let i = 0; i < count; i++) {
+    const name = String(formData.get(`variant_name_${i}`) ?? '').trim();
+    const price = Number(formData.get(`variant_price_${i}`) ?? 0);
+    if (!name) continue;
+    const idRaw = formData.get(`variant_id_${i}`);
+    result.push({ id: idRaw ? String(idRaw) : undefined, name, price });
+  }
+  return result;
+}
+
+/** Synchronise menu_item_variants (delete + reinsert). */
+async function syncVariants(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  menuItemId: string,
+  variants: Array<{ id?: string; name: string; price: number }>,
+) {
+  await supabase.from('menu_item_variants').delete().eq('menu_item_id', menuItemId);
+  if (variants.length === 0) return;
+  await supabase.from('menu_item_variants').insert(
+    variants.map((v, i) => ({
+      menu_item_id: menuItemId,
+      name: v.name,
+      price: v.price,
+      sort_order: i,
+    })),
+  );
+}
+
 /** Synchronise la table menu_item_extras après création/mise à jour d'un plat. */
 async function syncExtras(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -165,10 +197,11 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
     .single();
   if (error) return { ok: false, error: error.message };
 
-  // Si ce n'est pas un supplément lui-même, on lie les extras sélectionnés
   if (!parsed.data.is_extra) {
     const extraIds = parseLinkedExtraIds(formData);
     await syncExtras(supabase, newItem.id, extraIds);
+    const variants = parseVariants(formData);
+    await syncVariants(supabase, newItem.id, variants);
   }
 
   revalidatePath('/dashboard/menu');
@@ -215,10 +248,11 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
-  // Sync extras
   if (!parsed.data.is_extra) {
     const extraIds = parseLinkedExtraIds(formData);
     await syncExtras(supabase, id.data, extraIds);
+    const variants = parseVariants(formData);
+    await syncVariants(supabase, id.data, variants);
   }
 
   revalidatePath('/dashboard/menu');

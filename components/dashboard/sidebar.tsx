@@ -11,6 +11,8 @@ import {
   LogOut,
   Ticket,
   Clock,
+  BarChart2,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +23,8 @@ const NAV = [
   { href: '/dashboard/promos', label: 'Codes promo', icon: Ticket },
   { href: '/dashboard/horaires', label: 'Horaires', icon: Clock },
   { href: '/dashboard/livreurs', label: 'Livreurs', icon: Bike },
+  { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart2 },
+  { href: '/dashboard/avis', label: 'Avis clients', icon: Star },
   { href: '/dashboard/parametres', label: 'Paramètres', icon: Settings },
 ] as const;
 
