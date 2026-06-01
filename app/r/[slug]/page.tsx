@@ -2,12 +2,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Badge } from '@/components/ui/badge';
 import { MenuItemButton } from './menu-item-button';
 import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
 import { formatPrice } from '@/lib/utils';
-import { Clock, MapPin, Phone, Sparkles, Star, Truck, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, Phone, Sparkles, Truck, ChevronRight } from 'lucide-react';
 import type { MenuCategory, MenuItem, OpeningHour, Restaurant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
