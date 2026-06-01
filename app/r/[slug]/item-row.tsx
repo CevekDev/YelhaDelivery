@@ -127,9 +127,9 @@ export function ItemRow({
                 🍽️
               </div>
             )}
-            {item.image_urls.length > 0 && (
+            {(item.image_urls?.length ?? 0) > 0 && (
               <div className="absolute bottom-1 right-1 flex gap-0.5">
-                {item.image_urls.slice(0, 3).map((_, i) => (
+                {item.image_urls!.slice(0, 3).map((_, i) => (
                   <span key={i} className="h-1.5 w-1.5 rounded-full bg-white/80 shadow" />
                 ))}
               </div>
@@ -234,7 +234,7 @@ function ItemModal({
   const [gallery, setGallery] = useState(0);
 
   const hasVariants = availableVariants.length > 0;
-  const allImages = [item.image_url, ...item.image_urls].filter(Boolean) as string[];
+  const allImages = [item.image_url, ...(item.image_urls ?? [])].filter(Boolean) as string[];
   const basePrice = hasVariants
     ? (selectedVariant?.price ?? null)
     : (item.promo_price ?? item.price);
