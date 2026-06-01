@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Plus, Minus, X, ShoppingBag } from 'lucide-react';
+import { useShallow } from 'zustand/shallow';
 import { useCart } from '@/stores/cart';
 import { formatPrice } from '@/lib/utils';
 import type { MenuItem, MenuItemVariant } from '@/types/database';
@@ -29,7 +30,7 @@ export function ItemRow({
   const [showModal, setShowModal] = useState(false);
 
   // All cart lines for this menu_item_id (across all variants)
-  const lines = useCart((s) => s.lines.filter((l) => l.menu_item_id === item.id));
+  const lines = useCart(useShallow((s) => s.lines.filter((l) => l.menu_item_id === item.id)));
   const totalQty = lines.reduce((n, l) => n + l.quantity, 0);
   const singleLine = lines.length === 1 ? lines[0] : null;
 
