@@ -119,7 +119,7 @@ export default async function PublicRestaurantPage({
       )}
 
       {/* Hero cover */}
-      <div className="relative h-52 w-full overflow-hidden bg-gray-200 md:h-72">
+      <div className="relative h-48 w-full overflow-hidden bg-gray-200 md:h-64">
         {restaurant.cover_url ? (
           <Image
             src={restaurant.cover_url}
@@ -132,12 +132,11 @@ export default async function PublicRestaurantPage({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/20 to-primary/5" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
       </div>
 
       {/* Restaurant info card — UberEats style */}
       <div className="mx-auto max-w-5xl px-4 md:px-6">
-        <div className="-mt-6 rounded-2xl bg-white px-5 py-5 shadow-md md:-mt-10 md:px-8 md:py-7">
+        <div className="rounded-b-2xl bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
           {/* Name + status */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

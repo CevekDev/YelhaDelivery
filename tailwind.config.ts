@@ -39,8 +39,8 @@ const config: Config = {
         ring: 'hsl(var(--primary))',
       },
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-syne)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '1rem',
