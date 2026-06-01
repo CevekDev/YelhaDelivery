@@ -38,8 +38,7 @@ export function HoursInfo({ hours, compact }: Props) {
     byDay.get(h.day_of_week)!.push(h);
   });
 
-  // ISO day of week côté client : Lun=1, ... Dim=7
-  const today = ((new Date().getDay() + 6) % 7) + 1; // JS getDay : 0=Dim → ISO 7
+  const today = nowInAlgeria().dow;
 
   return (
     <ul className={compact ? 'space-y-0.5 text-xs' : 'divide-y divide-border'}>
@@ -81,12 +80,32 @@ export function HoursInfo({ hours, compact }: Props) {
   );
 }
 
-/** Calcule côté client si on est dans les horaires maintenant. */
+const TIMEZONE = 'Africa/Algiers';
+
+/** Retourne {dow (ISO Mon=1…Sun=7), t ("HH:MM:SS")} dans le fuseau Algérie. */
+function nowInAlgeria(): { dow: number; t: string } {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const JS_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const jsDay = JS_DAYS.indexOf(get('weekday'));
+  const dow = ((jsDay + 6) % 7) + 1; // ISO Mon=1 … Sun=7
+  const t = `${get('hour').padStart(2, '0')}:${get('minute').padStart(2, '0')}:${get('second').padStart(2, '0')}`;
+  return { dow, t };
+}
+
+/** Calcule si on est dans les horaires maintenant (fuseau Algérie). */
 export function isOpenNow(hours: OpeningHour[]): boolean {
   if (hours.length === 0) return true;
-  const now = new Date();
-  const dow = ((now.getDay() + 6) % 7) + 1; // ISO
-  const t = now.toTimeString().slice(0, 8); // HH:MM:SS
+  const { dow, t } = nowInAlgeria();
   return hours.some(
     (h) =>
       h.day_of_week === dow &&
