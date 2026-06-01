@@ -7,7 +7,7 @@ import { MenuItemButton } from './menu-item-button';
 import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
 import { formatPrice } from '@/lib/utils';
-import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
+import { Clock, MapPin, Phone, Sparkles, Star, Truck, ChevronRight } from 'lucide-react';
 import type { MenuCategory, MenuItem, OpeningHour, Restaurant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
@@ -70,7 +70,6 @@ export default async function PublicRestaurantPage({
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
-  // Sépare plats normaux et suppléments
   const allItems = items ?? [];
   const regularItems = allItems.filter((i) => !i.is_extra);
   const extras = allItems.filter((i) => i.is_extra);
@@ -92,167 +91,165 @@ export default async function PublicRestaurantPage({
   const hasPromos = promoItems.length > 0;
 
   return (
-    <main className="min-h-screen bg-background pb-32">
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="container flex h-14 items-center justify-between">
+    <main className="min-h-screen bg-[#f6f6f6] pb-32">
+      {/* Top nav */}
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="font-display text-base font-extrabold">
             Yelha<span className="text-primary">Delivery</span>
           </Link>
-          <span className="hidden truncate text-sm text-muted-foreground sm:block">
-            Commander chez <strong className="text-foreground">{restaurant.name}</strong>
+          <span className="hidden truncate text-sm text-gray-500 sm:block">
+            <strong className="text-gray-900">{restaurant.name}</strong>
           </span>
         </div>
       </header>
 
-      {/* Bannière promotionnelle (si configurée) */}
+      {/* Promotional banner */}
       {(restaurant.banner_text || restaurant.banner_image_url) && (
-        <div className="border-b border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-          <div className="container flex items-center gap-4 py-3">
+        <div className="bg-primary/5 border-b border-primary/10">
+          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 md:px-6">
             {restaurant.banner_image_url && (
-              <div className="relative hidden h-12 w-20 shrink-0 overflow-hidden rounded sm:block">
-                <Image
-                  src={restaurant.banner_image_url}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="80px"
-                />
+              <div className="relative hidden h-10 w-16 shrink-0 overflow-hidden rounded sm:block">
+                <Image src={restaurant.banner_image_url} alt="" fill className="object-cover" sizes="64px" />
               </div>
             )}
-            <div className="flex min-w-0 items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-              <p className="truncate text-sm font-semibold">{restaurant.banner_text}</p>
-            </div>
+            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+            <p className="truncate text-sm font-semibold text-primary">{restaurant.banner_text}</p>
           </div>
         </div>
       )}
 
-      {/* Hero restaurant */}
-      <section className="relative">
-        <div className="relative h-56 w-full overflow-hidden bg-food-pattern md:h-72">
-          {restaurant.cover_url ? (
-            <Image
-              src={restaurant.cover_url}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
-        </div>
+      {/* Hero cover */}
+      <div className="relative h-52 w-full overflow-hidden bg-gray-200 md:h-72">
+        {restaurant.cover_url ? (
+          <Image
+            src={restaurant.cover_url}
+            alt={restaurant.name}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/20 to-primary/5" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+      </div>
 
-        <div className="container -mt-20 md:-mt-24">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-card md:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-                    {restaurant.name}
-                  </h1>
-                  <Badge variant={canOrder ? 'success' : 'secondary'}>
-                    {canOrder
-                      ? '● Ouvert'
-                      : !restaurant.is_open
-                        ? 'Fermé'
-                        : !openNow
-                          ? 'Fermé en ce moment'
-                          : 'Commandes désactivées'}
-                  </Badge>
-                </div>
-                {restaurant.description && (
-                  <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-                    {restaurant.description}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 text-sm md:grid-cols-4">
-              <InfoChip
-                icon={<Truck className="h-4 w-4" />}
-                label="Livraison"
-                value={
-                  restaurant.delivery_fee === 0
-                    ? 'Gratuite'
-                    : formatPrice(restaurant.delivery_fee)
-                }
-              />
-              <InfoChip
-                icon={<Clock className="h-4 w-4" />}
-                label="Temps"
-                value={`~${estimatedDeliveryTime} min`}
-              />
-              <InfoChip
-                icon={<MapPin className="h-4 w-4" />}
-                label="Adresse"
-                value={restaurant.city || restaurant.address || '—'}
-              />
-              {restaurant.phone ? (
-                <a
-                  href={`tel:${restaurant.phone}`}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5 transition-colors hover:border-primary"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <Phone className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 leading-tight">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Appeler</p>
-                    <p className="truncate text-sm font-semibold">{restaurant.phone}</p>
-                  </div>
-                </a>
-              ) : (
-                <InfoChip icon={<Phone className="h-4 w-4" />} label="Téléphone" value="—" />
+      {/* Restaurant info card — UberEats style */}
+      <div className="mx-auto max-w-5xl px-4 md:px-6">
+        <div className="-mt-6 rounded-2xl bg-white px-5 py-5 shadow-md md:-mt-10 md:px-8 md:py-7">
+          {/* Name + status */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+                {restaurant.name}
+              </h1>
+              {restaurant.description && (
+                <p className="mt-1.5 max-w-prose text-sm text-gray-500">{restaurant.description}</p>
               )}
             </div>
+            <span
+              className={
+                'mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ' +
+                (canOrder
+                  ? 'bg-green-50 text-green-700'
+                  : 'bg-gray-100 text-gray-500')
+              }
+            >
+              <span
+                className={
+                  'h-1.5 w-1.5 rounded-full ' +
+                  (canOrder ? 'bg-green-500' : 'bg-gray-400')
+                }
+              />
+              {canOrder
+                ? 'Ouvert'
+                : !restaurant.is_open
+                  ? 'Fermé'
+                  : !openNow
+                    ? 'Fermé en ce moment'
+                    : 'Commandes désactivées'}
+            </span>
+          </div>
 
-            {/* Hints livraison gratuite / minimum */}
-            {(restaurant.free_delivery_above || restaurant.min_order > 0) && (
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {restaurant.free_delivery_above && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 font-semibold text-success">
-                    🎁 Livraison offerte dès {formatPrice(restaurant.free_delivery_above)}
-                  </span>
-                )}
-                {restaurant.min_order > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                    Min. {formatPrice(restaurant.min_order)}
-                  </span>
-                )}
-              </div>
+          {/* Delivery info pills */}
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4 text-sm text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <Truck className="h-4 w-4 text-primary" />
+              <span className="font-semibold">
+                {restaurant.delivery_fee === 0 ? 'Livraison gratuite' : formatPrice(restaurant.delivery_fee)}
+              </span>
+            </div>
+            <span className="text-gray-300">·</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="font-semibold">~{estimatedDeliveryTime} min</span>
+            </div>
+            {(restaurant.city || restaurant.address) && (
+              <>
+                <span className="text-gray-300">·</span>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span>{restaurant.city || restaurant.address}</span>
+                </div>
+              </>
+            )}
+            {restaurant.phone && (
+              <>
+                <span className="text-gray-300">·</span>
+                <a
+                  href={`tel:${restaurant.phone}`}
+                  className="flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  <Phone className="h-4 w-4" />
+                  <span className="font-semibold">{restaurant.phone}</span>
+                </a>
+              </>
             )}
           </div>
 
-          {/* Horaires (collapsible card) */}
+          {/* Free delivery / min order hints */}
+          {(restaurant.free_delivery_above || restaurant.min_order > 0) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {restaurant.free_delivery_above && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                  🎁 Livraison offerte dès {formatPrice(restaurant.free_delivery_above)}
+                </span>
+              )}
+              {restaurant.min_order > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+                  Commande min. {formatPrice(restaurant.min_order)}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Opening hours */}
           {(hours?.length ?? 0) > 0 && (
-            <details className="group mt-3 rounded-2xl border border-border bg-card shadow-card">
-              <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-3 text-sm font-semibold">
-                <span className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
+            <details className="group mt-4 border-t border-gray-100 pt-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-sm text-gray-500">
+                <span className="flex items-center gap-1.5 font-semibold text-gray-700">
+                  <Clock className="h-4 w-4" />
                   Horaires d&apos;ouverture
                 </span>
-                <span className="text-xs text-muted-foreground group-open:hidden">Voir</span>
-                <span className="hidden text-xs text-muted-foreground group-open:inline">Masquer</span>
+                <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
               </summary>
-              <div className="border-t border-border px-5 py-3">
+              <div className="mt-3">
                 <HoursInfo hours={hours ?? []} />
               </div>
             </details>
           )}
-
-          {/* Closed-now warning */}
-          {restaurant.is_open && restaurant.accept_orders && !openNow && (hours?.length ?? 0) > 0 && (
-            <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-              ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires. Vous
-              pouvez consulter le menu mais pas commander.
-            </div>
-          )}
         </div>
-      </section>
+
+        {/* Closed warning */}
+        {restaurant.is_open && restaurant.accept_orders && !openNow && (hours?.length ?? 0) > 0 && (
+          <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires. Vous
+            pouvez consulter le menu mais pas commander.
+          </div>
+        )}
+      </div>
 
       {/* Sticky category nav */}
       {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos) && (
@@ -264,126 +261,122 @@ export default async function PublicRestaurantPage({
         />
       )}
 
-      {/* === Section Promos en haut (si y'en a) === */}
-      {hasPromos && (
-        <section id="cat-promos" className="container mt-8 scroll-mt-32">
-          <div className="mb-5 flex items-baseline justify-between">
-            <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-              <Sparkles className="h-6 w-6 text-primary" />
-              Offres du moment
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              {promoItems.length} en promo
-            </span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {promoItems.map((item) => (
-              <ItemCard key={item.id} item={item} slug={slug} canOrder={canOrder} promo />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Menu content */}
+      <div className="mx-auto max-w-5xl space-y-2 px-4 py-4 md:px-6">
 
-      {/* Menu principal */}
-      <section className="container mt-10 space-y-12">
+        {/* Promo section */}
+        {hasPromos && (
+          <section id="cat-promos" className="scroll-mt-32">
+            <SectionHeader
+              icon={<Sparkles className="h-5 w-5 text-primary" />}
+              title="Offres du moment"
+              count={promoItems.length}
+            />
+            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+              {promoItems.map((item) => (
+                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Empty state */}
         {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
-          <div className="rounded-2xl border border-dashed border-border bg-muted py-20 text-center">
-            <p className="text-sm font-medium">Menu en cours de préparation</p>
+          <div className="rounded-2xl bg-white py-20 text-center shadow-sm">
+            <p className="text-sm font-medium text-gray-400">Menu en cours de préparation</p>
           </div>
         )}
 
+        {/* Categories */}
         {visibleCategories.map((cat) => {
           const list = byCategory.get(cat.id) ?? [];
           return (
             <section key={cat.id} id={`cat-${cat.id}`} className="scroll-mt-32">
-              <div className="mb-5 flex items-baseline justify-between">
-                <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-                  {cat.name}
-                </h2>
-                <span className="text-xs text-muted-foreground">
-                  {list.length} plat{list.length > 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {list.map((item, idx) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    slug={slug}
-                    canOrder={canOrder}
-                    featured={idx === 0 && cat.sort_order === 1}
-                  />
+              <SectionHeader title={cat.name} count={list.length} />
+              <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+                {list.map((item) => (
+                  <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
                 ))}
               </div>
             </section>
           );
         })}
 
+        {/* Uncategorized */}
         {hasUncategorized && (
           <section id="cat-other" className="scroll-mt-32">
-            <h2 className="mb-5 font-display text-2xl font-extrabold md:text-3xl">Autres plats</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <SectionHeader title="Autres plats" count={byCategory.get(null)!.length} />
+            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
               {byCategory.get(null)!.map((item) => (
-                <ItemCard key={item.id} item={item} slug={slug} canOrder={canOrder} />
+                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} />
               ))}
             </div>
           </section>
         )}
 
-        {/* === Section Suppléments / Sauces === */}
+        {/* Extras */}
         {hasExtras && (
           <section id="cat-extras" className="scroll-mt-32">
-            <div className="mb-5 flex items-baseline justify-between">
-              <div>
-                <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-                  Suppléments
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Sauces, accompagnements, boissons à ajouter à votre commande.
-                </p>
-              </div>
-              <span className="text-xs text-muted-foreground">{extras.length}</span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <SectionHeader
+              title="Suppléments"
+              subtitle="Sauces, accompagnements, boissons"
+              count={extras.length}
+            />
+            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
               {extras.map((item) => (
-                <ExtraCard key={item.id} item={item} slug={slug} canOrder={canOrder} />
+                <UberEatsItemRow key={item.id} item={item} slug={slug} canOrder={canOrder} extra />
               ))}
             </div>
           </section>
         )}
-      </section>
+      </div>
 
       <CartButton slug={slug} restaurant={restaurant} canOrder={canOrder} />
     </main>
   );
 }
 
-function InfoChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+/* ─── Section header ─── */
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+  count,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  count?: number;
+}) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0 leading-tight">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-semibold">{value}</p>
+    <div className="mb-3 mt-6 flex items-end justify-between first:mt-0">
+      <div>
+        <h2 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-gray-900">
+          {icon}
+          {title}
+        </h2>
+        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
       </div>
+      {count != null && (
+        <span className="text-xs text-gray-400">
+          {count} article{count > 1 ? 's' : ''}
+        </span>
+      )}
     </div>
   );
 }
 
-function ItemCard({
+/* ─── UberEats-style horizontal item row ─── */
+function UberEatsItemRow({
   item,
   slug,
   canOrder,
-  featured,
-  promo,
+  extra,
 }: {
   item: MenuItem;
   slug: string;
   canOrder: boolean;
-  featured?: boolean;
-  promo?: boolean;
+  extra?: boolean;
 }) {
   const disabled = !item.is_available || !canOrder;
   const activePrice = item.promo_price ?? item.price;
@@ -393,131 +386,69 @@ function ItemCard({
       : 0;
 
   return (
-    <article
+    <div
       className={
-        'group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover ' +
-        (disabled ? 'opacity-60' : '')
+        'flex items-start gap-4 px-5 py-4 transition-colors hover:bg-gray-50 ' +
+        (disabled ? 'opacity-50' : '')
       }
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-        {item.image_url ? (
-          <Image
-            src={item.image_url}
-            alt={item.name}
-            fill
-            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-food-pattern text-5xl opacity-50">
-            🍽️
-          </div>
-        )}
-
-        {/* Badges en surimpression */}
-        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+      {/* Text content */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-gray-900 leading-snug">{item.name}</p>
           {discount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+            <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
               -{discount}%
             </span>
           )}
-          {featured && item.is_available && !promo && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-background shadow-sm">
-              <Star className="h-3 w-3 fill-current" />
-              Populaire
+          {!item.is_available && (
+            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+              Indisponible
             </span>
           )}
         </div>
-
-        {!item.is_available && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-            <span className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold shadow-card">
-              Indisponible aujourd&apos;hui
-            </span>
-          </div>
+        {item.description && (
+          <p className="mt-1 line-clamp-2 text-sm leading-snug text-gray-500">{item.description}</p>
         )}
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex-1">
-          <h3 className="font-semibold leading-tight">{item.name}</h3>
-          {item.description && (
-            <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-muted-foreground">
-              {item.description}
-            </p>
+        <div className="mt-2 flex items-center gap-2">
+          <span className="font-display text-base font-extrabold text-gray-900 tabular-nums">
+            {extra ? '+' : ''}{formatPrice(activePrice)}
+          </span>
+          {item.promo_price != null && (
+            <span className="text-sm text-gray-400 line-through tabular-nums">
+              {formatPrice(item.price)}
+            </span>
           )}
         </div>
-        <div className="mt-4 flex items-end justify-between">
-          <div className="flex items-baseline gap-2">
-            {item.promo_price != null && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(item.price)}
-              </span>
-            )}
-            <span
-              className={
-                'font-display text-lg font-extrabold tabular-nums ' +
-                (item.promo_price != null ? 'text-primary' : '')
-              }
-            >
-              {formatPrice(activePrice)}
-            </span>
-          </div>
-          <MenuItemButton
-            slug={slug}
-            item={{
-              menu_item_id: item.id,
-              name: item.name,
-              price: Number(activePrice),
-            }}
-            disabled={disabled}
-          />
+      </div>
+
+      {/* Image + button */}
+      <div className="flex shrink-0 flex-col items-center gap-2">
+        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-gray-100 md:h-24 md:w-24">
+          {item.image_url ? (
+            <Image
+              src={item.image_url}
+              alt={item.name}
+              fill
+              sizes="96px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-3xl opacity-40">
+              🍽️
+            </div>
+          )}
         </div>
+        <MenuItemButton
+          slug={slug}
+          item={{
+            menu_item_id: item.id,
+            name: item.name,
+            price: Number(activePrice),
+          }}
+          disabled={disabled}
+        />
       </div>
-    </article>
-  );
-}
-
-function ExtraCard({
-  item,
-  slug,
-  canOrder,
-}: {
-  item: MenuItem;
-  slug: string;
-  canOrder: boolean;
-}) {
-  const disabled = !item.is_available || !canOrder;
-  const activePrice = item.promo_price ?? item.price;
-
-  return (
-    <div
-      className={
-        'flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover ' +
-        (disabled ? 'opacity-60' : '')
-      }
-    >
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {item.image_url ? (
-          <Image src={item.image_url} alt="" fill className="object-cover" sizes="56px" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-2xl opacity-40">
-            🥫
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{item.name}</p>
-        <p className="text-xs font-bold text-primary">+{formatPrice(activePrice)}</p>
-      </div>
-      <MenuItemButton
-        slug={slug}
-        item={{
-          menu_item_id: item.id,
-          name: item.name,
-          price: Number(activePrice),
-        }}
-        disabled={disabled}
-      />
     </div>
   );
 }

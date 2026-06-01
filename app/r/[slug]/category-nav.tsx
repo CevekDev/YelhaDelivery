@@ -53,10 +53,10 @@ export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos
   }, [active]);
 
   return (
-    <nav className="sticky top-14 z-30 border-b border-border bg-background/95 backdrop-blur">
+    <nav className="sticky top-14 z-30 border-b border-gray-200 bg-white shadow-sm">
       <div
         ref={scrollerRef}
-        className="container flex gap-1 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mx-auto flex max-w-5xl gap-0 overflow-x-auto px-4 md:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {all.map((c) => {
           const isActive = active === c.id;
@@ -66,10 +66,10 @@ export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos
               data-cat={c.id}
               href={`#cat-${c.id}`}
               className={cn(
-                'shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors',
+                'shrink-0 border-b-2 px-4 py-3.5 text-sm font-semibold transition-colors',
                 isActive
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-900',
               )}
             >
               {c.name}
