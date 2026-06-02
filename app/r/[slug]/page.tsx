@@ -1,13 +1,20 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { CartButton } from './cart-button';
 import { CategoryNav } from './category-nav';
 import { ItemRow } from './item-row';
+import { PublicPageHeader } from './page-header';
 import { formatPrice } from '@/lib/utils';
-import { Clock, MapPin, Phone, Sparkles, Truck, ChevronRight } from 'lucide-react';
-import type { MenuCategory, MenuItem, MenuItemExtra, MenuItemVariant, OpeningHour, Restaurant } from '@/types/database';
+import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
+import type {
+  MenuCategory,
+  MenuItem,
+  MenuItemExtra,
+  MenuItemVariant,
+  OpeningHour,
+  Restaurant,
+} from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 
 export const dynamic = 'force-dynamic';
@@ -49,6 +56,7 @@ export default async function PublicRestaurantPage({
     { data: etaData },
     { data: extrasLinks },
     { data: variantRows },
+    { data: reviewsData },
   ] = await Promise.all([
     supabase
       .from('menu_categories')
@@ -80,18 +88,32 @@ export default async function PublicRestaurantPage({
       .eq('is_available', true)
       .order('sort_order')
       .returns<MenuItemVariant[]>(),
+    supabase
+      .from('order_reviews')
+      .select('rating')
+      .eq('restaurant_id', restaurant.id)
+      .returns<{ rating: number }[]>(),
   ]);
 
   const openNow = isOpenNow(hours ?? []);
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
+  // Rating
+  const reviews = reviewsData ?? [];
+  const reviewCount = reviews.length;
+  const avgRating =
+    reviewCount > 0
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
+      : null;
+
   const allItems = items ?? [];
   const regularItems = allItems.filter((i) => !i.is_extra);
-  const extrasById = new Map<string, MenuItem>(allItems.filter((i) => i.is_extra).map((e) => [e.id, e]));
+  const extrasById = new Map<string, MenuItem>(
+    allItems.filter((i) => i.is_extra).map((e) => [e.id, e]),
+  );
   const promoItems = regularItems.filter((i) => i.promo_price != null && i.is_available);
 
-  // Build map: menu_item_id → available MenuItem[]
   const itemExtrasMap = new Map<string, MenuItem[]>();
   for (const link of extrasLinks ?? []) {
     const extra = extrasById.get(link.extra_item_id);
@@ -100,7 +122,6 @@ export default async function PublicRestaurantPage({
     itemExtrasMap.get(link.menu_item_id)!.push(extra);
   }
 
-  // Build map: menu_item_id → MenuItemVariant[]
   const itemVariantsMap = new Map<string, MenuItemVariant[]>();
   for (const v of variantRows ?? []) {
     if (!itemVariantsMap.has(v.menu_item_id)) itemVariantsMap.set(v.menu_item_id, []);
@@ -122,37 +143,21 @@ export default async function PublicRestaurantPage({
   const hasExtras = extrasById.size > 0;
   const hasPromos = promoItems.length > 0;
 
+  const statusLabel = canOrder
+    ? 'Ouvert'
+    : !restaurant.is_open
+      ? 'Fermé'
+      : !openNow
+        ? 'Fermé en ce moment'
+        : 'Commandes désactivées';
+
   return (
-    <main className="min-h-screen bg-[#f6f6f6] pb-32">
-      {/* Top nav */}
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="font-display text-base font-extrabold">
-            Yelha<span className="text-primary">Delivery</span>
-          </Link>
-          <span className="hidden truncate text-sm text-gray-500 sm:block">
-            <strong className="text-gray-900">{restaurant.name}</strong>
-          </span>
-        </div>
-      </header>
+    <main className="min-h-screen bg-[#F5F5F5] pb-32">
+      {/* ── Sticky transparent-to-white header ── */}
+      <PublicPageHeader slug={slug} restaurantName={restaurant.name} />
 
-      {/* Promotional banner */}
-      {(restaurant.banner_text || restaurant.banner_image_url) && (
-        <div className="bg-primary/5 border-b border-primary/10">
-          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 md:px-6">
-            {restaurant.banner_image_url && (
-              <div className="relative hidden h-10 w-16 shrink-0 overflow-hidden rounded sm:block">
-                <Image src={restaurant.banner_image_url} alt="" fill className="object-cover" sizes="64px" />
-              </div>
-            )}
-            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-            <p className="truncate text-sm font-semibold text-primary">{restaurant.banner_text}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Hero cover */}
-      <div className="relative h-48 w-full overflow-hidden bg-gray-200 md:h-64">
+      {/* ── Hero banner ── */}
+      <div className="relative h-[260px] w-full overflow-hidden bg-gray-300 md:h-[340px]">
         {restaurant.cover_url ? (
           <Image
             src={restaurant.cover_url}
@@ -163,110 +168,132 @@ export default async function PublicRestaurantPage({
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/20 to-primary/5" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-primary/30 to-primary/10" />
         )}
-      </div>
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-      {/* Restaurant info card */}
-      <div className="mx-auto max-w-5xl px-4 md:px-6">
-        <div className="rounded-b-2xl bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+        {/* Hero content */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-5">
+          <div className="flex items-end gap-3">
+            {restaurant.logo_url && (
+              <div className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-2xl border-2 border-white/30 bg-white shadow-lg">
+                <Image
+                  src={restaurant.logo_url}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="60px"
+                />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-xl font-extrabold leading-tight text-white drop-shadow md:text-2xl">
                 {restaurant.name}
               </h1>
-              {restaurant.description && (
-                <p className="mt-1.5 max-w-prose text-sm text-gray-500">{restaurant.description}</p>
-              )}
-            </div>
-            <span
-              className={
-                'mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ' +
-                (canOrder ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500')
-              }
-            >
-              <span className={'h-1.5 w-1.5 rounded-full ' + (canOrder ? 'bg-green-500' : 'bg-gray-400')} />
-              {canOrder
-                ? 'Ouvert'
-                : !restaurant.is_open
-                  ? 'Fermé'
-                  : !openNow
-                    ? 'Fermé en ce moment'
-                    : 'Commandes désactivées'}
-            </span>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4 text-sm text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <Truck className="h-4 w-4 text-primary" />
-              <span className="font-semibold">
-                {restaurant.delivery_fee === 0 ? 'Livraison gratuite' : formatPrice(restaurant.delivery_fee)}
-              </span>
-            </div>
-            <span className="text-gray-300">·</span>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-primary" />
-              <span className="font-semibold">~{estimatedDeliveryTime} min</span>
-            </div>
-            {(restaurant.city || restaurant.address) && (
-              <>
-                <span className="text-gray-300">·</span>
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span>{restaurant.city || restaurant.address}</span>
-                </div>
-              </>
-            )}
-            {restaurant.phone && (
-              <>
-                <span className="text-gray-300">·</span>
-                <a href={`tel:${restaurant.phone}`} className="flex items-center gap-1.5 text-primary hover:underline">
-                  <Phone className="h-4 w-4" />
-                  <span className="font-semibold">{restaurant.phone}</span>
-                </a>
-              </>
-            )}
-          </div>
-
-          {(restaurant.free_delivery_above || restaurant.min_order > 0) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {restaurant.free_delivery_above && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                  🎁 Livraison offerte dès {formatPrice(restaurant.free_delivery_above)}
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span
+                  className={
+                    'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white ' +
+                    (canOrder ? 'bg-green-500' : 'bg-red-500')
+                  }
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+                  {statusLabel}
                 </span>
-              )}
-              {restaurant.min_order > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-                  Commande min. {formatPrice(restaurant.min_order)}
-                </span>
-              )}
-            </div>
-          )}
-
-          {(hours?.length ?? 0) > 0 && (
-            <details className="group mt-4 border-t border-gray-100 pt-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between text-sm text-gray-500">
-                <span className="flex items-center gap-1.5 font-semibold text-gray-700">
-                  <Clock className="h-4 w-4" />
-                  Horaires d&apos;ouverture
-                </span>
-                <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              </summary>
-              <div className="mt-3">
-                <HoursInfo hours={hours ?? []} />
+                {avgRating !== null && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {avgRating.toFixed(1)}
+                    <span className="font-normal text-white/70">({reviewCount})</span>
+                  </span>
+                )}
               </div>
-            </details>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Info pills ── */}
+      <div className="bg-white px-4 py-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          <InfoPill icon={<Truck className="h-3.5 w-3.5" />}>
+            {restaurant.delivery_fee === 0
+              ? 'Livraison gratuite'
+              : formatPrice(restaurant.delivery_fee)}
+          </InfoPill>
+          <InfoPill icon={<Clock className="h-3.5 w-3.5" />}>
+            ~{estimatedDeliveryTime} min
+          </InfoPill>
+          {avgRating !== null && (
+            <InfoPill icon={<Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}>
+              {avgRating.toFixed(1)} ({reviewCount} avis)
+            </InfoPill>
+          )}
+          {(restaurant.city || restaurant.address) && (
+            <InfoPill icon={<MapPin className="h-3.5 w-3.5" />}>
+              {restaurant.city || restaurant.address}
+            </InfoPill>
+          )}
+          {restaurant.free_delivery_above && (
+            <InfoPill icon={<Sparkles className="h-3.5 w-3.5" />}>
+              Offerte dès {formatPrice(restaurant.free_delivery_above)}
+            </InfoPill>
+          )}
+          {restaurant.min_order > 0 && (
+            <InfoPill>Min. {formatPrice(restaurant.min_order)}</InfoPill>
           )}
         </div>
 
-        {restaurant.is_open && restaurant.accept_orders && !openNow && (hours?.length ?? 0) > 0 && (
-          <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            ⏰ Le restaurant est <strong>fermé en ce moment</strong> selon ses horaires.
-          </div>
+        {restaurant.phone && (
+          <a
+            href={`tel:${restaurant.phone}`}
+            className="mt-3 flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600"
+          >
+            <Phone className="h-3.5 w-3.5" />
+            {restaurant.phone}
+          </a>
+        )}
+
+        {(hours?.length ?? 0) > 0 && (
+          <details className="group mt-3 border-t border-gray-100 pt-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-gray-500">
+              <span>Horaires d&apos;ouverture</span>
+              <span className="text-gray-400 transition-transform duration-200 group-open:rotate-180">
+                ▾
+              </span>
+            </summary>
+            <div className="mt-2">
+              <HoursInfo hours={hours ?? []} compact />
+            </div>
+          </details>
         )}
       </div>
 
-      {/* Category nav */}
+      {/* ── Promo banner ── */}
+      {(restaurant.banner_text || restaurant.banner_image_url) && (
+        <div className="border-y border-primary/10 bg-primary/5">
+          <div className="flex items-center gap-2 px-4 py-2.5">
+            {restaurant.banner_image_url && (
+              <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded-lg">
+                <Image
+                  src={restaurant.banner_image_url}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="48px"
+                />
+              </div>
+            )}
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <p className="truncate text-sm font-semibold text-primary">
+              {restaurant.banner_text}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Category nav ── */}
       {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos) && (
         <CategoryNav
           categories={visibleCategories.map((c) => ({ id: c.id, name: c.name }))}
@@ -276,13 +303,22 @@ export default async function PublicRestaurantPage({
         />
       )}
 
-      {/* Menu */}
-      <div className="mx-auto max-w-5xl space-y-2 px-4 py-4 md:px-6">
+      {/* ── Menu ── */}
+      <div className="py-3">
+        {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
+          <div className="mx-4 rounded-2xl bg-white py-16 text-center shadow-sm">
+            <p className="text-sm font-medium text-gray-400">Menu en cours de préparation</p>
+          </div>
+        )}
 
         {hasPromos && (
-          <section id="cat-promos" className="scroll-mt-32">
-            <SectionHeader icon={<Sparkles className="h-5 w-5 text-primary" />} title="Offres du moment" count={promoItems.length} />
-            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+          <section id="cat-promos" className="mb-4 scroll-mt-32">
+            <SectionHeader
+              icon={<Sparkles className="h-4 w-4 text-primary" />}
+              title="Offres du moment"
+              count={promoItems.length}
+            />
+            <div className="space-y-3">
               {promoItems.map((item) => (
                 <ItemRow
                   key={item.id}
@@ -297,18 +333,12 @@ export default async function PublicRestaurantPage({
           </section>
         )}
 
-        {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
-          <div className="rounded-2xl bg-white py-20 text-center shadow-sm">
-            <p className="text-sm font-medium text-gray-400">Menu en cours de préparation</p>
-          </div>
-        )}
-
         {visibleCategories.map((cat) => {
           const list = byCategory.get(cat.id) ?? [];
           return (
-            <section key={cat.id} id={`cat-${cat.id}`} className="scroll-mt-32">
+            <section key={cat.id} id={`cat-${cat.id}`} className="mb-4 scroll-mt-32">
               <SectionHeader title={cat.name} count={list.length} />
-              <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+              <div className="space-y-3">
                 {list.map((item) => (
                   <ItemRow
                     key={item.id}
@@ -325,9 +355,9 @@ export default async function PublicRestaurantPage({
         })}
 
         {hasUncategorized && (
-          <section id="cat-other" className="scroll-mt-32">
+          <section id="cat-other" className="mb-4 scroll-mt-32">
             <SectionHeader title="Autres plats" count={byCategory.get(null)!.length} />
-            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+            <div className="space-y-3">
               {byCategory.get(null)!.map((item) => (
                 <ItemRow
                   key={item.id}
@@ -343,9 +373,13 @@ export default async function PublicRestaurantPage({
         )}
 
         {hasExtras && (
-          <section id="cat-extras" className="scroll-mt-32">
-            <SectionHeader title="Suppléments" subtitle="Sauces, accompagnements, boissons" count={extrasById.size} />
-            <div className="divide-y divide-gray-100 rounded-2xl bg-white shadow-sm">
+          <section id="cat-extras" className="mb-4 scroll-mt-32">
+            <SectionHeader
+              title="Suppléments"
+              subtitle="Sauces, accompagnements, boissons"
+              count={extrasById.size}
+            />
+            <div className="space-y-3">
               {[...extrasById.values()].map((item) => (
                 <ItemRow
                   key={item.id}
@@ -367,6 +401,23 @@ export default async function PublicRestaurantPage({
   );
 }
 
+/* ── Sub-components ─────────────────────────────────────────── */
+
+function InfoPill({
+  icon,
+  children,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-xs font-semibold text-gray-700">
+      {icon}
+      {children}
+    </span>
+  );
+}
+
 function SectionHeader({
   icon,
   title,
@@ -379,16 +430,16 @@ function SectionHeader({
   count?: number;
 }) {
   return (
-    <div className="mb-3 mt-6 flex items-end justify-between first:mt-0">
-      <div>
-        <h2 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-gray-900">
-          {icon}
-          {title}
-        </h2>
-        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+    <div className="mb-2 flex items-center justify-between px-4 pt-2">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="font-display text-base font-extrabold text-[#1A1A1A]">{title}</h2>
+        {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
       </div>
       {count != null && (
-        <span className="text-xs text-gray-400">{count} article{count > 1 ? 's' : ''}</span>
+        <span className="text-xs text-gray-400">
+          {count} article{count > 1 ? 's' : ''}
+        </span>
       )}
     </div>
   );

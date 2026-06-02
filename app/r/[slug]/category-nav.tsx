@@ -53,7 +53,7 @@ export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos
   }, [active]);
 
   return (
-    <nav className="sticky top-14 z-30 border-b border-gray-200 bg-white shadow-sm">
+    <nav className="sticky top-14 z-30 border-b border-gray-100 bg-white shadow-sm">
       <div
         ref={scrollerRef}
         className="mx-auto flex max-w-5xl gap-0 overflow-x-auto px-4 md:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -66,10 +66,10 @@ export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos
               data-cat={c.id}
               href={`#cat-${c.id}`}
               className={cn(
-                'shrink-0 border-b-2 px-4 py-3.5 text-sm font-semibold transition-colors',
+                'shrink-0 border-b-2 px-4 py-3.5 text-sm font-semibold transition-all duration-150',
                 isActive
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-900',
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-[#1A1A1A]',
               )}
             >
               {c.name}
