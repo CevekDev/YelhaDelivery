@@ -21,9 +21,11 @@ export const menuItemSchema = z
       .refine((v) => Math.round(v * 100) === v * 100, 'Max 2 décimales')
       .optional()
       .nullable(),
-    is_extra: z.boolean().default(false),
+    item_type: z.enum(['dish', 'sauce', 'supplement', 'offer']).default('dish'),
     is_available: z.boolean().default(true),
     sort_order: z.number().int().min(0).max(999).default(0),
+    offer_badge: z.string().trim().max(100).nullable().optional(),
+    offer_description: z.string().trim().max(500).nullable().optional(),
   })
   .refine(
     (d) => d.promo_price === undefined || d.promo_price === null || d.promo_price < d.price,

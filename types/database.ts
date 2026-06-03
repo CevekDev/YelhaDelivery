@@ -60,6 +60,8 @@ export interface MenuCategory {
   created_at: string;
 }
 
+export type MenuItemType = 'dish' | 'sauce' | 'supplement' | 'offer';
+
 export interface MenuItem {
   id: string;
   restaurant_id: string;
@@ -68,7 +70,10 @@ export interface MenuItem {
   description: string | null;
   price: number;
   promo_price: number | null;
+  item_type: MenuItemType;
   is_extra: boolean;
+  offer_badge: string | null;
+  offer_description: string | null;
   image_url: string | null;
   image_urls: string[];
   is_available: boolean;
@@ -92,6 +97,7 @@ export interface MenuItemExtra {
   menu_item_id: string;
   extra_item_id: string;
   sort_order: number;
+  is_free: boolean;
   created_at: string;
 }
 

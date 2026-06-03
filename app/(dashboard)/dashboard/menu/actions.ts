@@ -97,21 +97,38 @@ function parseItemForm(formData: FormData) {
   const promo_price =
     promoRaw && String(promoRaw).trim() !== '' ? Number(promoRaw) : null;
 
+  const offerBadgeRaw = formData.get('offer_badge');
+  const offer_badge = offerBadgeRaw && String(offerBadgeRaw).trim() !== '' ? String(offerBadgeRaw).trim() : null;
+
+  const offerDescRaw = formData.get('offer_description');
+  const offer_description = offerDescRaw && String(offerDescRaw).trim() !== '' ? String(offerDescRaw).trim() : null;
+
+  const item_type = (formData.get('item_type') as string) || 'dish';
+
   return menuItemSchema.safeParse({
     category_id,
     name: formData.get('name'),
     description: formData.get('description') ?? '',
     price: Number(formData.get('price')),
     promo_price,
-    is_extra: formData.get('is_extra') === 'true',
+    item_type,
     is_available: formData.get('is_available') !== 'false',
     sort_order: Number(formData.get('sort_order') ?? 0),
+    offer_badge,
+    offer_description,
   });
 }
 
-/** Récupère les IDs des extras cochés dans le formulaire. */
-function parseLinkedExtraIds(formData: FormData): string[] {
-  return formData.getAll('extra_ids[]').map(String).filter((v) => v.length > 0);
+/** Récupère les extras liés avec leur flag is_free depuis le formulaire. */
+function parseLinkedExtras(formData: FormData): Array<{ id: string; is_free: boolean }> {
+  return formData
+    .getAll('extra_ids[]')
+    .map(String)
+    .filter((v) => v.length > 0)
+    .map((id) => ({
+      id,
+      is_free: formData.get(`extra_is_free_${id}`) === 'true',
+    }));
 }
 
 /** Parse les variantes soumises dans le formulaire. */
@@ -146,21 +163,19 @@ async function syncVariants(
   );
 }
 
-/** Synchronise la table menu_item_extras après création/mise à jour d'un plat. */
+/** Synchronise la table menu_item_extras (avec is_free) après création/mise à jour d'un plat. */
 async function syncExtras(
   supabase: Awaited<ReturnType<typeof createClient>>,
   menuItemId: string,
-  extraIds: string[],
+  extras: Array<{ id: string; is_free: boolean }>,
 ) {
-  // Supprime toutes les liaisons existantes pour ce plat
   await supabase.from('menu_item_extras').delete().eq('menu_item_id', menuItemId);
-
-  if (extraIds.length === 0) return;
-
-  const rows = extraIds.map((extra_item_id, i) => ({
+  if (extras.length === 0) return;
+  const rows = extras.map((e, i) => ({
     menu_item_id: menuItemId,
-    extra_item_id,
+    extra_item_id: e.id,
     sort_order: i,
+    is_free: e.is_free,
   }));
   await supabase.from('menu_item_extras').insert(rows);
 }
@@ -183,12 +198,16 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
   const uploads = await uploadAllImages(restaurant.id, formData);
   if ('error' in uploads) return { ok: false, error: uploads.error };
 
+  // is_extra dérivé de item_type
+  const is_extra = parsed.data.item_type === 'sauce' || parsed.data.item_type === 'supplement';
+
   const supabase = await createClient();
   const { data: newItem, error } = await supabase
     .from('menu_items')
     .insert({
       restaurant_id: restaurant.id,
       ...parsed.data,
+      is_extra,
       description: parsed.data.description || null,
       image_url: uploads.mainUrl ?? null,
       image_urls: uploads.extraUrls,
@@ -197,9 +216,10 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
     .single();
   if (error) return { ok: false, error: error.message };
 
-  if (!parsed.data.is_extra) {
-    const extraIds = parseLinkedExtraIds(formData);
-    await syncExtras(supabase, newItem.id, extraIds);
+  // Extras + variantes uniquement pour les plats et offres
+  if (!is_extra) {
+    const linkedExtras = parseLinkedExtras(formData);
+    await syncExtras(supabase, newItem.id, linkedExtras);
     const variants = parseVariants(formData);
     await syncVariants(supabase, newItem.id, variants);
   }
@@ -229,6 +249,9 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
   const uploads = await uploadAllImages(restaurant.id, formData);
   if ('error' in uploads) return { ok: false, error: uploads.error };
 
+  // is_extra dérivé de item_type
+  const is_extra = parsed.data.item_type === 'sauce' || parsed.data.item_type === 'supplement';
+
   const supabase = await createClient();
 
   // Gestion des images supplémentaires existantes
@@ -236,6 +259,7 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
 
   const patch: Record<string, unknown> = {
     ...parsed.data,
+    is_extra,
     description: parsed.data.description || null,
     image_urls: [...keepUrlsRaw, ...uploads.extraUrls],
   };
@@ -248,9 +272,9 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
-  if (!parsed.data.is_extra) {
-    const extraIds = parseLinkedExtraIds(formData);
-    await syncExtras(supabase, id.data, extraIds);
+  if (!is_extra) {
+    const linkedExtras = parseLinkedExtras(formData);
+    await syncExtras(supabase, id.data, linkedExtras);
     const variants = parseVariants(formData);
     await syncVariants(supabase, id.data, variants);
   }

@@ -80,8 +80,8 @@ export default async function PublicRestaurantPage({
     supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
     supabase
       .from('menu_item_extras')
-      .select('menu_item_id, extra_item_id')
-      .returns<Pick<MenuItemExtra, 'menu_item_id' | 'extra_item_id'>[]>(),
+      .select('menu_item_id, extra_item_id, is_free')
+      .returns<Pick<MenuItemExtra, 'menu_item_id' | 'extra_item_id' | 'is_free'>[]>(),
     supabase
       .from('menu_item_variants')
       .select('*')
@@ -110,18 +110,31 @@ export default async function PublicRestaurantPage({
       : null;
 
   const allItems = items ?? [];
-  const regularItems = allItems.filter((i) => !i.is_extra);
+  // Extras = sauces + suppléments (ou is_extra pour données legacy)
+  const regularItems = allItems.filter((i) => !i.is_extra && i.item_type !== 'sauce' && i.item_type !== 'supplement');
   const extrasById = new Map<string, MenuItem>(
-    allItems.filter((i) => i.is_extra).map((e) => [e.id, e]),
+    allItems
+      .filter((i) => i.is_extra || i.item_type === 'sauce' || i.item_type === 'supplement')
+      .map((e) => [e.id, e]),
   );
-  const promoItems = regularItems.filter((i) => i.promo_price != null && i.is_available);
+  // "Offres du moment" = items avec promo_price OU item_type = 'offer'
+  const promoItems = regularItems.filter(
+    (i) => (i.promo_price != null || i.item_type === 'offer') && i.is_available,
+  );
 
   const itemExtrasMap = new Map<string, MenuItem[]>();
+  // Map dish_id → set of free extra IDs
+  const freeExtraIdsMap = new Map<string, string[]>();
+
   for (const link of extrasLinks ?? []) {
     const extra = extrasById.get(link.extra_item_id);
     if (!extra) continue;
     if (!itemExtrasMap.has(link.menu_item_id)) itemExtrasMap.set(link.menu_item_id, []);
     itemExtrasMap.get(link.menu_item_id)!.push(extra);
+    if (link.is_free) {
+      if (!freeExtraIdsMap.has(link.menu_item_id)) freeExtraIdsMap.set(link.menu_item_id, []);
+      freeExtraIdsMap.get(link.menu_item_id)!.push(link.extra_item_id);
+    }
   }
 
   const itemVariantsMap = new Map<string, MenuItemVariant[]>();
@@ -330,6 +343,7 @@ export default async function PublicRestaurantPage({
                   canOrder={canOrder}
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
                   availableVariants={itemVariantsMap.get(item.id) ?? []}
+                  freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
                 />
               ))}
             </div>
@@ -350,6 +364,7 @@ export default async function PublicRestaurantPage({
                     canOrder={canOrder}
                     availableExtras={itemExtrasMap.get(item.id) ?? []}
                     availableVariants={itemVariantsMap.get(item.id) ?? []}
+                    freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
                   />
                 ))}
               </div>
@@ -369,6 +384,7 @@ export default async function PublicRestaurantPage({
                   canOrder={canOrder}
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
                   availableVariants={itemVariantsMap.get(item.id) ?? []}
+                  freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
                 />
               ))}
             </div>
@@ -378,8 +394,8 @@ export default async function PublicRestaurantPage({
         {hasExtras && (
           <section id="cat-extras" className="mb-4 scroll-mt-32">
             <SectionHeader
-              title="Suppléments"
-              subtitle="Sauces, accompagnements, boissons"
+              title="Suppléments & Sauces"
+              subtitle="Accompagnements, sauces, boissons"
               count={extrasById.size}
             />
             <div className="space-y-3">
@@ -391,6 +407,7 @@ export default async function PublicRestaurantPage({
                   canOrder={canOrder}
                   availableExtras={[]}
                   availableVariants={[]}
+                  freeExtraIds={[]}
                   extra
                 />
               ))}

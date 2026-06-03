@@ -30,19 +30,20 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
         .eq('restaurant_id', restaurant.id)
         .order('sort_order')
         .returns<MenuCategory[]>(),
+      // Charger sauces + suppléments (par item_type OU fallback is_extra pour données legacy)
       supabase
         .from('menu_items')
         .select('*')
         .eq('restaurant_id', restaurant.id)
-        .eq('is_extra', true)
+        .in('item_type', ['sauce', 'supplement'])
         .eq('is_available', true)
         .order('sort_order')
         .returns<MenuItem[]>(),
       supabase
         .from('menu_item_extras')
-        .select('extra_item_id')
+        .select('extra_item_id, is_free')
         .eq('menu_item_id', id)
-        .returns<Pick<MenuItemExtra, 'extra_item_id'>[]>(),
+        .returns<Pick<MenuItemExtra, 'extra_item_id' | 'is_free'>[]>(),
       supabase
         .from('menu_item_variants')
         .select('*')
@@ -54,7 +55,14 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
   if (!item) notFound();
 
   const linkedExtraIds = (linkedRows ?? []).map((r) => r.extra_item_id);
+  const linkedFreeExtraIds = (linkedRows ?? [])
+    .filter((r) => r.is_free)
+    .map((r) => r.extra_item_id);
   const existingVariants = variantRows ?? [];
+
+  // Fallback: si la migration n'a pas encore été appliquée, inclure aussi les is_extra legacy
+  // (pas nécessaire une fois la migration en prod, mais garde la robustesse)
+  const allExtras = extras ?? [];
 
   return (
     <div className="container max-w-2xl space-y-6 py-6 md:py-8">
@@ -76,8 +84,9 @@ export default async function EditPlatPage({ params }: { params: Promise<{ id: s
           mode="edit"
           categories={categories ?? []}
           item={item}
-          allExtras={extras ?? []}
+          allExtras={allExtras}
           linkedExtraIds={linkedExtraIds}
+          linkedFreeExtraIds={linkedFreeExtraIds}
           existingVariants={existingVariants}
           action={updateMenuItemAction}
         />

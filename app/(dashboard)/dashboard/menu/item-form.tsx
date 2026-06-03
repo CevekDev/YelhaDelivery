@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
 import { Plus, X } from 'lucide-react';
-import type { MenuCategory, MenuItem, MenuItemVariant } from '@/types/database';
+import type { MenuCategory, MenuItem, MenuItemType, MenuItemVariant } from '@/types/database';
 import type { FormResult } from './actions';
+
+/* ── Types locaux ─────────────────────────────────────────── */
 
 interface VariantRow {
   id?: string;
@@ -22,13 +24,38 @@ interface Props {
   mode: 'create' | 'edit';
   categories: MenuCategory[];
   item?: MenuItem;
-  allExtras: MenuItem[];
-  linkedExtraIds: string[];
+  allExtras: MenuItem[];         // sauces + suppléments disponibles
+  linkedExtraIds: string[];      // IDs des extras liés à ce plat
+  linkedFreeExtraIds?: string[]; // parmi les liés, ceux qui sont gratuits
   existingVariants?: MenuItemVariant[];
   action: (fd: FormData) => Promise<FormResult>;
+  defaultType?: MenuItemType;
+  defaultCategoryId?: string;
 }
 
-export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, existingVariants, action }: Props) {
+/* ── Constantes ───────────────────────────────────────────── */
+
+const ITEM_TYPES: { value: MenuItemType; label: string; icon: string; desc: string }[] = [
+  { value: 'dish',       label: 'Plat',           icon: '🍽️', desc: 'Plat ou boisson de votre menu' },
+  { value: 'sauce',      label: 'Sauce',           icon: '🥫', desc: 'Sauce gratuite ou payante en option' },
+  { value: 'supplement', label: 'Supplément',      icon: '➕', desc: 'Extra payant (frites, boisson…)' },
+  { value: 'offer',      label: 'Offre spéciale',  icon: '🎁', desc: 'Pack, promo, offre du moment' },
+];
+
+/* ── Composant ────────────────────────────────────────────── */
+
+export function ItemForm({
+  mode,
+  categories,
+  item,
+  allExtras,
+  linkedExtraIds,
+  linkedFreeExtraIds = [],
+  existingVariants,
+  action,
+  defaultType = 'dish',
+  defaultCategoryId = '',
+}: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +64,14 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
   const [promoPrice, setPromoPrice] = useState<string>(
     item?.promo_price != null ? String(item.promo_price) : '',
   );
-  const [isExtra, setIsExtra] = useState(item?.is_extra ?? false);
+  const [itemType, setItemType] = useState<MenuItemType>(item?.item_type ?? defaultType);
   const [keptImageUrls, setKeptImageUrls] = useState<string[]>(item?.image_urls ?? []);
   const [variants, setVariants] = useState<VariantRow[]>(
     (existingVariants ?? []).map((v) => ({ id: v.id, name: v.name, price: String(v.price) })),
   );
+
+  const isExtra = itemType === 'sauce' || itemType === 'supplement';
+  const isOffer = itemType === 'offer';
 
   const promoNum = promoPrice ? Number(promoPrice) : null;
   const discount =
@@ -56,6 +86,10 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
   const removeVariant = (i: number) => {
     setVariants((prev) => prev.filter((_, idx) => idx !== i));
   };
+
+  // Séparer sauces et suppléments dans la liste des extras
+  const sauceExtras = allExtras.filter((e) => e.item_type === 'sauce' || (e.is_extra && e.item_type === 'dish'));
+  const supplementExtras = allExtras.filter((e) => e.item_type === 'supplement');
 
   return (
     <form
@@ -76,25 +110,75 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
     >
       {item && <input type="hidden" name="id" value={item.id} />}
 
-      {/* Nom */}
+      {/* ── Type d'article ── */}
       <div className="space-y-2">
-        <Label htmlFor="name">Nom du plat *</Label>
+        <Label>Type d&apos;article *</Label>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {ITEM_TYPES.map((t) => {
+            const selected = itemType === t.value;
+            return (
+              <label
+                key={t.value}
+                className={
+                  'flex cursor-pointer flex-col gap-1 rounded-xl border-2 p-3 transition-all ' +
+                  (selected
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background hover:border-primary/40')
+                }
+              >
+                <input
+                  type="radio"
+                  name="item_type"
+                  value={t.value}
+                  checked={selected}
+                  onChange={() => setItemType(t.value)}
+                  className="sr-only"
+                />
+                <span className="text-xl">{t.icon}</span>
+                <span className={`text-sm font-bold ${selected ? 'text-primary' : ''}`}>
+                  {t.label}
+                </span>
+                <span className="text-[11px] leading-snug text-muted-foreground">{t.desc}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Nom ── */}
+      <div className="space-y-2">
+        <Label htmlFor="name">Nom *</Label>
         <Input
           id="name"
           name="name"
           required
           maxLength={120}
           defaultValue={item?.name}
-          placeholder="Ex: Couscous royal"
+          placeholder={
+            itemType === 'sauce'
+              ? 'Ex: Sauce harissa'
+              : itemType === 'supplement'
+              ? 'Ex: Frites'
+              : itemType === 'offer'
+              ? 'Ex: Pack famille'
+              : 'Ex: Couscous royal'
+          }
           aria-invalid={!!fieldErrors.name}
         />
         {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
       </div>
 
-      {/* Prix + catégorie */}
+      {/* ── Prix + catégorie ── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Prix (DA) *</Label>
+          <Label htmlFor="price">
+            Prix (DA) *
+            {itemType === 'sauce' && (
+              <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                (0 = gratuite par défaut)
+              </span>
+            )}
+          </Label>
           <Input
             id="price"
             name="price"
@@ -109,57 +193,94 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
           {fieldErrors.price && <p className="text-xs text-destructive">{fieldErrors.price}</p>}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="category_id">Catégorie</Label>
-          <select
-            id="category_id"
-            name="category_id"
-            defaultValue={item?.category_id ?? ''}
-            className="flex h-11 w-full rounded-md border border-border bg-input px-3 text-sm"
-          >
-            <option value="">— Aucune —</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Promo */}
-      <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="promo_price" className="flex items-center gap-2">
-            <span className="text-primary">🏷️</span> Prix promo (optionnel)
-          </Label>
-          {discount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-              -{discount}%
-            </span>
-          )}
-        </div>
-        <Input
-          id="promo_price"
-          name="promo_price"
-          type="number"
-          step="0.01"
-          min="0"
-          value={promoPrice}
-          onChange={(e) => setPromoPrice(e.target.value)}
-          placeholder="Laisser vide pour aucune promo"
-          aria-invalid={!!fieldErrors.promo_price}
-        />
-        {discount > 0 && (
-          <p className="text-xs text-success">
-            Affiché aux clients :{' '}
-            <span className="line-through opacity-60">{formatPrice(price)}</span>{' '}
-            <span className="font-bold text-primary">{formatPrice(promoNum!)}</span>
-          </p>
+        {!isExtra && (
+          <div className="space-y-2">
+            <Label htmlFor="category_id">Catégorie</Label>
+            <select
+              id="category_id"
+              name="category_id"
+              defaultValue={item?.category_id ?? defaultCategoryId}
+              className="flex h-11 w-full rounded-md border border-border bg-input px-3 text-sm"
+            >
+              <option value="">— Aucune —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
-      {/* Description */}
+      {/* ── Prix promo (pas pour sauces/suppléments) ── */}
+      {!isExtra && (
+        <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="promo_price" className="flex items-center gap-2">
+              <span className="text-primary">🏷️</span>
+              {isOffer ? "Prix de l’offre (réduit)" : 'Prix promo (optionnel)'}
+            </Label>
+            {discount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                -{discount}%
+              </span>
+            )}
+          </div>
+          <Input
+            id="promo_price"
+            name="promo_price"
+            type="number"
+            step="0.01"
+            min="0"
+            value={promoPrice}
+            onChange={(e) => setPromoPrice(e.target.value)}
+            placeholder="Laisser vide pour aucune promo"
+            aria-invalid={!!fieldErrors.promo_price}
+          />
+          {discount > 0 && (
+            <p className="text-xs text-success">
+              Affiché aux clients :{' '}
+              <span className="line-through opacity-60">{formatPrice(price)}</span>{' '}
+              <span className="font-bold text-primary">{formatPrice(promoNum!)}</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Champs spéciaux Offre du moment ── */}
+      {isOffer && (
+        <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-50/50 p-4">
+          <div>
+            <p className="font-semibold text-amber-800">Détails de l&apos;offre</p>
+            <p className="mt-0.5 text-xs text-amber-700/70">
+              Ces informations sont affichées en badge sur la page publique.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="offer_badge">Badge de l&apos;offre</Label>
+            <Input
+              id="offer_badge"
+              name="offer_badge"
+              maxLength={100}
+              defaultValue={item?.offer_badge ?? ''}
+              placeholder="Ex: 1+1 gratuit, Pack repas, -30%…"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="offer_description">Description de l&apos;offre</Label>
+            <Textarea
+              id="offer_description"
+              name="offer_description"
+              maxLength={500}
+              defaultValue={item?.offer_description ?? ''}
+              placeholder="Ex: Achetez 2 pizzas et recevez 1 boisson gratuite. Valable tous les jours."
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Description ── */}
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
@@ -167,11 +288,15 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
           name="description"
           maxLength={500}
           defaultValue={item?.description ?? ''}
-          placeholder="Ingrédients, accompagnement, suggestions…"
+          placeholder={
+            isExtra
+              ? 'Ingrédients, saveur…'
+              : 'Ingrédients, accompagnement, suggestions…'
+          }
         />
       </div>
 
-      {/* Ordre + dispo */}
+      {/* ── Ordre + dispo ── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="sort_order">Ordre d&apos;affichage</Label>
@@ -198,32 +323,14 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
         </div>
       </div>
 
-      {/* Marquer comme supplément */}
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background p-4 hover:border-primary/40">
-        <input
-          type="checkbox"
-          name="is_extra"
-          value="true"
-          checked={isExtra}
-          onChange={(e) => setIsExtra(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-primary"
-        />
-        <div className="flex-1 text-sm">
-          <p className="font-semibold">Marquer comme supplément / sauce</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Apparaîtra dans la section « Suppléments » et pourra être attaché à d&apos;autres plats.
-          </p>
-        </div>
-      </label>
-
-      {/* === Variantes (uniquement si ce n'est pas un supplément) === */}
+      {/* ── Variantes (uniquement plats et offres) ── */}
       {!isExtra && (
         <div className="space-y-3 rounded-xl border border-border bg-background p-4">
           <div>
             <p className="text-sm font-semibold">Variantes (ex: Petit / Grand / XXL)</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Si des variantes sont définies, le client devra en choisir une avant d&apos;ajouter au panier.
-              Le prix de base ci-dessus sera ignoré au profit du prix de la variante.
+              Si des variantes sont définies, le client devra en choisir une avant d&apos;ajouter au
+              panier. Le prix de base sera ignoré au profit du prix de la variante.
             </p>
           </div>
 
@@ -281,7 +388,7 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
         </div>
       )}
 
-      {/* === Photo principale === */}
+      {/* ── Photo principale ── */}
       <div className="space-y-2">
         <Label htmlFor="image">Photo principale (jpg, png, webp — max 5 Mo)</Label>
         {item?.image_url && (
@@ -297,23 +404,28 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
           className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:text-primary-foreground"
         />
         {item?.image_url && (
-          <p className="text-xs text-muted-foreground">Laissez vide pour conserver l&apos;image actuelle.</p>
+          <p className="text-xs text-muted-foreground">
+            Laissez vide pour conserver l&apos;image actuelle.
+          </p>
         )}
       </div>
 
-      {/* === Photos supplémentaires === */}
+      {/* ── Photos supplémentaires ── */}
       <div className="space-y-3 rounded-xl border border-border bg-background p-4">
         <div>
           <p className="text-sm font-semibold">Photos supplémentaires</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Jusqu&apos;à 3 photos supplémentaires affichées dans la galerie du plat.
+            Jusqu&apos;à 3 photos supplémentaires affichées dans la galerie.
           </p>
         </div>
 
         {keptImageUrls.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {keptImageUrls.map((url) => (
-              <div key={url} className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border">
+              <div
+                key={url}
+                className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border"
+              >
                 <Image src={url} alt="" fill className="object-cover" sizes="64px" />
                 <button
                   type="button"
@@ -343,42 +455,72 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
         ))}
       </div>
 
-      {/* === Suppléments liés === */}
-      {!isExtra && allExtras.length > 0 && (
+      {/* ── Sauces & suppléments liés (uniquement plats et offres) ── */}
+      {!isExtra && (
         <div className="space-y-3 rounded-xl border border-border bg-background p-4">
           <div>
-            <p className="text-sm font-semibold">Suppléments disponibles pour ce plat</p>
+            <p className="text-sm font-semibold">Sauces & suppléments proposés</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Le client pourra les ajouter à sa commande depuis la page du plat.
+              Le client pourra les ajouter depuis la page du plat. Cochez &quot;Gratuit&quot; pour
+              les sauces offertes avec ce plat.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {allExtras.map((extra) => (
-              <label
-                key={extra.id}
-                className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/40"
-              >
-                <input
-                  type="checkbox"
-                  name="extra_ids[]"
-                  value={extra.id}
-                  defaultChecked={linkedExtraIds.includes(extra.id)}
-                  className="h-4 w-4 shrink-0 accent-primary"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{extra.name}</p>
-                  <p className="text-xs text-primary">+{formatPrice(extra.promo_price ?? extra.price)}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {!isExtra && allExtras.length === 0 && (
-        <p className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
-          Aucun supplément défini. Créez d&apos;abord un plat marqué « supplément/sauce » pour pouvoir l&apos;attacher ici.
-        </p>
+          {allExtras.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Aucune sauce ou supplément défini. Créez d&apos;abord un article de type
+              &quot;Sauce&quot; ou &quot;Supplément&quot;.
+            </p>
+          ) : (
+            <>
+              {/* Sauces */}
+              {sauceExtras.length > 0 && (
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    🥫 Sauces
+                  </p>
+                  <div className="space-y-2">
+                    {sauceExtras.map((extra) => {
+                      const isLinked = linkedExtraIds.includes(extra.id);
+                      const isFree = linkedFreeExtraIds.includes(extra.id);
+                      return (
+                        <ExtraRow
+                          key={extra.id}
+                          extra={extra}
+                          isLinked={isLinked}
+                          isFree={isFree}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Suppléments */}
+              {supplementExtras.length > 0 && (
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    ➕ Suppléments
+                  </p>
+                  <div className="space-y-2">
+                    {supplementExtras.map((extra) => {
+                      const isLinked = linkedExtraIds.includes(extra.id);
+                      const isFree = linkedFreeExtraIds.includes(extra.id);
+                      return (
+                        <ExtraRow
+                          key={extra.id}
+                          extra={extra}
+                          isLinked={isLinked}
+                          isFree={isFree}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {error && (
@@ -392,12 +534,65 @@ export function ItemForm({ mode, categories, item, allExtras, linkedExtraIds, ex
 
       <div className="flex gap-3">
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Enregistrement…' : mode === 'create' ? 'Créer le plat' : 'Enregistrer'}
+          {isPending ? 'Enregistrement…' : mode === 'create' ? 'Créer' : 'Enregistrer'}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
           Annuler
         </Button>
       </div>
     </form>
+  );
+}
+
+/* ── ExtraRow — ligne sauce/supplément dans le formulaire ─── */
+
+function ExtraRow({
+  extra,
+  isLinked,
+  isFree,
+}: {
+  extra: MenuItem;
+  isLinked: boolean;
+  isFree: boolean;
+}) {
+  const [checked, setChecked] = useState(isLinked);
+  const [free, setFree] = useState(isFree);
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/40">
+      <input
+        type="checkbox"
+        name="extra_ids[]"
+        value={extra.id}
+        checked={checked}
+        onChange={(e) => {
+          setChecked(e.target.checked);
+          if (!e.target.checked) setFree(false);
+        }}
+        className="h-4 w-4 shrink-0 accent-primary"
+      />
+      {extra.image_url && (
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
+          <Image src={extra.image_url} alt="" fill className="object-cover" sizes="36px" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{extra.name}</p>
+        <p className="text-xs text-primary">+{formatPrice(extra.promo_price ?? extra.price)}</p>
+      </div>
+      {checked && (
+        <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success">
+          <input
+            type="checkbox"
+            name={`extra_is_free_${extra.id}`}
+            value="true"
+            checked={free}
+            onChange={(e) => setFree(e.target.checked)}
+            className="h-3 w-3 accent-primary"
+          />
+          Gratuit
+        </label>
+      )}
+    </div>
   );
 }

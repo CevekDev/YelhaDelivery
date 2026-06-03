@@ -18,6 +18,7 @@ export function ItemRow({
   canOrder,
   availableExtras,
   availableVariants,
+  freeExtraIds = [],
   extra: isExtraItem,
 }: {
   item: MenuItem;
@@ -25,6 +26,7 @@ export function ItemRow({
   canOrder: boolean;
   availableExtras: MenuItem[];
   availableVariants: MenuItemVariant[];
+  freeExtraIds?: string[];
   extra?: boolean;
 }) {
   const [showModal, setShowModal] = useState(false);
@@ -47,6 +49,8 @@ export function ItemRow({
   const hasVariants = availableVariants.length > 0 && !isExtraItem;
   const needsModal = hasExtras || hasVariants;
 
+  const isOffer = item.item_type === 'offer';
+
   const handleAdd = () => {
     if (disabled) return;
     if (needsModal) {
@@ -67,12 +71,20 @@ export function ItemRow({
       <div
         className={
           'mx-4 flex items-start gap-3 rounded-2xl bg-white p-3 shadow-sm transition-opacity ' +
-          (disabled ? 'opacity-60' : '')
+          (disabled ? 'opacity-60' : '') +
+          (isOffer ? ' border border-amber-200/60 bg-amber-50/40' : '')
         }
       >
         {/* ── Left: text + price ── */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Badges */}
+          {/* Offer badge */}
+          {isOffer && item.offer_badge && (
+            <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-white">
+              🎁 {item.offer_badge}
+            </span>
+          )}
+
+          {/* Nom + badges */}
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="font-bold leading-snug text-[#1A1A1A]">{item.name}</p>
             {discount > 0 && (
@@ -87,12 +99,16 @@ export function ItemRow({
             )}
           </div>
 
-          {/* Description */}
-          {item.description && (
+          {/* Description ou offer_description */}
+          {isOffer && item.offer_description ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-amber-700/80">
+              {item.offer_description}
+            </p>
+          ) : item.description ? (
             <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-400">
               {item.description}
             </p>
-          )}
+          ) : null}
 
           {/* Variant / extras hint */}
           {hasVariants && (
@@ -136,7 +152,7 @@ export function ItemRow({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-3xl opacity-25">
-                🍽️
+                {isOffer ? '🎁' : '🍽️'}
               </div>
             )}
             {(item.image_urls?.length ?? 0) > 0 && (
@@ -210,6 +226,7 @@ export function ItemRow({
           item={item}
           availableExtras={availableExtras}
           availableVariants={availableVariants}
+          freeExtraIds={freeExtraIds}
           slug={slug}
           canOrder={canOrder}
           onClose={() => setShowModal(false)}
@@ -226,6 +243,7 @@ function ItemModal({
   item,
   availableExtras,
   availableVariants,
+  freeExtraIds,
   slug,
   canOrder,
   onClose,
@@ -233,13 +251,17 @@ function ItemModal({
   item: MenuItem;
   availableExtras: MenuItem[];
   availableVariants: MenuItemVariant[];
+  freeExtraIds: string[];
   slug: string;
   canOrder: boolean;
   onClose: () => void;
 }) {
   const add = useCart((s) => s.add);
   const [selectedVariant, setSelectedVariant] = useState<MenuItemVariant | null>(null);
-  const [selectedExtras, setSelectedExtras] = useState<Set<string>>(new Set());
+  // Pré-sélectionner les extras gratuits
+  const [selectedExtras, setSelectedExtras] = useState<Set<string>>(
+    new Set(freeExtraIds),
+  );
   const [gallery, setGallery] = useState(0);
 
   const hasVariants = availableVariants.length > 0;
@@ -248,8 +270,9 @@ function ItemModal({
     ? (selectedVariant?.price ?? null)
     : (item.promo_price ?? item.price);
 
+  // Les extras gratuits ne s'ajoutent pas au total
   const extrasTotal = availableExtras
-    .filter((e) => selectedExtras.has(e.id))
+    .filter((e) => selectedExtras.has(e.id) && !freeExtraIds.includes(e.id))
     .reduce((s, e) => s + Number(e.promo_price ?? e.price), 0);
 
   const total = (basePrice != null ? Number(basePrice) : 0) + extrasTotal;
@@ -276,12 +299,14 @@ function ItemModal({
     });
     availableExtras.forEach((extra) => {
       if (!selectedExtras.has(extra.id)) return;
+      const isFree = freeExtraIds.includes(extra.id);
       add(slug, {
         menu_item_id: extra.id,
         variant_id: null,
         variant_name: null,
         name: extra.name,
-        price: Number(extra.promo_price ?? extra.price),
+        // Prix 0 si gratuit, sinon prix normal
+        price: isFree ? 0 : Number(extra.promo_price ?? extra.price),
       });
     });
     onClose();
@@ -334,10 +359,21 @@ function ItemModal({
         )}
 
         <div className="p-5">
-          <h2 className="font-display text-xl font-extrabold text-[#1A1A1A]">{item.name}</h2>
-          {item.description && (
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">{item.description}</p>
+          {/* Offer badge dans la modale */}
+          {item.item_type === 'offer' && item.offer_badge && (
+            <span className="mb-3 inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold text-white">
+              🎁 {item.offer_badge}
+            </span>
           )}
+
+          <h2 className="font-display text-xl font-extrabold text-[#1A1A1A]">{item.name}</h2>
+          {item.item_type === 'offer' && item.offer_description ? (
+            <p className="mt-1 text-sm leading-relaxed text-amber-700/80">
+              {item.offer_description}
+            </p>
+          ) : item.description ? (
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">{item.description}</p>
+          ) : null}
 
           {/* Variantes */}
           {hasVariants && (
@@ -399,15 +435,16 @@ function ItemModal({
             </div>
           )}
 
-          {/* Suppléments */}
+          {/* Suppléments / Sauces */}
           {availableExtras.length > 0 && (
             <div className="mt-5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                Ajouter des suppléments
+                Sauces & suppléments
               </p>
               <ul className="mt-3 divide-y divide-gray-100">
                 {availableExtras.map((extra) => {
                   const checked = selectedExtras.has(extra.id);
+                  const isFree = freeExtraIds.includes(extra.id);
                   const ePrice = extra.promo_price ?? extra.price;
                   const eDisabled = !extra.is_available || !canOrder;
                   return (
@@ -429,7 +466,7 @@ function ItemModal({
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-lg opacity-40">
-                              🥫
+                              {extra.item_type === 'sauce' ? '🥫' : '➕'}
                             </div>
                           )}
                         </div>
@@ -440,9 +477,15 @@ function ItemModal({
                               {extra.description}
                             </p>
                           )}
-                          <p className="mt-0.5 text-xs font-bold text-primary">
-                            +{formatPrice(ePrice)}
-                          </p>
+                          {isFree ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                              ✓ Inclus gratuitement
+                            </span>
+                          ) : (
+                            <p className="mt-0.5 text-xs font-bold text-primary">
+                              +{formatPrice(ePrice)}
+                            </p>
+                          )}
                         </div>
                         <input
                           type="checkbox"
