@@ -15,7 +15,6 @@ import {
   Bike,
   Share2,
   ArrowRight,
-  Power,
 } from 'lucide-react';
 import { ToggleOpenButton } from './toggle-open-button';
 import type { Order } from '@/types/database';
