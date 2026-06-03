@@ -15,7 +15,9 @@ import {
   Bike,
   Share2,
   ArrowRight,
+  Power,
 } from 'lucide-react';
+import { ToggleOpenButton } from './toggle-open-button';
 import type { Order } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -90,7 +92,8 @@ export default async function DashboardHome() {
             Voici l&apos;activité de {restaurant.name} aujourd&apos;hui.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleOpenButton isOpen={restaurant.is_open} />
           <Button asChild variant="outline" size="sm">
             <Link href={`/r/${restaurant.slug}`} target="_blank" rel="noreferrer">
               <Share2 className="h-4 w-4" />

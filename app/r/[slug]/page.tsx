@@ -95,6 +95,8 @@ export default async function PublicRestaurantPage({
       .returns<{ rating: number }[]>(),
   ]);
 
+  // openNow = informatif seulement (affiché dans les horaires)
+  // is_open = override manuel du restaurateur → prime sur les horaires
   const openNow = isOpenNow(hours ?? []);
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
@@ -135,7 +137,8 @@ export default async function PublicRestaurantPage({
     byCategory.get(k)!.push(i);
   });
 
-  const canOrder = restaurant.is_open && restaurant.accept_orders && openNow;
+  // is_open est l'override manuel du restaurateur → prime sur les horaires planifiés
+  const canOrder = restaurant.is_open && restaurant.accept_orders;
   const visibleCategories = (categories ?? []).filter(
     (c) => (byCategory.get(c.id)?.length ?? 0) > 0,
   );
@@ -143,13 +146,13 @@ export default async function PublicRestaurantPage({
   const hasExtras = extrasById.size > 0;
   const hasPromos = promoItems.length > 0;
 
-  const statusLabel = canOrder
-    ? 'Ouvert'
-    : !restaurant.is_open
-      ? 'Fermé'
-      : !openNow
-        ? 'Fermé en ce moment'
-        : 'Commandes désactivées';
+  const statusLabel = !restaurant.is_open
+    ? 'Fermé'
+    : !restaurant.accept_orders
+      ? 'Commandes désactivées'
+      : !openNow && (hours ?? []).length > 0
+        ? 'Ouvert · Hors horaires habituels'
+        : 'Ouvert';
 
   return (
     <main className="min-h-screen bg-[#F5F5F5] pb-32">
