@@ -178,7 +178,7 @@ export default async function ConfirmationPage({
 
         <div className="pt-2 text-center">
           <Link
-            href={`/r/${slug}`}
+            href={`/r/${slug}/menu`}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             ← Retour au menu de {order.restaurant_name}

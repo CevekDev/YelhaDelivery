@@ -47,6 +47,55 @@ export interface Restaurant {
   min_order: number;
   estimated_delivery_time: number;
   status: RestaurantStatus;
+  // ── Constructeur de site web ──
+  template_id: number; // 1..7
+  site_config: SiteConfig;
+  home_enabled: boolean;
+  blog_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Contenu éditable du site web (stocké dans restaurants.site_config jsonb).
+ * Tous les champs sont optionnels : des valeurs par défaut sensées sont
+ * appliquées côté rendu si absents.
+ */
+export interface SiteConfig {
+  /** Accroche affichée en hero sur la page d'accueil. */
+  hero_title?: string;
+  hero_subtitle?: string;
+  /** Libellé du bouton d'action principal du hero (def: "Commander"). */
+  hero_cta?: string;
+  /** Section "À propos" / notre histoire. */
+  about_title?: string;
+  about_text?: string;
+  about_image_url?: string;
+  /** Galerie photos (URLs d'images). */
+  gallery?: string[];
+  /** Bloc contact / infos pratiques. */
+  contact_intro?: string;
+  /** Liens réseaux sociaux. */
+  social?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    whatsapp?: string;
+  };
+  /** Mise en avant de 3 atouts (page d'accueil). */
+  highlights?: { title: string; text: string }[];
+}
+
+export interface BlogPost {
+  id: string;
+  restaurant_id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  cover_url: string | null;
+  content: string;
+  status: 'draft' | 'published';
+  published_at: string | null;
   created_at: string;
   updated_at: string;
 }

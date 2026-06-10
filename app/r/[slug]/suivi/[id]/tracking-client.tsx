@@ -153,7 +153,7 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
     <main className="min-h-screen bg-muted/30">
       <header className="border-b border-border bg-background">
         <div className="container max-w-xl py-5">
-          <Link href={`/r/${slug}`} className="text-xs text-muted-foreground hover:text-foreground">
+          <Link href={`/r/${slug}/menu`} className="text-xs text-muted-foreground hover:text-foreground">
             ← Retour au menu
           </Link>
           <div className="mt-2 flex items-start justify-between gap-3">
@@ -308,7 +308,7 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
         </div>
 
         <Button asChild variant="outline" className="w-full">
-          <Link href={`/r/${slug}`}>Commander à nouveau</Link>
+          <Link href={`/r/${slug}/menu`}>Commander à nouveau</Link>
         </Button>
       </section>
     </main>

@@ -8,9 +8,11 @@ import { useCart } from '@/stores/cart';
 export function PublicPageHeader({
   slug,
   restaurantName,
+  homeHref = '/',
 }: {
   slug: string;
   restaurantName: string;
+  homeHref?: string;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -39,7 +41,7 @@ export function PublicPageHeader({
         (scrolled ? 'bg-white shadow-sm' : '')
       }
     >
-      <Link href="/" aria-label="Retour" className={btnBase + (scrolled ? btnLight : btnDark)}>
+      <Link href={homeHref} aria-label="Retour" className={btnBase + (scrolled ? btnLight : btnDark)}>
         <ArrowLeft className="h-[18px] w-[18px]" />
       </Link>
 

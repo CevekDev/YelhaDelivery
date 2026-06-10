@@ -95,7 +95,7 @@ export function CheckoutClient({
             Ajoutez quelques plats du menu pour passer commande.
           </p>
           <Button asChild className="mt-6">
-            <Link href={`/r/${slug}`}>← Retour au menu</Link>
+            <Link href={`/r/${slug}/menu`}>← Retour au menu</Link>
           </Button>
         </div>
       </div>
@@ -108,7 +108,7 @@ export function CheckoutClient({
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center gap-3">
           <Link
-            href={`/r/${slug}`}
+            href={`/r/${slug}/menu`}
             className="-ml-2 flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />

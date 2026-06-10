@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { siteFontVariables } from '@/lib/fonts';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={jakarta.variable}>
+    <html lang="fr" className={`${jakarta.variable} ${siteFontVariables}`}>
       <body className="min-h-screen bg-background text-foreground antialiased">{children}</body>
     </html>
   );

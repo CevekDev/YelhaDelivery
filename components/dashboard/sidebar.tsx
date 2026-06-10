@@ -13,6 +13,7 @@ import {
   Clock,
   BarChart2,
   Star,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const NAV = [
   { href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/commandes', label: 'Commandes', icon: ShoppingBag },
   { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed },
+  { href: '/dashboard/site', label: 'Site web', icon: Globe },
   { href: '/dashboard/promos', label: 'Codes promo', icon: Ticket },
   { href: '/dashboard/horaires', label: 'Horaires', icon: Clock },
   { href: '/dashboard/livreurs', label: 'Livreurs', icon: Bike },
