@@ -61,19 +61,6 @@ export async function registerRestaurateurAction(
     return { fieldErrors: { slug: 'Cette URL est déjà utilisée. Choisissez-en une autre.' } };
   }
 
-  const { data: usersList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  type AuthListUser = { id: string; email?: string | null };
-  const emailExists = (usersList?.users as AuthListUser[] | undefined)?.some(
-    (u) => u.email?.toLowerCase() === parsed.data.owner_email.toLowerCase(),
-  );
-  if (emailExists) {
-    return {
-      fieldErrors: {
-        owner_email: 'Un compte existe déjà avec cet email. Connectez-vous à la place.',
-      },
-    };
-  }
-
   // 4. Création atomique (avec rollback complet en cas d'échec)
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email: parsed.data.owner_email,
@@ -82,6 +69,18 @@ export async function registerRestaurateurAction(
     user_metadata: { role: 'restaurateur' },
   });
   if (createErr || !created.user) {
+    // Supabase retourne un message spécifique si l'email existe déjà
+    if (
+      createErr?.message?.toLowerCase().includes('already') ||
+      createErr?.message?.toLowerCase().includes('exists') ||
+      createErr?.message?.toLowerCase().includes('duplicate')
+    ) {
+      return {
+        fieldErrors: {
+          owner_email: 'Un compte existe déjà avec cet email. Connectez-vous à la place.',
+        },
+      };
+    }
     return { error: createErr?.message ?? 'Création du compte échouée.' };
   }
 

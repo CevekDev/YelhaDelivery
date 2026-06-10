@@ -110,11 +110,14 @@ export async function toggleOpenAction(formData: FormData): Promise<SettingsResu
   const { profile } = await requireRole('restaurateur');
   const isOpen = formData.get('is_open') === 'true';
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('restaurants')
     .update({ is_open: !isOpen })
-    .eq('owner_id', profile.id);
+    .eq('owner_id', profile.id)
+    .select('id')
+    .maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: 'Restaurant introuvable' };
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/parametres');
   return { ok: true };

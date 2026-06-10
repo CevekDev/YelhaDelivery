@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/stores/cart';
-import { placeOrderAction, validatePromoAction } from './actions';
+import { placeOrderAction as _placeOrderAction, validatePromoAction } from './actions';
 import { ArrowLeft, Banknote, Clock, MapPin, Minus, Plus, ShoppingBag, Tag, Trash2, X } from 'lucide-react';
 
 interface Props {
@@ -31,6 +31,9 @@ export function CheckoutClient({
   estimatedDeliveryTime,
   freeDeliveryAbove,
 }: Props) {
+  // Le slug est lié côté serveur (non falsifiable par le client)
+  const placeOrderAction = _placeOrderAction.bind(null, slug);
+
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const lines = useCart((s) => s.lines);
@@ -142,7 +145,6 @@ export function CheckoutClient({
                     startTransition(async () => {
                       setError(null);
                       setFieldErrors({});
-                      fd.set('slug', slug);
                       if (appliedPromo) fd.set('promo_code', appliedPromo.code);
                       fd.set(
                         'items',

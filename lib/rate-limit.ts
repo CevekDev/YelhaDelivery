@@ -1,9 +1,13 @@
 /**
- * Rate limiter en mémoire — convient pour Phase 1 / dev / mono-instance.
- * Pour la production multi-instance (Vercel serverless), migrer vers Upstash Redis
- * dans une phase ultérieure (cf. README "Roadmap").
+ * Rate limiter en mémoire.
  *
- * Limite : 5 tentatives par fenêtre de 15 min, par clé (ex: email+ip).
+ * ⚠️ LIMITATION SERVERLESS : Sur Vercel / Edge, chaque invocation peut démarrer
+ * dans une instance différente. Ce rate-limiter fonctionne par instance.
+ * Il reste utile contre les attaques répétées sur la même instance chaude,
+ * mais NE remplace PAS un rate-limiter distribué (Upstash Redis) pour une
+ * protection totale en production multi-instance.
+ *
+ * Limite : 5 tentatives par fenêtre de 15 min, par clé (email+ip).
  */
 
 interface Bucket {

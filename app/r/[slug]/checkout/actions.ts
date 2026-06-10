@@ -21,7 +21,16 @@ const itemsSchema = z.array(
   }),
 );
 
-export async function placeOrderAction(formData: FormData): Promise<CheckoutResult> {
+/**
+ * placeOrderAction — le slug est passé via .bind() côté serveur (non falsifiable),
+ * pas depuis le formData client. Voir checkout-client.tsx.
+ */
+export async function placeOrderAction(slug: string, formData: FormData): Promise<CheckoutResult> {
+  // Slug provient du .bind() serveur — validation défensive quand même
+  if (!slug || typeof slug !== 'string' || slug.length < 2 || slug.length > 80) {
+    return { ok: false, error: 'Restaurant invalide' };
+  }
+
   let items: unknown;
   try {
     items = JSON.parse(String(formData.get('items') ?? '[]'));
@@ -51,9 +60,6 @@ export async function placeOrderAction(formData: FormData): Promise<CheckoutResu
       },
     };
   }
-
-  const slug = String(formData.get('slug') ?? '');
-  if (!slug) return { ok: false, error: 'Restaurant invalide' };
 
   const supabase = await createClient();
 
