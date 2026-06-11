@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Clock, CreditCard, Leaf, ShoppingBag, Sparkles, Star, Truck } from 'lucide-react';
 import type { MenuItem, Restaurant } from '@/types/database';
-import type { Template } from '@/lib/templates';
+import type { HeroStyle, Template } from '@/lib/templates';
 import { formatPrice } from '@/lib/utils';
 
 interface HomeViewProps {
@@ -33,6 +33,23 @@ function highlightIcon(i: number) {
   return Icon;
 }
 
+type SectionKey = 'highlights' | 'about' | 'menu' | 'gallery';
+
+/**
+ * Ordre des sections propre à chaque template — c'est ce qui casse la
+ * monotonie « même scroll partout ». Le hero ouvre et le CTA ferme toujours ;
+ * seul le corps est réordonné selon la personnalité du modèle.
+ */
+const SECTION_ORDER: Record<HeroStyle, SectionKey[]> = {
+  split: ['menu', 'about', 'highlights', 'gallery'], // Saveur — l'appétit d'abord
+  centered: ['about', 'menu', 'highlights', 'gallery'], // Trattoria — l'histoire d'abord
+  fullbleed: ['menu', 'about', 'gallery', 'highlights'], // Noir — la carte d'abord
+  bold: ['menu', 'gallery', 'highlights', 'about'], // Urban — punchy, food-forward
+  minimal: ['about', 'menu', 'gallery', 'highlights'], // Pure — éditorial posé
+  pattern: ['about', 'menu', 'highlights', 'gallery'], // Riad — héritage puis carte
+  magazine: ['gallery', 'menu', 'about', 'highlights'], // Cocon — visuel magazine d'abord
+};
+
 export function HomeView(props: HomeViewProps) {
   const { template, restaurant, slug, featured } = props;
   const cfg = restaurant.site_config ?? {};
@@ -45,23 +62,37 @@ export function HomeView(props: HomeViewProps) {
   const ctaLabel = cfg.hero_cta || 'Voir le menu';
   const highlights = (cfg.highlights?.length ? cfg.highlights : DEFAULT_HIGHLIGHTS).slice(0, 3);
   const gallery = cfg.gallery?.slice(0, 8) ?? [];
+  const hasAbout = Boolean(cfg.about_text || cfg.about_image_url);
+
+  function renderSection(key: SectionKey) {
+    switch (key) {
+      case 'highlights':
+        return <Highlights key="highlights" template={template} highlights={highlights} />;
+      case 'about':
+        return hasAbout ? (
+          <About
+            key="about"
+            template={template}
+            title={cfg.about_title || 'À propos de nous'}
+            text={cfg.about_text || ''}
+            imageUrl={cfg.about_image_url}
+          />
+        ) : null;
+      case 'menu':
+        return featured.length > 0 ? (
+          <MenuPreview key="menu" template={template} featured={featured} menuHref={menuHref} />
+        ) : null;
+      case 'gallery':
+        return gallery.length > 0 ? (
+          <Gallery key="gallery" template={template} gallery={gallery} />
+        ) : null;
+    }
+  }
 
   return (
     <main>
       <Hero {...props} heroTitle={heroTitle} heroSubtitle={heroSubtitle} ctaLabel={ctaLabel} menuHref={menuHref} />
-      <Highlights template={template} highlights={highlights} />
-      {(cfg.about_text || cfg.about_image_url) && (
-        <About
-          template={template}
-          title={cfg.about_title || 'À propos de nous'}
-          text={cfg.about_text || ''}
-          imageUrl={cfg.about_image_url}
-        />
-      )}
-      {featured.length > 0 && (
-        <MenuPreview template={template} featured={featured} menuHref={menuHref} />
-      )}
-      {gallery.length > 0 && <Gallery template={template} gallery={gallery} />}
+      {SECTION_ORDER[template.heroStyle].map(renderSection)}
       <FinalCta template={template} menuHref={menuHref} restaurant={restaurant} />
     </main>
   );
@@ -415,8 +446,8 @@ function MenuPreview({
         <ul className="mt-10 divide-y-2 divide-[var(--site-text)]">
           {featured.map((item, i) => (
             <li key={item.id}>
-              <Link href={menuHref} className="group flex items-center gap-5 py-5">
-                <span className="font-[family-name:var(--font-site-heading)] text-3xl font-black text-[var(--site-accent)] md:text-4xl">
+              <Link href={menuHref} className="group flex items-center gap-3 py-5 md:gap-5">
+                <span className="font-[family-name:var(--font-site-heading)] text-2xl font-black text-[var(--site-accent)] sm:text-3xl md:text-4xl">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 {item.image_url && (
@@ -424,10 +455,10 @@ function MenuPreview({
                     <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="64px" />
                   </div>
                 )}
-                <h3 className="flex-1 font-[family-name:var(--font-site-heading)] text-xl font-black uppercase tracking-tight group-hover:text-[color:var(--site-accent)] md:text-3xl">
+                <h3 className="min-w-0 flex-1 break-words font-[family-name:var(--font-site-heading)] text-lg font-black uppercase tracking-tight group-hover:text-[color:var(--site-accent)] sm:text-xl md:text-3xl">
                   {item.name}
                 </h3>
-                <span className="font-[family-name:var(--font-site-heading)] text-xl font-black md:text-3xl">
+                <span className="whitespace-nowrap font-[family-name:var(--font-site-heading)] text-lg font-black sm:text-xl md:text-3xl">
                   {formatPrice(item.promo_price ?? item.price)}
                 </span>
               </Link>
@@ -822,7 +853,7 @@ function Hero(props: HeroProps) {
         <section className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
           <div className="grid items-center gap-8 md:grid-cols-5">
             <div className="md:col-span-3">
-              <h1 className="font-[family-name:var(--font-site-heading)] text-5xl font-black uppercase leading-[0.95] tracking-tight md:text-8xl">
+              <h1 className="break-words font-[family-name:var(--font-site-heading)] text-5xl font-black uppercase leading-[0.95] tracking-tight md:text-8xl">
                 {heroTitle}
               </h1>
               <div className="mt-6 inline-block rounded-[var(--site-radius)] bg-[var(--site-accent)] px-5 py-2 text-base font-bold text-[color:var(--site-accent-fg)]">
@@ -850,7 +881,7 @@ function Hero(props: HeroProps) {
     case 'minimal':
       return (
         <section className="mx-auto max-w-5xl px-4 py-24 md:px-6 md:py-36">
-          <h1 className="font-[family-name:var(--font-site-heading)] text-5xl font-semibold leading-[1.02] tracking-tight md:text-8xl">
+          <h1 className="break-words font-[family-name:var(--font-site-heading)] text-5xl font-semibold leading-[1.02] tracking-tight md:text-8xl">
             {heroTitle}
           </h1>
           <div className="mt-8 flex flex-col gap-6 border-t border-[var(--site-border)] pt-8 md:flex-row md:items-center md:justify-between">
