@@ -1,6 +1,5 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { checkoutSchema } from '@/lib/validators/order';
@@ -94,7 +93,7 @@ export async function placeOrderAction(slug: string, formData: FormData): Promis
     console.error('[emails] new order failed', e),
   );
 
-  redirect(`/r/${slug}/confirmation/${orderId}`);
+  return { ok: true, redirectTo: `/r/${slug}/confirmation/${orderId}` };
 }
 
 async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): Promise<void> {

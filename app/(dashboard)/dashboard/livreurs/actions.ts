@@ -70,15 +70,18 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
   }
 
   // Crée le profil livreur (service_role bypass RLS)
-  const { error: profileErr } = await admin.from('profiles').insert({
-    id: created.user.id,
-    role: 'livreur',
-    restaurant_id: restaurant.id,
-    username: parsed.data.username,
-    full_name: parsed.data.full_name,
-    phone: parsed.data.phone || null,
-    is_active: true,
-  });
+  const { error: profileErr } = await admin.from('profiles').upsert(
+    {
+      id: created.user.id,
+      role: 'livreur',
+      restaurant_id: restaurant.id,
+      username: parsed.data.username,
+      full_name: parsed.data.full_name,
+      phone: parsed.data.phone || null,
+      is_active: true,
+    },
+    { onConflict: 'id' },
+  );
 
   if (profileErr) {
     // Rollback : supprimer l'utilisateur auth si le profil n'a pas pu être créé

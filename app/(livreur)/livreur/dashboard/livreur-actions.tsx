@@ -1,12 +1,13 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { livreurUpdateOrderAction } from './actions';
 import type { OrderStatus } from '@/types/database';
 
 export function LivreurActions({ orderId, status }: { orderId: string; status: OrderStatus }) {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   if (status !== 'assigned' && status !== 'on_the_way') return null;
 
@@ -22,13 +23,15 @@ export function LivreurActions({ orderId, status }: { orderId: string; status: O
           if (confirmMsg && !confirm(confirmMsg)) return;
           fd.set('order_id', orderId);
           fd.set('next_status', nextStatus);
-          await livreurUpdateOrderAction(fd);
+          const res = await livreurUpdateOrderAction(fd);
+          setError(res.ok ? null : res.error ?? 'Action impossible');
         })
       }
     >
       <Button type="submit" size="lg" className="w-full" disabled={isPending}>
         {isPending ? 'Mise à jour…' : label}
       </Button>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </form>
   );
 }

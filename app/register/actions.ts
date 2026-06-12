@@ -84,13 +84,16 @@ export async function registerRestaurateurAction(
     return { error: createErr?.message ?? 'Création du compte échouée.' };
   }
 
-  const { error: profileErr } = await admin.from('profiles').insert({
-    id: created.user.id,
-    role: 'restaurateur',
-    full_name: parsed.data.owner_full_name,
-    phone: parsed.data.owner_phone || null,
-    is_active: true,
-  });
+  const { error: profileErr } = await admin.from('profiles').upsert(
+    {
+      id: created.user.id,
+      role: 'restaurateur',
+      full_name: parsed.data.owner_full_name,
+      phone: parsed.data.owner_phone || null,
+      is_active: true,
+    },
+    { onConflict: 'id' },
+  );
   if (profileErr) {
     await admin.auth.admin.deleteUser(created.user.id);
     return { error: profileErr.message };

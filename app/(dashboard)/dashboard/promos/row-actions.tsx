@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { deletePromoAction, togglePromoAction } from './actions';
@@ -15,15 +15,22 @@ export function PromoRowActions({
   disabled?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex items-center gap-2">
+      {error && (
+        <span className="text-xs text-destructive" role="alert">
+          {error}
+        </span>
+      )}
       <form
         action={(fd) =>
           startTransition(async () => {
             fd.set('id', id);
             fd.set('is_active', String(isActive));
-            await togglePromoAction(fd);
+            const res = await togglePromoAction(fd);
+            setError(res.ok ? null : res.error ?? 'Action impossible');
           })
         }
       >
@@ -36,7 +43,8 @@ export function PromoRowActions({
           startTransition(async () => {
             if (!confirm('Supprimer ce code promo ?')) return;
             fd.set('id', id);
-            await deletePromoAction(fd);
+            const res = await deletePromoAction(fd);
+            setError(res.ok ? null : res.error ?? 'Suppression impossible');
           })
         }
       >

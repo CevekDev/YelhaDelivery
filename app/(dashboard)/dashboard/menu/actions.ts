@@ -131,7 +131,7 @@ function parseLinkedExtras(formData: FormData): Array<{ id: string; is_free: boo
     }));
 }
 
-/** Parse les variantes soumises dans le formulaire. */
+/** Parse les variantes soumises (prix invalides/négatifs ignorés). */
 function parseVariants(formData: FormData): Array<{ id?: string; name: string; price: number }> {
   const count = Number(formData.get('variant_count') ?? 0);
   const result: Array<{ id?: string; name: string; price: number }> = [];
@@ -139,6 +139,7 @@ function parseVariants(formData: FormData): Array<{ id?: string; name: string; p
     const name = String(formData.get(`variant_name_${i}`) ?? '').trim();
     const price = Number(formData.get(`variant_price_${i}`) ?? 0);
     if (!name) continue;
+    if (!Number.isFinite(price) || price < 0) continue;
     const idRaw = formData.get(`variant_id_${i}`);
     result.push({ id: idRaw ? String(idRaw) : undefined, name, price });
   }
@@ -150,10 +151,14 @@ async function syncVariants(
   supabase: Awaited<ReturnType<typeof createClient>>,
   menuItemId: string,
   variants: Array<{ id?: string; name: string; price: number }>,
-) {
-  await supabase.from('menu_item_variants').delete().eq('menu_item_id', menuItemId);
-  if (variants.length === 0) return;
-  await supabase.from('menu_item_variants').insert(
+): Promise<{ error?: string }> {
+  const { error: delErr } = await supabase
+    .from('menu_item_variants')
+    .delete()
+    .eq('menu_item_id', menuItemId);
+  if (delErr) return { error: delErr.message };
+  if (variants.length === 0) return {};
+  const { error } = await supabase.from('menu_item_variants').insert(
     variants.map((v, i) => ({
       menu_item_id: menuItemId,
       name: v.name,
@@ -161,6 +166,7 @@ async function syncVariants(
       sort_order: i,
     })),
   );
+  return error ? { error: error.message } : {};
 }
 
 /** Synchronise la table menu_item_extras (avec is_free) après création/mise à jour d'un plat. */
@@ -168,16 +174,21 @@ async function syncExtras(
   supabase: Awaited<ReturnType<typeof createClient>>,
   menuItemId: string,
   extras: Array<{ id: string; is_free: boolean }>,
-) {
-  await supabase.from('menu_item_extras').delete().eq('menu_item_id', menuItemId);
-  if (extras.length === 0) return;
+): Promise<{ error?: string }> {
+  const { error: delErr } = await supabase
+    .from('menu_item_extras')
+    .delete()
+    .eq('menu_item_id', menuItemId);
+  if (delErr) return { error: delErr.message };
+  if (extras.length === 0) return {};
   const rows = extras.map((e, i) => ({
     menu_item_id: menuItemId,
     extra_item_id: e.id,
     sort_order: i,
     is_free: e.is_free,
   }));
-  await supabase.from('menu_item_extras').insert(rows);
+  const { error } = await supabase.from('menu_item_extras').insert(rows);
+  return error ? { error: error.message } : {};
 }
 
 export async function createMenuItemAction(formData: FormData): Promise<FormResult> {
@@ -218,10 +229,10 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
 
   // Extras + variantes uniquement pour les plats et offres
   if (!is_extra) {
-    const linkedExtras = parseLinkedExtras(formData);
-    await syncExtras(supabase, newItem.id, linkedExtras);
-    const variants = parseVariants(formData);
-    await syncVariants(supabase, newItem.id, variants);
+    const ex = await syncExtras(supabase, newItem.id, parseLinkedExtras(formData));
+    if (ex.error) return { ok: false, error: ex.error };
+    const va = await syncVariants(supabase, newItem.id, parseVariants(formData));
+    if (va.error) return { ok: false, error: va.error };
   }
 
   revalidatePath('/dashboard/menu');
@@ -273,10 +284,10 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
   if (error) return { ok: false, error: error.message };
 
   if (!is_extra) {
-    const linkedExtras = parseLinkedExtras(formData);
-    await syncExtras(supabase, id.data, linkedExtras);
-    const variants = parseVariants(formData);
-    await syncVariants(supabase, id.data, variants);
+    const ex = await syncExtras(supabase, id.data, parseLinkedExtras(formData));
+    if (ex.error) return { ok: false, error: ex.error };
+    const va = await syncVariants(supabase, id.data, parseVariants(formData));
+    if (va.error) return { ok: false, error: va.error };
   }
 
   revalidatePath('/dashboard/menu');

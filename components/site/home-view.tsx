@@ -133,7 +133,7 @@ function Highlights({ template, highlights }: { template: Template; highlights: 
     /* Trattoria — colonnes centrées séparées par des filets, esprit carte */
     case 'centered':
       return (
-        <section className="border-y border-[var(--site-border)] bg-[var(--site-surface)]">
+        <section className="border-y border-[var(--site-border)]">
           <div className="mx-auto grid max-w-5xl gap-8 px-4 py-14 text-center md:grid-cols-3 md:divide-x md:divide-[var(--site-border)] md:px-6">
             {highlights.map((h, i) => (
               <div key={i} className="px-2">
@@ -160,7 +160,7 @@ function Highlights({ template, highlights }: { template: Template; highlights: 
                   0{i + 1}
                 </p>
                 <h3 className="mt-3 font-[family-name:var(--font-site-heading)] text-xl">{h.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed opacity-70">{h.text}</p>
+                <p className="mt-2 text-sm leading-relaxed opacity-85">{h.text}</p>
               </div>
             ))}
           </div>
@@ -179,7 +179,7 @@ function Highlights({ template, highlights }: { template: Template; highlights: 
             >
               {Array.from({ length: 2 }).map((_, dup) => (
                 <div key={dup} className="flex gap-8" aria-hidden={dup === 1}>
-                  {highlights.concat(highlights).map((h, i) => (
+                  {highlights.map((h, i) => (
                     <span
                       key={`${dup}-${i}`}
                       className="font-[family-name:var(--font-site-heading)] text-sm font-black uppercase tracking-wider"
@@ -327,7 +327,7 @@ function About({
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
           {imageUrl && (
             <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--site-radius)] border border-[var(--site-border)] md:-rotate-1">
-              <Image src={imageUrl} alt="" fill className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
+              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
             </div>
           )}
           <div className={imageUrl ? '' : 'md:col-span-2 md:mx-auto md:max-w-2xl md:text-center'}>
@@ -355,7 +355,7 @@ function About({
         </div>
         {imageUrl && (
           <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--site-radius)] border border-[var(--site-border)]">
-            <Image src={imageUrl} alt="" fill className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
+            <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
           </div>
         )}
       </div>
@@ -417,7 +417,7 @@ function MenuPreview({
                     </span>
                   </div>
                   {item.description && (
-                    <p className={`mt-1 max-w-lg text-sm ${dark ? 'opacity-60' : 'text-[color:var(--site-muted)]'}`}>
+                    <p className={`mt-1 max-w-lg text-sm ${dark ? 'opacity-80' : 'text-[color:var(--site-muted)]'}`}>
                       {item.description}
                     </p>
                   )}
@@ -589,7 +589,7 @@ function Gallery({ template, gallery }: { template: Template; gallery: string[] 
                   i % 5 === 0 ? 'row-span-2' : ''
                 }`}
               >
-                <Image src={src} alt="" fill className="object-cover" sizes="(min-width:768px) 25vw, 50vw" />
+                <Image src={src} alt={`Galerie — photo ${i + 1}`} fill className="object-cover" sizes="(min-width:768px) 25vw, 50vw" />
               </div>
             ))}
           </div>
@@ -609,7 +609,7 @@ function Gallery({ template, gallery }: { template: Template; gallery: string[] 
               key={i}
               className="relative aspect-square overflow-hidden rounded-[var(--site-radius)] border border-[var(--site-border)]"
             >
-              <Image src={src} alt="" fill className="object-cover" sizes="(min-width:768px) 25vw, 50vw" />
+              <Image src={src} alt={`Galerie — photo ${i + 1}`} fill className="object-cover" sizes="(min-width:768px) 25vw, 50vw" />
             </div>
           ))}
         </div>
@@ -699,7 +699,7 @@ function FinalCta({
     <section className="bg-[var(--site-hero-bg)] text-[color:var(--site-hero-fg)]">
       <div className="mx-auto max-w-4xl px-4 py-20 text-center md:px-6">
         <h2 className="font-[family-name:var(--font-site-heading)] text-3xl font-bold md:text-5xl">Une petite faim ?</h2>
-        <p className="mx-auto mt-4 max-w-xl text-base opacity-80">
+        <p className="mx-auto mt-4 max-w-xl text-base opacity-90">
           {restaurant.city
             ? `Livraison à ${restaurant.city} en quelques secondes. Parcourez notre menu.`
             : 'Parcourez notre menu et commandez en quelques secondes. Livraison à votre porte.'}
@@ -734,7 +734,7 @@ function HeroMeta({ restaurant, estimatedDeliveryTime, avgRating, reviewCount }:
       </span>
       <span className="inline-flex items-center gap-1.5">
         <Truck className="h-4 w-4" />
-        {restaurant.delivery_fee === 0 ? 'Livraison offerte' : formatPrice(restaurant.delivery_fee)}
+        {Number(restaurant.delivery_fee) === 0 ? 'Livraison offerte' : formatPrice(restaurant.delivery_fee)}
       </span>
       {avgRating !== null && (
         <span className="inline-flex items-center gap-1.5">

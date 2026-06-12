@@ -46,28 +46,21 @@ export async function saveHoursAction(formData: FormData): Promise<HoursResult> 
 
   const supabase = await createClient();
 
-  // Stratégie simple : on remplace toutes les lignes pour ce restaurant
-  const { error: delErr } = await supabase
-    .from('opening_hours')
-    .delete()
-    .eq('restaurant_id', restaurant.id);
-  if (delErr) return { ok: false, error: delErr.message };
-
-  // On insère uniquement les jours qui ne sont pas fermés
+  // Remplacement atomique côté serveur (delete + insert dans une transaction).
+  // On n'envoie que les jours ouverts ; les jours fermés sont simplement absents.
   const rows = parsed.data
     .filter((d) => !d.is_closed)
     .map((d) => ({
-      restaurant_id: restaurant.id,
       day_of_week: d.day_of_week,
       opens_at: d.opens_at + ':00',
       closes_at: d.closes_at + ':00',
-      is_closed: false,
     }));
 
-  if (rows.length > 0) {
-    const { error: insErr } = await supabase.from('opening_hours').insert(rows);
-    if (insErr) return { ok: false, error: insErr.message };
-  }
+  const { error } = await supabase.rpc('save_opening_hours', {
+    p_restaurant_id: restaurant.id,
+    p_rows: rows,
+  });
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath('/dashboard/horaires');
   revalidatePath('/dashboard');

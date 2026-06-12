@@ -40,7 +40,7 @@ export default async function RestaurantHomePage({
   // Page d'accueil désactivée → on redirige vers le menu (toujours présent).
   if (!restaurant.home_enabled) redirect(`/r/${slug}/menu`);
 
-  const [{ data: featuredRows }, { data: etaData }, { data: reviewsData }] = await Promise.all([
+  const [{ data: featuredRows }, { data: etaData }, { data: ratingData }] = await Promise.all([
     supabase
       .from('menu_items')
       .select('*')
@@ -52,19 +52,13 @@ export default async function RestaurantHomePage({
       .limit(6)
       .returns<MenuItem[]>(),
     supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
-    supabase
-      .from('order_reviews')
-      .select('rating')
-      .eq('restaurant_id', restaurant.id)
-      .returns<{ rating: number }[]>(),
+    supabase.rpc('get_restaurant_rating', { p_restaurant_id: restaurant.id }),
   ]);
 
-  const reviews = reviewsData ?? [];
-  const reviewCount = reviews.length;
-  const avgRating =
-    reviewCount > 0
-      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
-      : null;
+  type RatingRow = { avg_rating: number | null; review_count: number };
+  const rating = ((ratingData ?? []) as unknown as RatingRow[])[0];
+  const reviewCount = rating?.review_count ?? 0;
+  const avgRating = rating?.avg_rating != null ? Number(rating.avg_rating) : null;
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 

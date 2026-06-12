@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +27,6 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [filter, setFilter] = useState<'active' | 'all' | OrderStatus>('active');
   const [isPending, startTransition] = useTransition();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const playBeep = useCallback(() => {
     try {
@@ -99,8 +98,6 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
 
   return (
     <div className="space-y-4">
-      <audio ref={audioRef} preload="none" />
-
       {/* Filtres */}
       <div className="flex flex-wrap gap-2">
         {(['active', 'all', 'pending', 'preparing', 'on_the_way', 'delivered'] as const).map((f) => (
@@ -149,6 +146,7 @@ function OrderCard({
   const next = RESTAURATEUR_TRANSITIONS[order.status] ?? [];
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleCancel = () => {
     const fd = new FormData();
@@ -156,7 +154,12 @@ function OrderCard({
     fd.set('next_status', 'cancelled');
     if (cancelReason.trim()) fd.set('cancellation_reason', cancelReason.trim());
     startTransition(async () => {
-      await updateOrderStatusAction(fd);
+      const res = await updateOrderStatusAction(fd);
+      if (!res.ok) {
+        setActionError(res.error ?? 'Action impossible');
+        return;
+      }
+      setActionError(null);
       setCancelModal(false);
       setCancelReason('');
     });
@@ -206,7 +209,8 @@ function OrderCard({
                       startTransition(async () => {
                         fd.set('order_id', order.id);
                         fd.set('next_status', s);
-                        await updateOrderStatusAction(fd);
+                        const res = await updateOrderStatusAction(fd);
+                        setActionError(res.ok ? null : res.error ?? 'Action impossible');
                       })
                     }
                   >
@@ -236,7 +240,8 @@ function OrderCard({
                     action={(fd) =>
                       startTransition(async () => {
                         fd.set('order_id', order.id);
-                        await assignDriverAction(fd);
+                        const res = await assignDriverAction(fd);
+                        setActionError(res.ok ? null : res.error ?? 'Action impossible');
                       })
                     }
                     className="flex items-center gap-2"
@@ -261,6 +266,10 @@ function OrderCard({
                     </Button>
                   </form>
                 )}
+
+              {actionError && (
+                <p className="w-full text-xs text-destructive">{actionError}</p>
+              )}
             </div>
           )}
         </CardContent>

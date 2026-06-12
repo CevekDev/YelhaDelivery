@@ -162,7 +162,7 @@ export function CheckoutClient({
                         setFieldErrors(res.fieldErrors ?? {});
                       } else {
                         clear();
-                        router.refresh();
+                        if (res.redirectTo) router.push(res.redirectTo);
                       }
                     })
                   }

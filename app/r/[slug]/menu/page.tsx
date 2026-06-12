@@ -52,7 +52,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
     { data: etaData },
     { data: extrasLinks },
     { data: variantRows },
-    { data: reviewsData },
+    { data: ratingData },
   ] = await Promise.all([
     supabase
       .from('menu_categories')
@@ -84,23 +84,17 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       .eq('is_available', true)
       .order('sort_order')
       .returns<MenuItemVariant[]>(),
-    supabase
-      .from('order_reviews')
-      .select('rating')
-      .eq('restaurant_id', restaurant.id)
-      .returns<{ rating: number }[]>(),
+    supabase.rpc('get_restaurant_rating', { p_restaurant_id: restaurant.id }),
   ]);
 
   const openNow = isOpenNow(hours ?? []);
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
-  const reviews = reviewsData ?? [];
-  const reviewCount = reviews.length;
-  const avgRating =
-    reviewCount > 0
-      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
-      : null;
+  type RatingRow = { avg_rating: number | null; review_count: number };
+  const rating = ((ratingData ?? []) as unknown as RatingRow[])[0];
+  const reviewCount = rating?.review_count ?? 0;
+  const avgRating = rating?.avg_rating != null ? Number(rating.avg_rating) : null;
 
   const allItems = items ?? [];
   const regularItems = allItems.filter(

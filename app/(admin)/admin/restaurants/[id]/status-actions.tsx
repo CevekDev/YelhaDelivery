@@ -1,12 +1,13 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { setRestaurantStatusAction } from '../actions';
 import type { RestaurantStatus } from '@/types/database';
 
 export function StatusActions({ id, current }: { id: string; current: RestaurantStatus }) {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const setStatus = (status: RestaurantStatus, confirmMsg?: string) =>
     startTransition(async () => {
@@ -14,11 +15,17 @@ export function StatusActions({ id, current }: { id: string; current: Restaurant
       const fd = new FormData();
       fd.set('id', id);
       fd.set('status', status);
-      await setRestaurantStatusAction(fd);
+      const res = await setRestaurantStatusAction(fd);
+      setError(res.ok ? null : res.error ?? 'Action impossible');
     });
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {error && (
+        <span className="w-full text-xs text-destructive" role="alert">
+          {error}
+        </span>
+      )}
       {current !== 'active' && (
         <Button onClick={() => setStatus('active')} disabled={isPending}>
           Activer

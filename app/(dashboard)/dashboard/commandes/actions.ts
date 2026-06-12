@@ -70,7 +70,8 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
   const { error } = await supabase
     .from('orders')
     .update(updatePayload)
-    .eq('id', parsed.data.order_id);
+    .eq('id', parsed.data.order_id)
+    .eq('restaurant_id', restaurant.id);
 
   if (error) return { ok: false, error: error.message };
 
