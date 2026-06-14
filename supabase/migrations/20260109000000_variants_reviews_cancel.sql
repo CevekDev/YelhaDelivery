@@ -67,6 +67,10 @@ CREATE POLICY "restaurateurs read reviews"
   );
 
 -- ── 4. Expose cancellation_reason dans get_public_order ──────────
+-- DROP requis : le type de retour (colonnes) change vs migration 106.
+-- CREATE OR REPLACE ne peut PAS modifier le type de retour d'une fonction
+-- existante (erreur 42P13). On supprime d'abord, puis on recrée.
+DROP FUNCTION IF EXISTS public.get_public_order(uuid);
 CREATE OR REPLACE FUNCTION public.get_public_order(p_id uuid)
 RETURNS TABLE (
   id                     uuid,
@@ -82,6 +86,7 @@ RETURNS TABLE (
   discount_amount        numeric,
   promo_code             text,
   total                  numeric,
+  created_at             timestamptz,
   estimated_delivery_time int,
   cancellation_reason    text
 )
@@ -103,6 +108,7 @@ AS $$
     o.discount_amount,
     o.promo_code,
     o.total,
+    o.created_at,
     o.estimated_delivery_time,
     o.cancellation_reason
   FROM orders o
