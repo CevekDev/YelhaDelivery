@@ -524,7 +524,7 @@ function MenuPreview({
           <Link
             key={item.id}
             href={menuHref}
-            className={`group overflow-hidden rounded-[var(--site-radius)] bg-[var(--site-surface)] transition-transform hover:-translate-y-1 ${
+            className={`group block overflow-hidden rounded-[var(--site-radius)] bg-[var(--site-surface)] transition-transform hover:-translate-y-1 ${
               framed ? 'ring-1 ring-[var(--site-accent)]/25' : 'border border-[var(--site-border)]'
             }`}
           >
