@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { LivreurActions } from './livreur-actions';
+import { LivreurRealtime } from './livreur-realtime';
 import { Bike, LogOut, MapPin, Phone, Banknote, History } from 'lucide-react';
 import type { Order, Restaurant } from '@/types/database';
 
@@ -36,6 +37,7 @@ export default async function LivreurDashboardPage() {
 
   return (
     <main className="min-h-screen bg-muted/30 pb-10">
+      <LivreurRealtime userId={userId} />
       {/* Header */}
       <header className="border-b border-border bg-background">
         <div className="container flex items-center justify-between gap-3 py-4">
