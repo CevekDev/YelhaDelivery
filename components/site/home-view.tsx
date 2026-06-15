@@ -761,7 +761,7 @@ function PrimaryCta({ href, label }: { href: string; label: string }) {
 function MediaPlaceholder({ hero = false }: { hero?: boolean }) {
   return (
     <div
-      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${
+      className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${
         hero
           ? 'from-[var(--site-accent)]/25 via-[var(--site-accent)]/10 to-transparent'
           : 'from-[var(--site-accent)]/12 via-[var(--site-surface)] to-[var(--site-accent)]/5'
