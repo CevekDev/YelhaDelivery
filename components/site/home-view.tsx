@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Clock, CreditCard, Leaf, ShoppingBag, Sparkles, Star, Truck } from 'lucide-react';
+import { ArrowRight, Clock, CreditCard, Leaf, ShoppingBag, Sparkles, Star, Truck, UtensilsCrossed } from 'lucide-react';
 import type { MenuItem, Restaurant } from '@/types/database';
 import type { HeroStyle, Template } from '@/lib/templates';
 import { formatPrice } from '@/lib/utils';
@@ -487,9 +487,7 @@ function MenuPreview({
                     sizes="(min-width:640px) 50vw, 100vw"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-[var(--site-surface)] text-[color:var(--site-muted)]">
-                    <ShoppingBag className="h-8 w-8 opacity-40" />
-                  </div>
+                  <MediaPlaceholder />
                 )}
               </div>
               <div className="mt-4 flex items-baseline justify-between gap-3">
@@ -540,9 +538,7 @@ function MenuPreview({
                   sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-[color:var(--site-muted)]">
-                  <ShoppingBag className="h-8 w-8 opacity-40" />
-                </div>
+                <MediaPlaceholder />
               )}
             </div>
             <div className="p-5">
@@ -757,6 +753,28 @@ function PrimaryCta({ href, label }: { href: string; label: string }) {
   );
 }
 
+/**
+ * Placeholder élégant quand aucune photo n'est disponible — dégradé dérivé de
+ * la palette du template + icône couverts. Évite les blocs de couleur « vides »
+ * et donne un rendu intentionnel aux restaurants qui n'ont pas encore d'images.
+ */
+function MediaPlaceholder({ hero = false }: { hero?: boolean }) {
+  return (
+    <div
+      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${
+        hero
+          ? 'from-[var(--site-accent)]/25 via-[var(--site-accent)]/10 to-transparent'
+          : 'from-[var(--site-accent)]/12 via-[var(--site-surface)] to-[var(--site-accent)]/5'
+      }`}
+    >
+      <UtensilsCrossed
+        className={`text-[color:var(--site-accent)] ${hero ? 'h-16 w-16 opacity-40' : 'h-9 w-9 opacity-30'}`}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
 function Hero(props: HeroProps) {
   const { template, restaurant, heroTitle, heroSubtitle, ctaLabel, menuHref } = props;
   const cover = restaurant.cover_url;
@@ -787,7 +805,7 @@ function Hero(props: HeroProps) {
             {cover ? (
               <Image src={cover} alt={restaurant.name} fill priority className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
             ) : (
-              <div className="h-full w-full bg-gradient-to-br from-[var(--site-accent)] to-[var(--site-hero-bg)]" />
+              <MediaPlaceholder hero />
             )}
           </div>
         </section>
@@ -829,7 +847,17 @@ function Hero(props: HeroProps) {
           {cover ? (
             <Image src={cover} alt={restaurant.name} fill priority className="object-cover" sizes="100vw" />
           ) : (
-            <div className="absolute inset-0 bg-[var(--site-hero-bg)]" />
+            <>
+              <div className="absolute inset-0 bg-[var(--site-hero-bg)]" />
+              {/* lueur d'accent en haut pour éviter un fond totalement plat */}
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(ellipse 80% 60% at 50% -10%, var(--site-accent), transparent 70%)',
+                }}
+              />
+            </>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/40" />
           <div className="relative mx-auto max-w-3xl px-4 text-center text-white">
@@ -870,7 +898,7 @@ function Hero(props: HeroProps) {
               {cover ? (
                 <Image src={cover} alt={restaurant.name} fill priority className="object-cover" sizes="(min-width:768px) 40vw, 100vw" />
               ) : (
-                <div className="h-full w-full bg-[var(--site-accent)]" />
+                <MediaPlaceholder hero />
               )}
             </div>
           </div>
@@ -928,7 +956,7 @@ function Hero(props: HeroProps) {
               {cover ? (
                 <Image src={cover} alt={restaurant.name} fill priority className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
               ) : (
-                <div className="h-full w-full bg-gradient-to-br from-[var(--site-accent)]/40 to-transparent" />
+                <MediaPlaceholder hero />
               )}
             </div>
           </div>
@@ -963,7 +991,7 @@ function Hero(props: HeroProps) {
                 {cover ? (
                   <Image src={cover} alt={restaurant.name} fill priority className="object-cover" sizes="(min-width:768px) 50vw, 100vw" />
                 ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-[var(--site-accent)]/30 to-[var(--site-surface)]" />
+                  <MediaPlaceholder hero />
                 )}
               </div>
             </div>
