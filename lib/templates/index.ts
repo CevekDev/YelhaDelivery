@@ -12,7 +12,8 @@ export type HeroStyle =
   | 'bold' // gros titre + bloc coloré
   | 'minimal' // typographie XXL, beaucoup de blanc
   | 'pattern' // fond à motif oriental
-  | 'magazine'; // mise en page éditoriale
+  | 'magazine' // mise en page éditoriale
+  | 'editorial'; // hero sombre éditorial, typo massive, sans photo
 
 export interface TemplatePalette {
   bg: string;
@@ -213,6 +214,30 @@ export const TEMPLATES: Template[] = [
       border: '#F0E2DC',
       heroBg: '#3B2A2A',
       heroText: '#FDF7F4',
+    },
+  },
+  {
+    id: 8,
+    key: 'audace',
+    name: 'Audace',
+    tagline: 'Éditorial & street',
+    description:
+      'Hero sombre à typographie massive, badges et marquee. Conçu pour avoir du caractère même sans photos.',
+    bestFor: 'Fast-food, fried chicken, street food, snack',
+    isDark: true,
+    heroStyle: 'editorial',
+    radius: '0.5rem',
+    fonts: { heading: 'var(--font-poppins)', body: 'var(--font-dmsans)' },
+    palette: {
+      bg: '#131110',
+      surface: '#1E1B19',
+      text: '#FFF8F2',
+      textMuted: '#B8B2A8',
+      accent: '#FF5C1A',
+      accentText: '#131110',
+      border: '#2E2A26',
+      heroBg: '#131110',
+      heroText: '#FFF8F2',
     },
   },
 ];

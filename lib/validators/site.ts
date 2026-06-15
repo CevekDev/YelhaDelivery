@@ -17,7 +17,7 @@ const optionalUrl = z.string().trim().url('URL invalide').max(500).optional().or
 
 /** Sélection d'un template (1..7) + bascules de pages. */
 export const siteSettingsSchema = z.object({
-  template_id: z.coerce.number().int().min(1).max(7),
+  template_id: z.coerce.number().int().min(1).max(8),
   home_enabled: z.boolean(),
   blog_enabled: z.boolean(),
 });

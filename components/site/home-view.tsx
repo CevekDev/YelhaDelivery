@@ -48,6 +48,7 @@ const SECTION_ORDER: Record<HeroStyle, SectionKey[]> = {
   minimal: ['about', 'menu', 'gallery', 'highlights'], // Pure — éditorial posé
   pattern: ['about', 'menu', 'highlights', 'gallery'], // Riad — héritage puis carte
   magazine: ['gallery', 'menu', 'about', 'highlights'], // Cocon — visuel magazine d'abord
+  editorial: ['menu', 'highlights', 'about', 'gallery'], // Audace — la carte d'abord, punchy
 };
 
 export function HomeView(props: HomeViewProps) {
@@ -167,7 +168,8 @@ function Highlights({ template, highlights }: { template: Template; highlights: 
         </section>
       );
 
-    /* Urban — bandeau marquee défilant + atouts à gros chiffres */
+    /* Urban + Audace — bandeau marquee défilant + atouts à gros chiffres */
+    case 'editorial':
     case 'bold':
       return (
         <section className="overflow-hidden">
@@ -438,8 +440,8 @@ function MenuPreview({
     );
   }
 
-  /* Liste audacieuse à gros chiffres — Urban */
-  if (style === 'bold') {
+  /* Liste audacieuse à gros chiffres — Urban + Audace */
+  if (style === 'bold' || style === 'editorial') {
     return (
       <section className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
         <SectionEyebrow kicker="Best-sellers" title="Le menu qui déchire" />
@@ -629,8 +631,8 @@ function FinalCta({
 }) {
   const style = template.heroStyle;
 
-  /* Urban — énorme bloc uppercase */
-  if (style === 'bold') {
+  /* Urban + Audace — énorme bloc uppercase */
+  if (style === 'bold' || style === 'editorial') {
     return (
       <section className="bg-[var(--site-accent)] text-[color:var(--site-accent-fg)]">
         <div className="mx-auto max-w-5xl px-4 py-20 text-center md:px-6 md:py-28">
@@ -958,6 +960,36 @@ function Hero(props: HeroProps) {
               ) : (
                 <MediaPlaceholder hero />
               )}
+            </div>
+          </div>
+        </section>
+      );
+
+    /* 8. Audace — hero sombre éditorial, typo massive, badge, sans photo */
+    case 'editorial':
+      return (
+        <section className="relative overflow-hidden bg-[var(--site-hero-bg)] text-[color:var(--site-hero-fg)]">
+          <div className="relative mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--site-accent)]">
+              ● {restaurant.city || 'Livraison à domicile'} — Ouvert
+            </p>
+            <h1 className="mt-5 max-w-3xl break-words font-[family-name:var(--font-site-heading)] text-5xl font-black uppercase leading-[0.9] tracking-tight md:text-8xl">
+              {heroTitle}
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-relaxed opacity-80 md:text-lg">
+              {heroSubtitle}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-5">
+              <PrimaryCta href={menuHref} label={ctaLabel} />
+              <HeroMeta {...props} />
+            </div>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute right-4 top-8 hidden h-28 w-28 rotate-12 flex-col items-center justify-center rounded-full bg-[var(--site-accent)] text-center font-[family-name:var(--font-site-heading)] text-sm font-black uppercase leading-tight text-[color:var(--site-accent-fg)] lg:flex"
+            >
+              Frais
+              <br />
+              du jour
             </div>
           </div>
         </section>
