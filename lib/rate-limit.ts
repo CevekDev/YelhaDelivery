@@ -1,14 +1,44 @@
 /**
- * Rate limiter en mémoire.
+ * Rate limiter distribué (Upstash Redis REST) avec repli en mémoire.
  *
- * ⚠️ LIMITATION SERVERLESS : Sur Vercel / Edge, chaque invocation peut démarrer
- * dans une instance différente. Ce rate-limiter fonctionne par instance.
- * Il reste utile contre les attaques répétées sur la même instance chaude,
- * mais NE remplace PAS un rate-limiter distribué (Upstash Redis) pour une
- * protection totale en production multi-instance.
+ * Si UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN sont définis, le compteur
+ * est partagé entre toutes les instances serverless (protection réelle en prod).
+ * Sinon — ou en cas d'erreur réseau Upstash — on retombe sur un compteur en
+ * mémoire (par instance), utile contre les rafales sur une instance chaude.
  *
- * Limite : 5 tentatives par fenêtre de 15 min, par clé (email+ip).
+ * Limite : 5 tentatives / 15 min (login), 3 / 60 min (signup), par clé (email+ip).
  */
+
+const UP_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UP_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const upstashEnabled = Boolean(UP_URL && UP_TOKEN);
+
+async function upstashCmd<T>(...args: (string | number)[]): Promise<T | null> {
+  try {
+    const path = args.map((a) => encodeURIComponent(String(a))).join('/');
+    const res = await fetch(`${UP_URL}/${path}`, {
+      headers: { Authorization: `Bearer ${UP_TOKEN}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { result: T };
+    return json.result;
+  } catch {
+    return null;
+  }
+}
+
+/** Compteur Upstash (fenêtre fixe). Renvoie null en cas d'erreur → repli mémoire. */
+async function checkUpstash(key: string, cfg: RateLimitConfig): Promise<RateLimitResult | null> {
+  const windowSec = Math.ceil(cfg.windowMs / 1000);
+  const count = await upstashCmd<number>('INCR', key);
+  if (count === null) return null;
+  if (count === 1) await upstashCmd('EXPIRE', key, windowSec);
+  let ttl = await upstashCmd<number>('TTL', key);
+  if (ttl === null || ttl < 0) ttl = windowSec;
+  if (count > cfg.max) return { allowed: false, remaining: 0, resetInSeconds: ttl };
+  return { allowed: true, remaining: cfg.max - count, resetInSeconds: ttl };
+}
 
 interface Bucket {
   count: number;
@@ -56,16 +86,25 @@ function check(key: string, cfg: RateLimitConfig): RateLimitResult {
   };
 }
 
-export function checkRateLimit(key: string): RateLimitResult {
+export async function checkRateLimit(key: string): Promise<RateLimitResult> {
+  if (upstashEnabled) {
+    const r = await checkUpstash(key, LOGIN);
+    if (r) return r;
+  }
   return check(key, LOGIN);
 }
 
-export function checkSignupRateLimit(key: string): RateLimitResult {
+export async function checkSignupRateLimit(key: string): Promise<RateLimitResult> {
+  if (upstashEnabled) {
+    const r = await checkUpstash(key, SIGNUP);
+    if (r) return r;
+  }
   return check(key, SIGNUP);
 }
 
-/** Réinitialise un bucket (à appeler après une opération réussie). */
-export function resetRateLimit(key: string): void {
+/** Réinitialise un compteur (à appeler après une opération réussie). */
+export async function resetRateLimit(key: string): Promise<void> {
+  if (upstashEnabled) await upstashCmd('DEL', key);
   buckets.delete(key);
 }
 

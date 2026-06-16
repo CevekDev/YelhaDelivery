@@ -37,7 +37,7 @@ export async function loginAction(
   const ip =
     hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip') || 'unknown';
   const rlKey = `login:restaurateur:${parsed.data.email.toLowerCase()}:${ip}`;
-  const rl = checkRateLimit(rlKey);
+  const rl = await checkRateLimit(rlKey);
   if (!rl.allowed) {
     return {
       error: `Trop de tentatives. Réessayez dans ${Math.ceil(rl.resetInSeconds / 60)} minutes.`,
@@ -71,6 +71,6 @@ export async function loginAction(
     return { error: 'Ce compte n’est pas un compte restaurateur.' };
   }
 
-  resetRateLimit(rlKey);
+  await resetRateLimit(rlKey);
   redirect('/dashboard');
 }

@@ -21,7 +21,7 @@ export async function registerRestaurateurAction(
   const hdrs = await headers();
   const ip =
     hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip') || 'unknown';
-  const rl = checkSignupRateLimit(`signup:${ip}`);
+  const rl = await checkSignupRateLimit(`signup:${ip}`);
   if (!rl.allowed) {
     return {
       error: `Trop d'inscriptions depuis cette adresse. Réessayez dans ${Math.ceil(rl.resetInSeconds / 60)} minutes.`,

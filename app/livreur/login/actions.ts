@@ -32,7 +32,7 @@ export async function livreurLoginAction(
   const ip =
     hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip') || 'unknown';
   const rlKey = `login:livreur:${parsed.data.username}:${ip}`;
-  const rl = checkRateLimit(rlKey);
+  const rl = await checkRateLimit(rlKey);
   if (!rl.allowed) {
     return {
       error: `Trop de tentatives. Réessayez dans ${Math.ceil(rl.resetInSeconds / 60)} minutes.`,
@@ -60,6 +60,6 @@ export async function livreurLoginAction(
     return { error: 'Compte livreur introuvable ou désactivé.' };
   }
 
-  resetRateLimit(rlKey);
+  await resetRateLimit(rlKey);
   redirect('/livreur/dashboard');
 }
