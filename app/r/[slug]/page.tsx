@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
 import { HomeView } from '@/components/site/home-view';
+import { restaurantMetadata, restaurantJsonLd } from '@/lib/seo';
 import type { MenuItem, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -12,12 +13,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const supabase = await createClient();
   const { data } = await supabase
     .from('restaurants')
-    .select('name, description')
+    .select('name, description, city, address, phone, cover_url')
     .eq('slug', slug)
     .eq('status', 'active')
-    .maybeSingle<Pick<Restaurant, 'name' | 'description'>>();
+    .maybeSingle<Pick<Restaurant, 'name' | 'description' | 'city' | 'address' | 'phone' | 'cover_url'>>();
   if (!data) return { title: 'Restaurant introuvable' };
-  return { title: data.name, description: data.description ?? undefined };
+  return restaurantMetadata(
+    { ...data, slug, coverUrl: data.cover_url },
+    'home',
+  );
 }
 
 export default async function RestaurantHomePage({
@@ -64,7 +68,22 @@ export default async function RestaurantHomePage({
 
   const template = getTemplate(restaurant.template_id);
 
+  const jsonLd = restaurantJsonLd({
+    name: restaurant.name,
+    description: restaurant.description,
+    slug,
+    city: restaurant.city,
+    address: restaurant.address,
+    phone: restaurant.phone,
+    coverUrl: restaurant.cover_url,
+  });
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
       <HomeView
         template={template}
@@ -76,5 +95,6 @@ export default async function RestaurantHomePage({
         estimatedDeliveryTime={estimatedDeliveryTime}
       />
     </SiteShell>
+    </>
   );
 }

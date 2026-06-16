@@ -16,6 +16,7 @@ import type {
   Restaurant,
 } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
+import { restaurantMetadata, restaurantJsonLd } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +25,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const supabase = await createClient();
   const { data } = await supabase
     .from('restaurants')
-    .select('name, description')
+    .select('name, description, city, address, phone, cover_url')
     .eq('slug', slug)
     .eq('status', 'active')
-    .maybeSingle<Pick<Restaurant, 'name' | 'description'>>();
+    .maybeSingle<Pick<Restaurant, 'name' | 'description' | 'city' | 'address' | 'phone' | 'cover_url'>>();
   if (!data) return { title: 'Restaurant introuvable' };
-  return { title: `Menu — ${data.name}`, description: data.description ?? undefined };
+  return restaurantMetadata({ ...data, slug, coverUrl: data.cover_url }, 'menu');
 }
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -155,8 +156,22 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   // Lien retour : page d'accueil du site si activée, sinon accueil YelhaDelivery
   const homeHref = restaurant.home_enabled ? `/r/${slug}` : '/';
 
+  const jsonLd = restaurantJsonLd({
+    name: restaurant.name,
+    description: restaurant.description,
+    slug,
+    city: restaurant.city,
+    address: restaurant.address,
+    phone: restaurant.phone,
+    coverUrl: restaurant.cover_url,
+  });
+
   return (
     <main className="min-h-screen bg-[#F5F5F5] pb-32">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <PublicPageHeader slug={slug} restaurantName={restaurant.name} homeHref={homeHref} />
 
       <div className="relative h-[260px] w-full overflow-hidden bg-gray-300 md:h-[340px]">
