@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
 import { canRestaurateurTransition } from '@/lib/order-status';
+import { sendPushToUser } from '@/lib/push';
 import type { OrderStatus } from '@/types/database';
 
 const updateSchema = z.object({
@@ -113,6 +114,14 @@ export async function assignDriverAction(formData: FormData): Promise<ActionResu
     .eq('restaurant_id', restaurant.id);
 
   if (error) return { ok: false, error: error.message };
+
+  // Notification push au livreur (best-effort)
+  void sendPushToUser(parsed.data.driver_id, {
+    title: 'Nouvelle course',
+    body: 'Une commande vous a été assignée.',
+    url: '/livreur/dashboard',
+    tag: `assign-${parsed.data.order_id}`,
+  });
 
   revalidatePath('/dashboard/commandes');
   return { ok: true };

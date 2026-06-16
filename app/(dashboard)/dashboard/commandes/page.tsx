@@ -2,6 +2,7 @@ import { requireRestaurateur } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { OrdersLive } from '@/components/dashboard/orders-live';
+import { PushSubscribe } from '@/components/push-subscribe';
 import type { Order, Profile } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,7 @@ export default async function CommandesPage() {
           </span>
         }
       />
+      <PushSubscribe />
       <OrdersLive
         restaurantId={restaurant.id}
         initialOrders={orders ?? []}

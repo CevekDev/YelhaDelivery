@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { checkoutSchema } from '@/lib/validators/order';
 import { sendNewOrderToRestaurateur } from '@/lib/emails/send';
+import { sendPushToUser } from '@/lib/push';
 
 export interface CheckoutResult {
   ok: boolean;
@@ -125,6 +126,14 @@ async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): P
     const o = order as unknown as OrderRow;
     const ownerId = o.restaurant?.owner_id;
     if (!ownerId) return;
+
+    // Notification push au restaurateur (best-effort, en plus de l'email)
+    void sendPushToUser(ownerId, {
+      title: 'Nouvelle commande',
+      body: `${orderNumber || ''} · ${o.customer_name}`.trim(),
+      url: '/dashboard/commandes',
+      tag: `order-${orderId}`,
+    });
 
     const { data: ownerAuth } = await admin.auth.admin.getUserById(ownerId);
     const email = ownerAuth?.user?.email;

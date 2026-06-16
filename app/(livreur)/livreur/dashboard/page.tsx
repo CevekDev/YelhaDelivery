@@ -7,6 +7,7 @@ import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { LivreurActions } from './livreur-actions';
 import { LivreurRealtime } from './livreur-realtime';
+import { PushSubscribe } from '@/components/push-subscribe';
 import { Bike, LogOut, MapPin, Phone, Banknote, History } from 'lucide-react';
 import type { Order, Restaurant } from '@/types/database';
 
@@ -73,6 +74,11 @@ export default async function LivreurDashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* Activer les notifications push */}
+      <div className="container pt-4">
+        <PushSubscribe />
+      </div>
 
       {/* Stats du jour */}
       <section className="container py-5">
