@@ -1,0 +1,57 @@
+name: Migrations Supabase
+
+# Applique automatiquement les migrations SQL à la base de prod quand un
+# fichier supabase/migrations/** est poussé sur main (évite la dérive
+# repo ↔ prod). Lançable aussi manuellement (workflow_dispatch).
+#
+# Secrets requis (Repo → Settings → Secrets and variables → Actions) :
+#   PGHOST      ex: aws-0-eu-west-3.pooler.supabase.com   (Session pooler)
+#   PGUSER      ex: postgres.<project-ref>
+#   PGPASSWORD  mot de passe de la base
+#   PGPORT      5432   (optionnel, défaut 5432)
+#   PGDATABASE  postgres   (optionnel, défaut postgres)
+# Sans PGHOST configuré, l'étape de migration est ignorée (job vert, no-op).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-prod
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        if: ${{ secrets.PGHOST != '' }}
+        run: node scripts/run-migrations.mjs
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+
+      - name: Skipped (no DB secrets)
+        if: ${{ secrets.PGHOST == '' }}
+        run: echo "PGHOST non configuré → migrations ignorées. Ajoute les secrets pour activer."
