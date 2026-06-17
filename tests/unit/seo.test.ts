@@ -26,8 +26,10 @@ describe('restaurantMetadata', () => {
   });
 
   it('picks the twitter card type based on cover image', () => {
-    expect(restaurantMetadata(base, 'home').twitter?.card).toBe('summary');
-    expect(restaurantMetadata({ ...base, coverUrl: 'https://x/y.jpg' }, 'home').twitter?.card).toBe(
+    const card = (m: ReturnType<typeof restaurantMetadata>) =>
+      (m.twitter as { card?: string } | undefined)?.card;
+    expect(card(restaurantMetadata(base, 'home'))).toBe('summary');
+    expect(card(restaurantMetadata({ ...base, coverUrl: 'https://x/y.jpg' }, 'home'))).toBe(
       'summary_large_image',
     );
   });
