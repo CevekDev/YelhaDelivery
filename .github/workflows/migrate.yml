@@ -23,6 +23,10 @@ concurrency:
   group: migrate-prod
   cancel-in-progress: false
 
+env:
+  # Exécute les actions JS sur le runtime Node 24 (Node 20 déprécié).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
