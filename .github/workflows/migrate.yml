@@ -47,15 +47,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply migrations
-        if: ${{ secrets.PGHOST != '' }}
-        run: node scripts/run-migrations.mjs
         env:
           PGHOST: ${{ secrets.PGHOST }}
           PGPORT: ${{ secrets.PGPORT }}
           PGUSER: ${{ secrets.PGUSER }}
           PGPASSWORD: ${{ secrets.PGPASSWORD }}
           PGDATABASE: ${{ secrets.PGDATABASE }}
-
-      - name: Skipped (no DB secrets)
-        if: ${{ secrets.PGHOST == '' }}
-        run: echo "PGHOST non configuré → migrations ignorées. Ajoute les secrets pour activer."
+        run: |
+          if [ -z "$PGHOST" ]; then
+            echo "PGHOST non configuré → migrations ignorées. Ajoute les secrets DB pour activer."
+            exit 0
+          fi
+          node scripts/run-migrations.mjs
