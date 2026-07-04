@@ -2,7 +2,8 @@
 
 > Plateforme SaaS de gestion de livraison pour restaurants algériens.
 
-**Site de production** : https://delivery.yelha.net
+**Site de production** : https://yelha-delivery.vercel.app  
+_(domaine custom `delivery.yelha.net` : DNS à finaliser côté registrar — voir section déploiement)_
 **Stack** : Next.js 15 · TypeScript strict · Supabase · Tailwind · Resend
 
 ---
