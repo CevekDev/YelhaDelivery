@@ -17,8 +17,8 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Polices
   "font-src 'self' https://fonts.gstatic.com",
-  // Images : self + supabase + r2 + data URIs
-  `img-src 'self' data: blob: https://${supabaseWsHost} https://*.r2.dev ${process.env.R2_PUBLIC_URL || ''}`,
+  // Images : self + supabase + r2 + unsplash CDN + data URIs
+  `img-src 'self' data: blob: https://${supabaseWsHost} https://*.r2.dev https://images.unsplash.com ${process.env.R2_PUBLIC_URL || ''}`,
   // API calls : supabase + self
   `connect-src 'self' https://${supabaseWsHost} wss://${supabaseWsHost}`,
   // Objets/iframes interdits
@@ -64,6 +64,8 @@ const remotePatterns = [
   { protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' },
   ...(r2Host ? [{ protocol: 'https', hostname: r2Host, pathname: '/**' }] : []),
   { protocol: 'https', hostname: '*.r2.dev', pathname: '/**' },
+  // Unsplash CDN — utilisé pour les photos de menu (licence libre, usage commercial)
+  { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
 ];
 
 const nextConfig = {
