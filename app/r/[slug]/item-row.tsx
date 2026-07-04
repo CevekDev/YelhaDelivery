@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { ArrowRight, Check, Minus, Plus, ShoppingBag, X } from 'lucide-react';
+import { ArrowRight, Check, Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 import { useCart } from '@/stores/cart';
 import { formatPrice } from '@/lib/utils';
@@ -35,12 +35,15 @@ export function ItemRow({
 }) {
   const [showModal, setShowModal] = useState(false);
 
-  const lines = useCart(useShallow((s) => s.lines.filter((l) => l.menu_item_id === item.id)));
-  const totalQty = lines.reduce((n, l) => n + l.quantity, 0);
-  const singleLine = lines.length === 1 ? lines[0] : null;
+  const totalQty = useCart(
+    useShallow((s) =>
+      s.lines
+        .filter((l) => l.menu_item_id === item.id)
+        .reduce((n, l) => n + l.quantity, 0),
+    ),
+  );
 
   const add = useCart((s) => s.add);
-  const setQty = useCart((s) => s.setQty);
 
   const disabled = !item.is_available || !canOrder;
   const activePrice = item.promo_price ?? item.price;
@@ -59,11 +62,13 @@ export function ItemRow({
 
   const isOffer = item.item_type === 'offer';
 
-  const handleAdd = () => {
+  // UberEats-style : la carte entière est cliquable. Click sur carte :
+  //   - Item avec options → ouvre la modale
+  //   - Item simple → ajoute directement au panier
+  const openOrAdd = () => {
     if (disabled) return;
-    if (needsModal) {
-      setShowModal(true);
-    } else {
+    if (needsModal) setShowModal(true);
+    else
       add(slug, {
         menu_item_id: item.id,
         variant_id: null,
@@ -72,56 +77,47 @@ export function ItemRow({
         price: Number(activePrice),
         note: null,
       });
-    }
   };
-
-  // Ouvrir la modale au clic sur la zone texte quand il y a des choix à faire.
-  const openIfHasChoices = () => {
-    if (disabled) return;
-    if (needsModal) setShowModal(true);
-  };
-  const leftClickable = !disabled && needsModal;
 
   return (
     <>
-      <div
+      <button
+        type="button"
+        onClick={openOrAdd}
+        disabled={disabled}
+        data-menu-item={item.name}
+        data-menu-desc={item.description ?? ''}
+        aria-label={
+          disabled
+            ? `${item.name} indisponible`
+            : needsModal
+              ? `Personnaliser ${item.name}`
+              : `Ajouter ${item.name}`
+        }
         className={
-          'mx-4 flex items-start gap-3 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 transition-opacity ' +
+          'group relative flex w-full items-start gap-4 border-b border-[var(--site-border)] bg-transparent px-4 py-4 text-left transition-colors hover:bg-[var(--site-surface)]/40 focus:outline-none focus-visible:bg-[var(--site-surface)]/60 md:rounded-2xl md:border md:bg-[var(--site-surface)] md:hover:shadow-md ' +
           (disabled ? 'opacity-60' : '') +
-          (isOffer ? ' ring-1 ring-amber-400/50' : '')
+          (isOffer ? ' md:ring-1 md:ring-amber-400/50' : '')
         }
       >
-        {/* ── Left: text + price ── */}
-        <div
-          onClick={leftClickable ? openIfHasChoices : undefined}
-          onKeyDown={
-            leftClickable
-              ? (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    openIfHasChoices();
-                  }
-                }
-              : undefined
-          }
-          role={leftClickable ? 'button' : undefined}
-          tabIndex={leftClickable ? 0 : undefined}
-          aria-label={leftClickable ? `Personnaliser ${item.name}` : undefined}
-          className={
-            'flex min-w-0 flex-1 flex-col rounded-lg ' +
-            (leftClickable ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--site-accent)]' : '')
-          }
-        >
-          {/* Offer badge */}
-          {isOffer && item.offer_badge && (
-            <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-white">
+        {/* ── Left: text ── */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          {/* Badge Populaire (favoris) ou Offre */}
+          {isOffer && item.offer_badge ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white">
               🎁 {item.offer_badge}
             </span>
-          )}
+          ) : item.is_favorite ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--site-accent)]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-accent)]">
+              <Star className="h-2.5 w-2.5 fill-current" /> Populaire
+            </span>
+          ) : null}
 
-          {/* Nom + badges */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-bold leading-snug text-[color:var(--site-text)]">{item.name}</p>
+          {/* Nom */}
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <p className="text-[15px] font-semibold leading-snug text-[color:var(--site-text)]">
+              {item.name}
+            </p>
             {discount > 0 && (
               <span className="rounded-full bg-[var(--site-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[color:var(--site-accent-fg)]">
                 -{discount}%
@@ -134,83 +130,49 @@ export function ItemRow({
             )}
           </div>
 
-          {/* Description ou offer_description */}
+          {/* Description */}
           {isOffer && item.offer_description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-amber-700/80">
+            <p className="line-clamp-2 text-[13px] leading-relaxed text-amber-700/80">
               {item.offer_description}
             </p>
           ) : item.description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[color:var(--site-muted)]">
+            <p className="line-clamp-2 text-[13px] leading-relaxed text-[color:var(--site-muted)]">
               {item.description}
             </p>
           ) : null}
 
-          {/* Variant / extras hint */}
-          {hasVariants && (
-            <p className="mt-1 text-[11px] font-semibold text-[color:var(--site-accent)]">
-              {availableVariants.length} taille{availableVariants.length > 1 ? 's' : ''} disponible
-              {availableVariants.length > 1 ? 's' : ''}
-            </p>
-          )}
-          {!hasVariants && hasExtras && (
-            <p className="mt-1 text-[11px] font-semibold text-[color:var(--site-accent)]">
-              {availableExtras.length} option{availableExtras.length > 1 ? 's' : ''} disponible
-              {availableExtras.length > 1 ? 's' : ''}
-            </p>
-          )}
-
-          {/* Price */}
-          <div className="mt-auto flex items-baseline gap-1.5 pt-3">
-            <span className="font-[family-name:var(--font-site-heading)] text-[15px] font-extrabold text-[color:var(--site-accent)] tabular-nums">
+          {/* Prix (toujours en bas) */}
+          <div className="mt-auto flex items-baseline gap-1.5 pt-1">
+            <span className="text-[15px] font-bold text-[color:var(--site-text)] tabular-nums">
               {isExtraItem ? '+' : ''}
               {formatPrice(activePrice)}
             </span>
             {item.promo_price != null && (
-              <span className="text-xs text-[color:var(--site-muted)] line-through tabular-nums">
+              <span className="text-[12px] text-[color:var(--site-muted)] line-through tabular-nums">
                 {formatPrice(item.price)}
               </span>
             )}
           </div>
         </div>
 
-        {/* ── Right: image + controls ── */}
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          {/* Image (cliquable pour ouvrir la modale si options disponibles) */}
-          <div
-            onClick={leftClickable ? openIfHasChoices : undefined}
-            onKeyDown={
-              leftClickable
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openIfHasChoices();
-                    }
-                  }
-                : undefined
-            }
-            role={leftClickable ? 'button' : undefined}
-            tabIndex={leftClickable ? 0 : undefined}
-            aria-label={leftClickable ? `Voir ${item.name}` : undefined}
-            className={
-              'relative h-[84px] w-[84px] overflow-hidden rounded-xl bg-[var(--site-bg)] ' +
-              (leftClickable ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--site-accent)]' : '')
-            }
-          >
+        {/* ── Right: image + + button (style UberEats) ── */}
+        <div className="relative shrink-0">
+          <div className="relative h-[112px] w-[112px] overflow-hidden rounded-xl bg-[var(--site-bg)]">
             {item.image_url ? (
               <Image
                 src={item.image_url}
-                alt={item.name}
+                alt=""
                 fill
-                sizes="84px"
-                className="object-cover"
+                sizes="112px"
+                className="object-cover transition-transform group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl opacity-25">
+              <div className="flex h-full w-full items-center justify-center text-4xl opacity-25">
                 {isOffer ? '🎁' : '🍽️'}
               </div>
             )}
             {(item.image_urls?.length ?? 0) > 0 && (
-              <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
+              <div className="pointer-events-none absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
                 {item.image_urls!.slice(0, 3).map((_, i) => (
                   <span key={i} className="h-1 w-1 rounded-full bg-white/80 shadow" />
                 ))}
@@ -218,61 +180,25 @@ export function ItemRow({
             )}
           </div>
 
-          {/* Add / Stepper controls */}
-          {totalQty === 0 ? (
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={disabled}
-              aria-label={`Ajouter ${item.name}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-accent)] text-[color:var(--site-accent-fg)] shadow-md transition-transform active:scale-90 disabled:pointer-events-none disabled:opacity-40"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          ) : hasVariants ? (
-            /* Multi-variant: badge + open modal */
-            <div className="flex h-8 items-center gap-1 rounded-full bg-[var(--site-accent)] px-2.5 shadow-md">
-              <span className="min-w-[18px] text-center text-xs font-bold text-[color:var(--site-accent-fg)] tabular-nums">
-                {totalQty}×
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                aria-label="Ajouter une variante"
-                className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
-              >
-                <Plus className="h-3 w-3 text-[color:var(--site-accent-fg)]" />
-              </button>
-            </div>
-          ) : (
-            /* Simple item: inline stepper */
-            <div className="flex h-8 items-center rounded-full bg-[var(--site-accent)] px-1 shadow-md">
-              <button
-                type="button"
-                onClick={() => singleLine && setQty(singleLine.cart_key, singleLine.quantity - 1)}
-                aria-label="Diminuer"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] transition-colors hover:bg-white/20"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="min-w-[20px] text-center text-sm font-bold text-[color:var(--site-accent-fg)] tabular-nums">
+          {/* + button overlay bottom-right sur l'image */}
+          <span
+            role="presentation"
+            aria-hidden
+            className={
+              'absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-surface)] shadow-md ring-1 ring-[var(--site-border)] transition-transform group-hover:scale-110 group-active:scale-95 ' +
+              (disabled ? 'opacity-40' : '')
+            }
+          >
+            {totalQty > 0 ? (
+              <span className="text-[13px] font-bold text-[color:var(--site-accent)] tabular-nums">
                 {totalQty}
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (hasExtras) setShowModal(true);
-                  else if (singleLine) setQty(singleLine.cart_key, singleLine.quantity + 1);
-                }}
-                aria-label="Augmenter"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] transition-colors hover:bg-white/20"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          )}
+            ) : (
+              <Plus className="h-4 w-4 text-[color:var(--site-accent)]" strokeWidth={2.5} />
+            )}
+          </span>
         </div>
-      </div>
+      </button>
 
       {/* Modal variantes + suppléments + suggestions */}
       {showModal && (

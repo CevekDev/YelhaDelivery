@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CartButton } from '../cart-button';
 import { CategoryNav } from '../category-nav';
 import { ItemRow } from '../item-row';
+import { MenuSearch } from '../menu-search';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
 import type {
@@ -315,6 +316,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       )}
 
+      <MenuSearch placeholder={`Rechercher chez ${restaurant.name}…`} />
+
       {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos || hasFavorites) && (
         <CategoryNav
           categories={visibleCategories.map((c) => ({ id: c.id, name: c.name }))}
@@ -333,14 +336,14 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         )}
 
         {hasFavorites && (
-          <section id="cat-favorites" className="mb-4 scroll-mt-32">
+          <section id="cat-favorites" data-menu-section className="mb-4 scroll-mt-32">
             <SectionHeader
               icon={<Star className="h-4 w-4 fill-[var(--site-accent)] text-[color:var(--site-accent)]" />}
               title="Favoris"
               subtitle="Les plats préférés de nos clients"
               count={favoriteItems.length}
             />
-            <div className="space-y-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-0 md:grid-cols-2 md:gap-3 md:px-4">
               {favoriteItems.map((item) => (
                 <ItemRow
                   key={item.id}
@@ -359,13 +362,13 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         )}
 
         {hasPromos && (
-          <section id="cat-promos" className="mb-4 scroll-mt-32">
+          <section id="cat-promos" data-menu-section className="mb-4 scroll-mt-32">
             <SectionHeader
               icon={<Sparkles className="h-4 w-4 text-[color:var(--site-accent)]" />}
               title="Offres du moment"
               count={promoItems.length}
             />
-            <div className="space-y-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-0 md:grid-cols-2 md:gap-3 md:px-4">
               {promoItems.map((item) => (
                 <ItemRow
                   key={item.id}
@@ -386,9 +389,9 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         {visibleCategories.map((cat) => {
           const list = byCategory.get(cat.id) ?? [];
           return (
-            <section key={cat.id} id={`cat-${cat.id}`} className="mb-4 scroll-mt-32">
+            <section key={cat.id} id={`cat-${cat.id}`} data-menu-section className="mb-4 scroll-mt-32">
               <SectionHeader title={cat.name} count={list.length} />
-              <div className="space-y-3">
+              <div className="mx-auto grid max-w-5xl grid-cols-1 gap-0 md:grid-cols-2 md:gap-3 md:px-4">
                 {list.map((item) => (
                   <ItemRow
                     key={item.id}
@@ -408,9 +411,9 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         })}
 
         {hasUncategorized && (
-          <section id="cat-other" className="mb-4 scroll-mt-32">
+          <section id="cat-other" data-menu-section className="mb-4 scroll-mt-32">
             <SectionHeader title="Autres plats" count={byCategory.get(null)!.length} />
-            <div className="space-y-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-0 md:grid-cols-2 md:gap-3 md:px-4">
               {byCategory.get(null)!.map((item) => (
                 <ItemRow
                   key={item.id}
@@ -429,13 +432,13 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         )}
 
         {hasExtras && (
-          <section id="cat-extras" className="mb-4 scroll-mt-32">
+          <section id="cat-extras" data-menu-section className="mb-4 scroll-mt-32">
             <SectionHeader
               title="Suppléments & Sauces"
               subtitle="Accompagnements, sauces, boissons"
               count={extrasById.size}
             />
-            <div className="space-y-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-0 md:grid-cols-2 md:gap-3 md:px-4">
               {[...extrasById.values()].map((item) => (
                 <ItemRow
                   key={item.id}
@@ -480,11 +483,11 @@ function SectionHeader({
   count?: number;
 }) {
   return (
-    <div className="mb-2 flex items-center justify-between px-4 pt-2">
+    <div className="mx-auto mb-3 flex max-w-5xl items-center justify-between px-4 pt-4 md:pt-6">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="font-[family-name:var(--font-site-heading)] text-base font-extrabold text-[color:var(--site-text)]">{title}</h2>
-        {subtitle && <p className="text-xs text-[color:var(--site-muted)]">{subtitle}</p>}
+        <h2 className="font-[family-name:var(--font-site-heading)] text-lg font-extrabold text-[color:var(--site-text)] md:text-xl">{title}</h2>
+        {subtitle && <p className="hidden text-xs text-[color:var(--site-muted)] sm:block">{subtitle}</p>}
       </div>
       {count != null && (
         <span className="text-xs text-[color:var(--site-muted)]">
