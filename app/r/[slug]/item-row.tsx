@@ -66,6 +66,13 @@ export function ItemRow({
     }
   };
 
+  // Ouvrir la modale au clic sur la zone texte quand il y a des choix à faire.
+  const openIfHasChoices = () => {
+    if (disabled) return;
+    if (needsModal) setShowModal(true);
+  };
+  const leftClickable = !disabled && needsModal;
+
   return (
     <>
       <div
@@ -76,7 +83,26 @@ export function ItemRow({
         }
       >
         {/* ── Left: text + price ── */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          onClick={leftClickable ? openIfHasChoices : undefined}
+          onKeyDown={
+            leftClickable
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openIfHasChoices();
+                  }
+                }
+              : undefined
+          }
+          role={leftClickable ? 'button' : undefined}
+          tabIndex={leftClickable ? 0 : undefined}
+          aria-label={leftClickable ? `Personnaliser ${item.name}` : undefined}
+          className={
+            'flex min-w-0 flex-1 flex-col rounded-lg ' +
+            (leftClickable ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--site-accent)]' : '')
+          }
+        >
           {/* Offer badge */}
           {isOffer && item.offer_badge && (
             <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-white">
@@ -140,8 +166,27 @@ export function ItemRow({
 
         {/* ── Right: image + controls ── */}
         <div className="flex shrink-0 flex-col items-end gap-2">
-          {/* Image */}
-          <div className="relative h-[84px] w-[84px] overflow-hidden rounded-xl bg-[var(--site-bg)]">
+          {/* Image (cliquable pour ouvrir la modale si options disponibles) */}
+          <div
+            onClick={leftClickable ? openIfHasChoices : undefined}
+            onKeyDown={
+              leftClickable
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openIfHasChoices();
+                    }
+                  }
+                : undefined
+            }
+            role={leftClickable ? 'button' : undefined}
+            tabIndex={leftClickable ? 0 : undefined}
+            aria-label={leftClickable ? `Voir ${item.name}` : undefined}
+            className={
+              'relative h-[84px] w-[84px] overflow-hidden rounded-xl bg-[var(--site-bg)] ' +
+              (leftClickable ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--site-accent)]' : '')
+            }
+          >
             {item.image_url ? (
               <Image
                 src={item.image_url}
