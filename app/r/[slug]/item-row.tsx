@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Plus, Minus, X, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Check, Minus, Plus, ShoppingBag, X } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 import { useCart } from '@/stores/cart';
 import { formatPrice } from '@/lib/utils';
@@ -20,6 +20,8 @@ export function ItemRow({
   availableVariants,
   freeExtraIds = [],
   extra: isExtraItem,
+  suggestedDrinks = [],
+  suggestedDesserts = [],
 }: {
   item: MenuItem;
   slug: string;
@@ -28,6 +30,8 @@ export function ItemRow({
   availableVariants: MenuItemVariant[];
   freeExtraIds?: string[];
   extra?: boolean;
+  suggestedDrinks?: MenuItem[];
+  suggestedDesserts?: MenuItem[];
 }) {
   const [showModal, setShowModal] = useState(false);
 
@@ -47,7 +51,11 @@ export function ItemRow({
 
   const hasExtras = availableExtras.length > 0 && !isExtraItem;
   const hasVariants = availableVariants.length > 0 && !isExtraItem;
-  const needsModal = hasExtras || hasVariants;
+  const hasSuggestions =
+    !isExtraItem && (suggestedDrinks.length > 0 || suggestedDesserts.length > 0);
+  // La modale s'ouvre s'il y a des choix (extras/variantes), une note à saisir,
+  // ou des suggestions à proposer.
+  const needsModal = hasExtras || hasVariants || hasSuggestions;
 
   const isOffer = item.item_type === 'offer';
 
@@ -62,6 +70,7 @@ export function ItemRow({
         variant_name: null,
         name: item.name,
         price: Number(activePrice),
+        note: null,
       });
     }
   };
@@ -265,13 +274,15 @@ export function ItemRow({
         </div>
       </div>
 
-      {/* Modal variantes + suppléments */}
+      {/* Modal variantes + suppléments + suggestions */}
       {showModal && (
         <ItemModal
           item={item}
           availableExtras={availableExtras}
           availableVariants={availableVariants}
           freeExtraIds={freeExtraIds}
+          suggestedDrinks={suggestedDrinks}
+          suggestedDesserts={suggestedDesserts}
           slug={slug}
           canOrder={canOrder}
           onClose={() => setShowModal(false)}
@@ -282,13 +293,18 @@ export function ItemRow({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ItemModal — bottom sheet variantes + suppléments
+   ItemModal — wizard bottom sheet
+   Étape 1 : variantes + suppléments + note
+   Étape 2 (optionnelle) : suggestions boissons
+   Étape 3 (optionnelle) : suggestions desserts
 ═══════════════════════════════════════════════════════════ */
 function ItemModal({
   item,
   availableExtras,
   availableVariants,
   freeExtraIds,
+  suggestedDrinks,
+  suggestedDesserts,
   slug,
   canOrder,
   onClose,
@@ -297,17 +313,20 @@ function ItemModal({
   availableExtras: MenuItem[];
   availableVariants: MenuItemVariant[];
   freeExtraIds: string[];
+  suggestedDrinks: MenuItem[];
+  suggestedDesserts: MenuItem[];
   slug: string;
   canOrder: boolean;
   onClose: () => void;
 }) {
   const add = useCart((s) => s.add);
   const [selectedVariant, setSelectedVariant] = useState<MenuItemVariant | null>(null);
-  // Pré-sélectionner les extras gratuits
-  const [selectedExtras, setSelectedExtras] = useState<Set<string>>(
-    new Set(freeExtraIds),
-  );
+  const [selectedExtras, setSelectedExtras] = useState<Set<string>>(new Set(freeExtraIds));
   const [gallery, setGallery] = useState(0);
+  const [itemNote, setItemNote] = useState('');
+  const [selectedDrinks, setSelectedDrinks] = useState<Map<string, number>>(new Map());
+  const [selectedDesserts, setSelectedDesserts] = useState<Map<string, number>>(new Map());
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const hasVariants = availableVariants.length > 0;
   const allImages = [item.image_url, ...(item.image_urls ?? [])].filter(Boolean) as string[];
@@ -315,32 +334,66 @@ function ItemModal({
     ? (selectedVariant?.price ?? null)
     : (item.promo_price ?? item.price);
 
-  // Les extras gratuits ne s'ajoutent pas au total
   const extrasTotal = availableExtras
     .filter((e) => selectedExtras.has(e.id) && !freeExtraIds.includes(e.id))
     .reduce((s, e) => s + Number(e.promo_price ?? e.price), 0);
 
   const total = (basePrice != null ? Number(basePrice) : 0) + extrasTotal;
-  const canConfirm = canOrder && (!hasVariants || selectedVariant !== null);
+  const canConfirmStep1 = canOrder && (!hasVariants || selectedVariant !== null);
+
+  // Suggestions : filtre les items déjà indispos ou vides.
+  const drinks = useMemo(() => suggestedDrinks.filter((d) => d.is_available), [suggestedDrinks]);
+  const desserts = useMemo(
+    () => suggestedDesserts.filter((d) => d.is_available),
+    [suggestedDesserts],
+  );
+  const hasDrinksStep = drinks.length > 0;
+  const hasDessertsStep = desserts.length > 0;
+  const wizard = hasDrinksStep || hasDessertsStep;
+
+  // Calcul de la prochaine étape (saute les étapes vides).
+  const nextStep = (from: 1 | 2 | 3): 1 | 2 | 3 | null => {
+    if (from === 1 && hasDrinksStep) return 2;
+    if ((from === 1 || from === 2) && hasDessertsStep) return 3;
+    return null;
+  };
 
   const toggleExtra = (id: string) => {
     setSelectedExtras((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  const handleConfirm = () => {
+  const bumpSuggestion = (
+    map: Map<string, number>,
+    setMap: (m: Map<string, number>) => void,
+    id: string,
+    delta: number,
+  ) => {
+    const next = new Map(map);
+    const cur = next.get(id) ?? 0;
+    const q = Math.max(0, Math.min(10, cur + delta));
+    if (q === 0) next.delete(id);
+    else next.set(id, q);
+    setMap(next);
+  };
+
+  const commit = () => {
     const price = hasVariants
       ? Number(selectedVariant!.price)
       : Number(item.promo_price ?? item.price);
+    const note = itemNote.trim() ? itemNote.trim() : null;
+
     add(slug, {
       menu_item_id: item.id,
       variant_id: selectedVariant?.id ?? null,
       variant_name: selectedVariant?.name ?? null,
       name: item.name,
       price,
+      note,
     });
     availableExtras.forEach((extra) => {
       if (!selectedExtras.has(extra.id)) return;
@@ -350,12 +403,60 @@ function ItemModal({
         variant_id: null,
         variant_name: null,
         name: extra.name,
-        // Prix 0 si gratuit, sinon prix normal
         price: isFree ? 0 : Number(extra.promo_price ?? extra.price),
+        note: null,
       });
     });
+    const addAllTimes = (list: MenuItem[], picks: Map<string, number>) => {
+      list.forEach((it) => {
+        const q = picks.get(it.id) ?? 0;
+        for (let i = 0; i < q; i++) {
+          add(slug, {
+            menu_item_id: it.id,
+            variant_id: null,
+            variant_name: null,
+            name: it.name,
+            price: Number(it.promo_price ?? it.price),
+            note: null,
+          });
+        }
+      });
+    };
+    addAllTimes(drinks, selectedDrinks);
+    addAllTimes(desserts, selectedDesserts);
     onClose();
   };
+
+  const handlePrimary = () => {
+    if (step === 1) {
+      const next = nextStep(1);
+      if (next) setStep(next);
+      else commit();
+      return;
+    }
+    if (step === 2) {
+      const next = nextStep(2);
+      if (next) setStep(next);
+      else commit();
+      return;
+    }
+    commit();
+  };
+
+  const primaryLabel = (() => {
+    if (step === 1) {
+      if (!wizard) return hasVariants && !selectedVariant ? 'Choisir une taille' : 'Ajouter au panier';
+      return hasVariants && !selectedVariant ? 'Choisir une taille' : 'Suivant';
+    }
+    const next = nextStep(step);
+    return next ? 'Suivant' : 'Ajouter tout au panier';
+  })();
+  const primaryDisabled = step === 1 && !canConfirmStep1;
+
+  // Compte des étapes actives pour le stepper visuel.
+  const activeSteps: (1 | 2 | 3)[] = [1];
+  if (hasDrinksStep) activeSteps.push(2);
+  if (hasDessertsStep) activeSteps.push(3);
 
   return (
     <>
@@ -365,16 +466,55 @@ function ItemModal({
         aria-hidden
       />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-bg)] text-[color:var(--site-muted)] hover:opacity-80"
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-bg)] text-[color:var(--site-muted)] hover:opacity-80"
           aria-label="Fermer"
         >
           <X className="h-4 w-4" />
         </button>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Stepper visuel (wizard uniquement) */}
+        {wizard && (
+          <div className="sticky top-0 z-[1] border-b border-[var(--site-border)] bg-[var(--site-surface)] px-5 py-3">
+            <div className="flex items-center gap-2">
+              {activeSteps.map((s, idx) => (
+                <div key={s} className="flex flex-1 items-center gap-2">
+                  <div
+                    className={
+                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black transition-colors ' +
+                      (s < step
+                        ? 'bg-[var(--site-accent)] text-[color:var(--site-accent-fg)]'
+                        : s === step
+                          ? 'bg-[var(--site-accent)] text-[color:var(--site-accent-fg)] ring-4 ring-[var(--site-accent)]/20'
+                          : 'border border-[var(--site-border)] bg-[var(--site-bg)] text-[color:var(--site-muted)]')
+                    }
+                  >
+                    {s < step ? <Check className="h-3 w-3" /> : activeSteps.indexOf(s) + 1}
+                  </div>
+                  <span
+                    className={
+                      'text-[11px] font-semibold whitespace-nowrap ' +
+                      (s === step ? 'text-[color:var(--site-text)]' : 'text-[color:var(--site-muted)]')
+                    }
+                  >
+                    {s === 1 ? 'Votre choix' : s === 2 ? 'Une boisson ?' : 'Un dessert ?'}
+                  </span>
+                  {idx < activeSteps.length - 1 && (
+                    <span className="h-px flex-1 bg-[var(--site-border)]" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ STEP 1 : Produit + options + note ═══════════ */}
+        {step === 1 && (
+          <>
         {/* Gallery */}
         {allImages.length > 0 && (
           <div className="relative h-52 w-full overflow-hidden bg-[var(--site-bg)]">
@@ -548,25 +688,202 @@ function ItemModal({
             </div>
           )}
 
-          {/* CTA */}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!canConfirm}
-            className="mt-6 flex w-full items-center justify-between rounded-2xl bg-[var(--site-accent)] px-5 py-4 text-[color:var(--site-accent-fg)] shadow-lg transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
-          >
-            <span className="flex items-center gap-2 font-bold">
-              <ShoppingBag className="h-4 w-4" />
-              {hasVariants && !selectedVariant ? 'Choisir une taille' : 'Ajouter au panier'}
-            </span>
-            {(selectedVariant || !hasVariants) && basePrice != null && (
-              <span className="font-[family-name:var(--font-site-heading)] text-base font-black tabular-nums">
-                {formatPrice(total)}
-              </span>
+          {/* Note pour le restaurant */}
+          <div className="mt-5">
+            <label
+              htmlFor="item-note"
+              className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]"
+            >
+              Une note pour le restaurant ? <span className="normal-case text-[color:var(--site-muted)]/70">(optionnel)</span>
+            </label>
+            <textarea
+              id="item-note"
+              value={itemNote}
+              onChange={(e) => setItemNote(e.target.value.slice(0, 500))}
+              rows={2}
+              placeholder="Sans oignon, allergies, cuisson…"
+              className="mt-2 w-full resize-none rounded-xl border border-[var(--site-border)] bg-[var(--site-bg)] p-3 text-sm text-[color:var(--site-text)] placeholder:text-[color:var(--site-muted)]/70 focus:outline-none focus:ring-2 focus:ring-[color:var(--site-accent)]"
+            />
+            <p className="mt-1 text-right text-[10px] text-[color:var(--site-muted)] tabular-nums">
+              {itemNote.length}/500
+            </p>
+          </div>
+        </div>
+          </>
+        )}
+
+        {/* ═══════════ STEP 2 : Suggestions boissons ═══════════ */}
+        {step === 2 && (
+          <div className="p-5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--site-accent)]">
+              Une boisson pour aller avec ?
+            </p>
+            <h2 className="mt-1 font-[family-name:var(--font-site-heading)] text-xl font-extrabold text-[color:var(--site-text)]">
+              Complétez votre commande
+            </h2>
+            <SuggestionGrid
+              items={drinks}
+              picks={selectedDrinks}
+              onBump={(id, d) => bumpSuggestion(selectedDrinks, setSelectedDrinks, id, d)}
+              emoji="🥤"
+            />
+          </div>
+        )}
+
+        {/* ═══════════ STEP 3 : Suggestions desserts ═══════════ */}
+        {step === 3 && (
+          <div className="p-5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--site-accent)]">
+              Un dessert pour finir en beauté ?
+            </p>
+            <h2 className="mt-1 font-[family-name:var(--font-site-heading)] text-xl font-extrabold text-[color:var(--site-text)]">
+              Envie de gourmandise ?
+            </h2>
+            <SuggestionGrid
+              items={desserts}
+              picks={selectedDesserts}
+              onBump={(id, d) => bumpSuggestion(selectedDesserts, setSelectedDesserts, id, d)}
+              emoji="🍰"
+            />
+          </div>
+        )}
+        </div>
+
+        {/* ═══════════ Footer sticky : navigation + CTA ═══════════ */}
+        <div className="shrink-0 border-t border-[var(--site-border)] bg-[var(--site-surface)] p-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom))]">
+          <div className="flex items-center gap-2">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => setStep((s) => (s === 3 ? (hasDrinksStep ? 2 : 1) : 1) as 1 | 2 | 3)}
+                className="rounded-xl border border-[var(--site-border)] bg-[var(--site-bg)] px-4 py-3 text-sm font-semibold text-[color:var(--site-text)] transition-opacity hover:opacity-80"
+              >
+                Retour
+              </button>
             )}
-          </button>
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={handlePrimary}
+                className="rounded-xl bg-transparent px-2 text-sm font-semibold text-[color:var(--site-muted)] underline underline-offset-2 hover:text-[color:var(--site-text)]"
+              >
+                Passer
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handlePrimary}
+              disabled={primaryDisabled}
+              className="ml-auto flex flex-1 items-center justify-between gap-2 rounded-2xl bg-[var(--site-accent)] px-5 py-3.5 text-[color:var(--site-accent-fg)] shadow-lg transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 font-bold">
+                {step === 1 && !wizard ? <ShoppingBag className="h-4 w-4" /> : null}
+                {primaryLabel}
+                {(step === 1 && wizard) || (step > 1 && nextStep(step) !== null) ? (
+                  <ArrowRight className="h-4 w-4" />
+                ) : null}
+              </span>
+              {step === 1 && (selectedVariant || !hasVariants) && basePrice != null && (
+                <span className="font-[family-name:var(--font-site-heading)] text-base font-black tabular-nums">
+                  {formatPrice(total)}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SuggestionGrid — grille compacte + stepper par item
+═══════════════════════════════════════════════════════════ */
+function SuggestionGrid({
+  items,
+  picks,
+  onBump,
+  emoji,
+}: {
+  items: MenuItem[];
+  picks: Map<string, number>;
+  onBump: (id: string, delta: number) => void;
+  emoji: string;
+}) {
+  return (
+    <ul className="mt-4 grid grid-cols-2 gap-3">
+      {items.map((it) => {
+        const q = picks.get(it.id) ?? 0;
+        return (
+          <li
+            key={it.id}
+            className={
+              'flex flex-col overflow-hidden rounded-2xl border transition-colors ' +
+              (q > 0
+                ? 'border-[var(--site-accent)] bg-[var(--site-accent)]/5'
+                : 'border-[var(--site-border)] bg-[var(--site-bg)]')
+            }
+          >
+            <div className="relative aspect-[4/3] bg-[var(--site-bg)]">
+              {it.image_url ? (
+                <Image
+                  src={it.image_url}
+                  alt={it.name}
+                  fill
+                  className="object-cover"
+                  sizes="(min-width:640px) 25vw, 50vw"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-4xl opacity-40">
+                  {emoji}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col gap-2 p-3">
+              <p className="line-clamp-2 text-sm font-bold text-[color:var(--site-text)]">
+                {it.name}
+              </p>
+              <div className="mt-auto flex items-center justify-between gap-2">
+                <span className="font-[family-name:var(--font-site-heading)] text-sm font-extrabold text-[color:var(--site-accent)] tabular-nums">
+                  {formatPrice(it.promo_price ?? it.price)}
+                </span>
+                {q === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onBump(it.id, 1)}
+                    aria-label={`Ajouter ${it.name}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-accent)] text-[color:var(--site-accent-fg)] transition-transform active:scale-90"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <div className="flex h-8 items-center rounded-full bg-[var(--site-accent)] px-1">
+                    <button
+                      type="button"
+                      onClick={() => onBump(it.id, -1)}
+                      aria-label="Diminuer"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] hover:bg-white/20"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="min-w-[20px] text-center text-sm font-bold text-[color:var(--site-accent-fg)] tabular-nums">
+                      {q}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onBump(it.id, 1)}
+                      aria-label="Augmenter"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] hover:bg-white/20"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

@@ -35,6 +35,7 @@ interface PublicOrderItem {
   item_price: number;
   quantity: number;
   subtotal: number;
+  note: string | null;
 }
 
 export default async function ConfirmationPage({
@@ -144,11 +145,18 @@ export default async function ConfirmationPage({
             </p>
             <ul className="mt-3 divide-y divide-[var(--site-border)]">
               {items.map((it) => (
-                <li key={it.id} className="flex justify-between py-2.5 text-sm text-[color:var(--site-text)]">
-                  <span className="min-w-0 flex-1">
-                    <span className="font-semibold">{it.quantity}×</span> {it.item_name}
-                  </span>
-                  <span className="ml-3 tabular-nums">{formatPrice(it.subtotal)}</span>
+                <li key={it.id} className="py-2.5 text-sm text-[color:var(--site-text)]">
+                  <div className="flex justify-between">
+                    <span className="min-w-0 flex-1">
+                      <span className="font-semibold">{it.quantity}×</span> {it.item_name}
+                    </span>
+                    <span className="ml-3 tabular-nums">{formatPrice(it.subtotal)}</span>
+                  </div>
+                  {it.note && (
+                    <p className="mt-0.5 italic text-xs text-[color:var(--site-muted)]">
+                      « {it.note} »
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

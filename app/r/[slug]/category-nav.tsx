@@ -8,10 +8,18 @@ interface Props {
   hasUncategorized: boolean;
   hasExtras?: boolean;
   hasPromos?: boolean;
+  hasFavorites?: boolean;
 }
 
-export function CategoryNav({ categories, hasUncategorized, hasExtras, hasPromos }: Props) {
+export function CategoryNav({
+  categories,
+  hasUncategorized,
+  hasExtras,
+  hasPromos,
+  hasFavorites,
+}: Props) {
   const all = [
+    ...(hasFavorites ? [{ id: 'favorites', name: '⭐ Favoris' }] : []),
     ...(hasPromos ? [{ id: 'promos', name: '🏷️ Offres' }] : []),
     ...categories.map((c) => ({ id: c.id, name: c.name })),
     ...(hasUncategorized ? [{ id: 'other', name: 'Autres' }] : []),

@@ -126,6 +126,7 @@ export interface MenuItem {
   image_url: string | null;
   image_urls: string[];
   is_available: boolean;
+  is_favorite: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -180,6 +181,7 @@ export interface OrderItem {
   item_price: number;
   quantity: number;
   subtotal: number;
+  note: string | null;
 }
 
 export type PromoDiscountType = 'percent' | 'fixed_amount';

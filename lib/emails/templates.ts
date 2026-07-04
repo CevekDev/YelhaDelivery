@@ -46,7 +46,7 @@ export interface NewOrderEmailData {
   restaurantName: string;
   dashboardUrl: string;
   customer: { name: string; phone: string; address: string };
-  items: { item_name: string; quantity: number; subtotal: number }[];
+  items: { item_name: string; quantity: number; subtotal: number; note?: string | null }[];
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -57,7 +57,11 @@ export function newOrderEmail(data: NewOrderEmailData): { subject: string; html:
   const rows = data.items
     .map(
       (i) =>
-        `<tr><td>${i.quantity} × ${escapeHtml(i.item_name)}</td><td>${formatDZD(i.subtotal)}</td></tr>`,
+        `<tr><td>${i.quantity} × ${escapeHtml(i.item_name)}${
+          i.note
+            ? `<br/><em style="color:#666;font-size:12px">« ${escapeHtml(i.note)} »</em>`
+            : ''
+        }</td><td>${formatDZD(i.subtotal)}</td></tr>`,
     )
     .join('');
   const subject = `Nouvelle commande ${data.orderNumber} — ${data.restaurantName}`;
@@ -87,7 +91,12 @@ export function newOrderEmail(data: NewOrderEmailData): { subject: string; html:
     `Nouvelle commande ${data.orderNumber}\n` +
     `Client : ${data.customer.name} · ${data.customer.phone}\n` +
     `Adresse : ${data.customer.address}\n` +
-    data.items.map((i) => `- ${i.quantity}× ${i.item_name} = ${formatDZD(i.subtotal)}`).join('\n') +
+    data.items
+      .map((i) =>
+        `- ${i.quantity}× ${i.item_name} = ${formatDZD(i.subtotal)}` +
+        (i.note ? `\n    note: ${i.note}` : ''),
+      )
+      .join('\n') +
     `\nTotal : ${formatDZD(data.total)}\n${data.dashboardUrl}`;
   return { subject, html, text };
 }

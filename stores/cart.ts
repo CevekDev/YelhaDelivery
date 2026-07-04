@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface CartLine {
-  /** Clé unique : `${menu_item_id}|${variant_id ?? ''}` */
+  /** Clé unique : `${menu_item_id}|${variant_id ?? ''}|${noteHash}` */
   cart_key: string;
   menu_item_id: string;
   variant_id: string | null;
@@ -12,10 +12,28 @@ export interface CartLine {
   name: string;
   price: number;
   quantity: number;
+  /** Note libre du client au restaurant (allergies, cuisson, "sans oignon"…) */
+  note: string | null;
 }
 
-export function makeCartKey(menu_item_id: string, variant_id?: string | null): string {
-  return `${menu_item_id}|${variant_id ?? ''}`;
+/** Hash rapide et déterministe pour distinguer deux lignes avec des notes différentes. */
+function noteFingerprint(note: string | null | undefined): string {
+  if (!note) return '';
+  // FNV-1a 32-bit : suffisant pour un cart_key, pas de collision pratique.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < note.length; i++) {
+    h ^= note.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+export function makeCartKey(
+  menu_item_id: string,
+  variant_id?: string | null,
+  note?: string | null,
+): string {
+  return `${menu_item_id}|${variant_id ?? ''}|${noteFingerprint(note)}`;
 }
 
 interface CartState {
@@ -37,8 +55,15 @@ export const useCart = create<CartState>()(
 
       add(slug, line) {
         const state = get();
-        const key = makeCartKey(line.menu_item_id, line.variant_id);
-        const newLine: CartLine = { ...line, cart_key: key, quantity: 1 };
+        const normalizedNote =
+          line.note && line.note.trim() ? line.note.trim().slice(0, 500) : null;
+        const key = makeCartKey(line.menu_item_id, line.variant_id, normalizedNote);
+        const newLine: CartLine = {
+          ...line,
+          note: normalizedNote,
+          cart_key: key,
+          quantity: 1,
+        };
 
         if (state.restaurantSlug && state.restaurantSlug !== slug) {
           set({ restaurantSlug: slug, lines: [newLine] });

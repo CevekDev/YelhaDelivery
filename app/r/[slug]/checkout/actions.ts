@@ -18,6 +18,7 @@ const itemsSchema = z.array(
     menu_item_id: z.string().uuid(),
     quantity: z.number().int().min(1).max(100),
     variant_id: z.string().uuid().optional(),
+    note: z.string().trim().max(500).optional(),
   }),
 );
 
@@ -76,6 +77,7 @@ export async function placeOrderAction(slug: string, formData: FormData): Promis
       menu_item_id: i.menu_item_id,
       quantity: i.quantity,
       ...(i.variant_id ? { variant_id: i.variant_id } : {}),
+      ...(i.note ? { note: i.note } : {}),
     } as Record<string, unknown>)),
     p_promo_code: promoCode || null,
   });
@@ -108,7 +110,7 @@ async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): P
         .maybeSingle(),
       admin
         .from('order_items')
-        .select('item_name, quantity, subtotal')
+        .select('item_name, quantity, subtotal, note')
         .eq('order_id', orderId),
     ]);
     if (!order) return;
@@ -139,7 +141,7 @@ async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): P
     const email = ownerAuth?.user?.email;
     if (!email) return;
 
-    type ItemRow = { item_name: string; quantity: number; subtotal: number };
+    type ItemRow = { item_name: string; quantity: number; subtotal: number; note: string | null };
     const itemRows = (items as unknown as ItemRow[] | null) ?? [];
 
     await sendNewOrderToRestaurateur({
@@ -156,6 +158,7 @@ async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): P
           item_name: i.item_name,
           quantity: i.quantity,
           subtotal: Number(i.subtotal),
+          note: i.note,
         })),
         subtotal: Number(o.subtotal),
         deliveryFee: Number(o.delivery_fee),

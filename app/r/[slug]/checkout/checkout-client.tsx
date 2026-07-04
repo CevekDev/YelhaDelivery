@@ -138,6 +138,7 @@ export function CheckoutClient({
                             menu_item_id: l.menu_item_id,
                             quantity: l.quantity,
                             ...(l.variant_id ? { variant_id: l.variant_id } : {}),
+                            ...(l.note ? { note: l.note } : {}),
                           })),
                         ),
                       );
@@ -313,6 +314,11 @@ export function CheckoutClient({
                         <p className="truncate text-sm font-medium leading-tight">{l.name}</p>
                         {l.variant_name && (
                           <p className="text-xs text-[color:var(--site-accent)] font-medium">{l.variant_name}</p>
+                        )}
+                        {l.note && (
+                          <p className="mt-0.5 line-clamp-2 italic text-[11px] text-[color:var(--site-muted)]">
+                            « {l.note} »
+                          </p>
                         )}
                         <p className="text-xs text-[color:var(--site-muted)]">{formatPrice(l.price)}</p>
                       </div>

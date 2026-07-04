@@ -110,6 +110,32 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   const promoItems = regularItems.filter(
     (i) => (i.promo_price != null || i.item_type === 'offer') && i.is_available,
   );
+  const favoriteItems = regularItems.filter((i) => i.is_favorite && i.is_available);
+
+  // Suggestions cross-sell : après le clic sur un plat principal, la modale
+  // propose des boissons puis des desserts issus des catégories dédiées.
+  const drinkCategoryIds = new Set(
+    (categories ?? [])
+      .filter((c) => /boisson|drink|beverage/i.test(c.name))
+      .map((c) => c.id),
+  );
+  const dessertCategoryIds = new Set(
+    (categories ?? [])
+      .filter((c) => /dessert|douceur|sucre/i.test(c.name))
+      .map((c) => c.id),
+  );
+  const suggestedDrinks = regularItems.filter(
+    (i) => i.category_id != null && drinkCategoryIds.has(i.category_id) && i.is_available,
+  );
+  const suggestedDesserts = regularItems.filter(
+    (i) => i.category_id != null && dessertCategoryIds.has(i.category_id) && i.is_available,
+  );
+  function suggestionsFor(item: MenuItem) {
+    const isDrink = item.category_id != null && drinkCategoryIds.has(item.category_id);
+    const isDessert = item.category_id != null && dessertCategoryIds.has(item.category_id);
+    if (isDrink || isDessert || item.is_extra) return { drinks: [], desserts: [] };
+    return { drinks: suggestedDrinks, desserts: suggestedDesserts };
+  }
 
   const itemExtrasMap = new Map<string, MenuItem[]>();
   const freeExtraIdsMap = new Map<string, string[]>();
@@ -145,6 +171,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   const hasUncategorized = (byCategory.get(null)?.length ?? 0) > 0;
   const hasExtras = extrasById.size > 0;
   const hasPromos = promoItems.length > 0;
+  const hasFavorites = favoriteItems.length > 0;
 
   const statusLabel = !restaurant.is_open
     ? 'Fermé'
@@ -288,20 +315,47 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       )}
 
-      {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos) && (
+      {(visibleCategories.length > 0 || hasUncategorized || hasExtras || hasPromos || hasFavorites) && (
         <CategoryNav
           categories={visibleCategories.map((c) => ({ id: c.id, name: c.name }))}
           hasUncategorized={hasUncategorized}
           hasExtras={hasExtras}
           hasPromos={hasPromos}
+          hasFavorites={hasFavorites}
         />
       )}
 
       <div className="py-3">
-        {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
+        {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && !hasFavorites && (
           <div className="mx-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] py-16 text-center">
             <p className="text-sm font-medium text-[color:var(--site-muted)]">Menu en cours de préparation</p>
           </div>
+        )}
+
+        {hasFavorites && (
+          <section id="cat-favorites" className="mb-4 scroll-mt-32">
+            <SectionHeader
+              icon={<Star className="h-4 w-4 fill-[var(--site-accent)] text-[color:var(--site-accent)]" />}
+              title="Favoris"
+              subtitle="Les plats préférés de nos clients"
+              count={favoriteItems.length}
+            />
+            <div className="space-y-3">
+              {favoriteItems.map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  slug={slug}
+                  canOrder={canOrder}
+                  availableExtras={itemExtrasMap.get(item.id) ?? []}
+                  availableVariants={itemVariantsMap.get(item.id) ?? []}
+                  freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
+                  suggestedDrinks={suggestionsFor(item).drinks}
+                  suggestedDesserts={suggestionsFor(item).desserts}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         {hasPromos && (
@@ -321,6 +375,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
                   availableVariants={itemVariantsMap.get(item.id) ?? []}
                   freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
+                  suggestedDrinks={suggestionsFor(item).drinks}
+                  suggestedDesserts={suggestionsFor(item).desserts}
                 />
               ))}
             </div>
@@ -342,6 +398,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                     availableExtras={itemExtrasMap.get(item.id) ?? []}
                     availableVariants={itemVariantsMap.get(item.id) ?? []}
                     freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
+                    suggestedDrinks={suggestionsFor(item).drinks}
+                    suggestedDesserts={suggestionsFor(item).desserts}
                   />
                 ))}
               </div>
@@ -362,6 +420,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                   availableExtras={itemExtrasMap.get(item.id) ?? []}
                   availableVariants={itemVariantsMap.get(item.id) ?? []}
                   freeExtraIds={freeExtraIdsMap.get(item.id) ?? []}
+                  suggestedDrinks={suggestionsFor(item).drinks}
+                  suggestedDesserts={suggestionsFor(item).desserts}
                 />
               ))}
             </div>
