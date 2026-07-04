@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { CartButton } from '../cart-button';
 import { CategoryNav } from '../category-nav';
 import { ItemRow } from '../item-row';
-import { PublicPageHeader } from '../page-header';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
 import type {
@@ -17,6 +16,8 @@ import type {
 } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 import { restaurantMetadata, restaurantJsonLd } from '@/lib/seo';
+import { getTemplate } from '@/lib/templates';
+import { SiteShell } from '@/components/site/site-shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,8 +154,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         ? 'Ouvert · Hors horaires habituels'
         : 'Ouvert';
 
-  // Lien retour : page d'accueil du site si activée, sinon accueil YelhaDelivery
-  const homeHref = restaurant.home_enabled ? `/r/${slug}` : '/';
+  const template = getTemplate(restaurant.template_id);
 
   const jsonLd = restaurantJsonLd({
     name: restaurant.name,
@@ -167,14 +167,14 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   });
 
   return (
-    <main className="min-h-screen bg-[#F5F5F5] pb-32">
+    <SiteShell template={template} restaurant={restaurant} slug={slug}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PublicPageHeader slug={slug} restaurantName={restaurant.name} homeHref={homeHref} />
+      <main className="pb-32">
 
-      <div className="relative h-[260px] w-full overflow-hidden bg-gray-300 md:h-[340px]">
+      <div className="relative h-[260px] w-full overflow-hidden bg-[var(--site-surface)] md:h-[340px]">
         {restaurant.cover_url ? (
           <Image
             src={restaurant.cover_url}
@@ -185,7 +185,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-primary/30 to-primary/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--site-accent)]/60 via-[var(--site-accent)]/30 to-[var(--site-accent)]/10" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -223,10 +223,12 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       </div>
 
-      <div className="bg-white px-4 py-4 shadow-sm">
+      <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4">
         <div className="flex flex-wrap gap-2">
           <InfoPill icon={<Truck className="h-3.5 w-3.5" />}>
-            {restaurant.delivery_fee === 0 ? 'Livraison gratuite' : formatPrice(restaurant.delivery_fee)}
+            {Number(restaurant.delivery_fee) === 0
+              ? 'Livraison gratuite'
+              : formatPrice(restaurant.delivery_fee)}
           </InfoPill>
           <InfoPill icon={<Clock className="h-3.5 w-3.5" />}>~{estimatedDeliveryTime} min</InfoPill>
           {avgRating !== null && (
@@ -250,7 +252,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         {restaurant.phone && (
           <a
             href={`tel:${restaurant.phone}`}
-            className="mt-3 flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600"
+            className="mt-3 flex items-center gap-1.5 text-sm text-[color:var(--site-muted)] hover:text-[color:var(--site-text)]"
           >
             <Phone className="h-3.5 w-3.5" />
             {restaurant.phone}
@@ -258,10 +260,10 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         )}
 
         {(hours?.length ?? 0) > 0 && (
-          <details className="group mt-3 border-t border-gray-100 pt-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-gray-500">
+          <details className="group mt-3 border-t border-[var(--site-border)] pt-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-[color:var(--site-muted)]">
               <span>Horaires d&apos;ouverture</span>
-              <span className="text-gray-400 transition-transform duration-200 group-open:rotate-180">
+              <span className="text-[color:var(--site-muted)] transition-transform duration-200 group-open:rotate-180">
                 ▾
               </span>
             </summary>
@@ -273,15 +275,15 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       </div>
 
       {(restaurant.banner_text || restaurant.banner_image_url) && (
-        <div className="border-y border-primary/10 bg-primary/5">
+        <div className="border-y border-[var(--site-accent)]/20 bg-[var(--site-accent)]/10">
           <div className="flex items-center gap-2 px-4 py-2.5">
             {restaurant.banner_image_url && (
               <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded-lg">
                 <Image src={restaurant.banner_image_url} alt="" fill className="object-cover" sizes="48px" />
               </div>
             )}
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <p className="truncate text-sm font-semibold text-primary">{restaurant.banner_text}</p>
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[color:var(--site-accent)]" />
+            <p className="truncate text-sm font-semibold text-[color:var(--site-accent)]">{restaurant.banner_text}</p>
           </div>
         </div>
       )}
@@ -297,15 +299,15 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
 
       <div className="py-3">
         {visibleCategories.length === 0 && !hasUncategorized && !hasExtras && (
-          <div className="mx-4 rounded-2xl bg-white py-16 text-center shadow-sm">
-            <p className="text-sm font-medium text-gray-400">Menu en cours de préparation</p>
+          <div className="mx-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] py-16 text-center">
+            <p className="text-sm font-medium text-[color:var(--site-muted)]">Menu en cours de préparation</p>
           </div>
         )}
 
         {hasPromos && (
           <section id="cat-promos" className="mb-4 scroll-mt-32">
             <SectionHeader
-              icon={<Sparkles className="h-4 w-4 text-primary" />}
+              icon={<Sparkles className="h-4 w-4 text-[color:var(--site-accent)]" />}
               title="Offres du moment"
               count={promoItems.length}
             />
@@ -392,13 +394,14 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       </div>
 
       <CartButton slug={slug} restaurant={restaurant} canOrder={canOrder} />
-    </main>
+      </main>
+    </SiteShell>
   );
 }
 
 function InfoPill({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F5F5F5] px-3 py-1.5 text-xs font-semibold text-gray-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--site-border)] bg-[var(--site-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--site-text)]">
       {icon}
       {children}
     </span>
@@ -420,11 +423,11 @@ function SectionHeader({
     <div className="mb-2 flex items-center justify-between px-4 pt-2">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="font-display text-base font-extrabold text-[#1A1A1A]">{title}</h2>
-        {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+        <h2 className="font-[family-name:var(--font-site-heading)] text-base font-extrabold text-[color:var(--site-text)]">{title}</h2>
+        {subtitle && <p className="text-xs text-[color:var(--site-muted)]">{subtitle}</p>}
       </div>
       {count != null && (
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[color:var(--site-muted)]">
           {count} article{count > 1 ? 's' : ''}
         </span>
       )}

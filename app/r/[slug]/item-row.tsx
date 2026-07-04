@@ -70,9 +70,9 @@ export function ItemRow({
     <>
       <div
         className={
-          'mx-4 flex items-start gap-3 rounded-2xl bg-white p-3 shadow-sm transition-opacity ' +
+          'mx-4 flex items-start gap-3 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 transition-opacity ' +
           (disabled ? 'opacity-60' : '') +
-          (isOffer ? ' border border-amber-200/60 bg-amber-50/40' : '')
+          (isOffer ? ' ring-1 ring-amber-400/50' : '')
         }
       >
         {/* ── Left: text + price ── */}
@@ -86,14 +86,14 @@ export function ItemRow({
 
           {/* Nom + badges */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-bold leading-snug text-[#1A1A1A]">{item.name}</p>
+            <p className="font-bold leading-snug text-[color:var(--site-text)]">{item.name}</p>
             {discount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-[var(--site-accent)] px-1.5 py-0.5 text-[10px] font-bold text-[color:var(--site-accent-fg)]">
                 -{discount}%
               </span>
             )}
             {!item.is_available && (
-              <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+              <span className="rounded-full bg-[var(--site-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--site-muted)]">
                 Indisponible
               </span>
             )}
@@ -105,20 +105,20 @@ export function ItemRow({
               {item.offer_description}
             </p>
           ) : item.description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-400">
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[color:var(--site-muted)]">
               {item.description}
             </p>
           ) : null}
 
           {/* Variant / extras hint */}
           {hasVariants && (
-            <p className="mt-1 text-[11px] font-semibold text-primary">
+            <p className="mt-1 text-[11px] font-semibold text-[color:var(--site-accent)]">
               {availableVariants.length} taille{availableVariants.length > 1 ? 's' : ''} disponible
               {availableVariants.length > 1 ? 's' : ''}
             </p>
           )}
           {!hasVariants && hasExtras && (
-            <p className="mt-1 text-[11px] font-semibold text-primary">
+            <p className="mt-1 text-[11px] font-semibold text-[color:var(--site-accent)]">
               {availableExtras.length} option{availableExtras.length > 1 ? 's' : ''} disponible
               {availableExtras.length > 1 ? 's' : ''}
             </p>
@@ -126,12 +126,12 @@ export function ItemRow({
 
           {/* Price */}
           <div className="mt-auto flex items-baseline gap-1.5 pt-3">
-            <span className="font-display text-[15px] font-extrabold text-primary tabular-nums">
+            <span className="font-[family-name:var(--font-site-heading)] text-[15px] font-extrabold text-[color:var(--site-accent)] tabular-nums">
               {isExtraItem ? '+' : ''}
               {formatPrice(activePrice)}
             </span>
             {item.promo_price != null && (
-              <span className="text-xs text-gray-400 line-through tabular-nums">
+              <span className="text-xs text-[color:var(--site-muted)] line-through tabular-nums">
                 {formatPrice(item.price)}
               </span>
             )}
@@ -141,7 +141,7 @@ export function ItemRow({
         {/* ── Right: image + controls ── */}
         <div className="flex shrink-0 flex-col items-end gap-2">
           {/* Image */}
-          <div className="relative h-[84px] w-[84px] overflow-hidden rounded-xl bg-gray-100">
+          <div className="relative h-[84px] w-[84px] overflow-hidden rounded-xl bg-[var(--site-bg)]">
             {item.image_url ? (
               <Image
                 src={item.image_url}
@@ -171,14 +171,14 @@ export function ItemRow({
               onClick={handleAdd}
               disabled={disabled}
               aria-label={`Ajouter ${item.name}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-md transition-transform active:scale-90 disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-accent)] text-[color:var(--site-accent-fg)] shadow-md transition-transform active:scale-90 disabled:pointer-events-none disabled:opacity-40"
             >
               <Plus className="h-4 w-4" />
             </button>
           ) : hasVariants ? (
             /* Multi-variant: badge + open modal */
-            <div className="flex h-8 items-center gap-1 rounded-full bg-primary px-2.5 shadow-md">
-              <span className="min-w-[18px] text-center text-xs font-bold text-white tabular-nums">
+            <div className="flex h-8 items-center gap-1 rounded-full bg-[var(--site-accent)] px-2.5 shadow-md">
+              <span className="min-w-[18px] text-center text-xs font-bold text-[color:var(--site-accent-fg)] tabular-nums">
                 {totalQty}×
               </span>
               <button
@@ -187,21 +187,21 @@ export function ItemRow({
                 aria-label="Ajouter une variante"
                 className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
               >
-                <Plus className="h-3 w-3 text-white" />
+                <Plus className="h-3 w-3 text-[color:var(--site-accent-fg)]" />
               </button>
             </div>
           ) : (
             /* Simple item: inline stepper */
-            <div className="flex h-8 items-center rounded-full bg-primary px-1 shadow-md">
+            <div className="flex h-8 items-center rounded-full bg-[var(--site-accent)] px-1 shadow-md">
               <button
                 type="button"
                 onClick={() => singleLine && setQty(singleLine.cart_key, singleLine.quantity - 1)}
                 aria-label="Diminuer"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] transition-colors hover:bg-white/20"
               >
                 <Minus className="h-3 w-3" />
               </button>
-              <span className="min-w-[20px] text-center text-sm font-bold text-white tabular-nums">
+              <span className="min-w-[20px] text-center text-sm font-bold text-[color:var(--site-accent-fg)] tabular-nums">
                 {totalQty}
               </span>
               <button
@@ -211,7 +211,7 @@ export function ItemRow({
                   else if (singleLine) setQty(singleLine.cart_key, singleLine.quantity + 1);
                 }}
                 aria-label="Augmenter"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--site-accent-fg)] transition-colors hover:bg-white/20"
               >
                 <Plus className="h-3 w-3" />
               </button>
@@ -320,11 +320,11 @@ function ItemModal({
         aria-hidden
       />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl">
+      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F5F5] text-gray-500 hover:bg-gray-200"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--site-bg)] text-[color:var(--site-muted)] hover:opacity-80"
           aria-label="Fermer"
         >
           <X className="h-4 w-4" />
@@ -332,7 +332,7 @@ function ItemModal({
 
         {/* Gallery */}
         {allImages.length > 0 && (
-          <div className="relative h-52 w-full overflow-hidden bg-gray-100">
+          <div className="relative h-52 w-full overflow-hidden bg-[var(--site-bg)]">
             <Image
               src={allImages[gallery]!}
               alt={item.name}
@@ -366,19 +366,19 @@ function ItemModal({
             </span>
           )}
 
-          <h2 className="font-display text-xl font-extrabold text-[#1A1A1A]">{item.name}</h2>
+          <h2 className="font-[family-name:var(--font-site-heading)] text-xl font-extrabold text-[color:var(--site-text)]">{item.name}</h2>
           {item.item_type === 'offer' && item.offer_description ? (
             <p className="mt-1 text-sm leading-relaxed text-amber-700/80">
               {item.offer_description}
             </p>
           ) : item.description ? (
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">{item.description}</p>
+            <p className="mt-1 text-sm leading-relaxed text-[color:var(--site-muted)]">{item.description}</p>
           ) : null}
 
           {/* Variantes */}
           {hasVariants && (
             <div className="mt-5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
                 Choisir une taille <span className="text-red-500">*</span>
               </p>
               <div className="mt-3 space-y-2">
@@ -390,22 +390,22 @@ function ItemModal({
                       className={
                         'flex cursor-pointer items-center justify-between rounded-2xl border-2 px-4 py-3 transition-all ' +
                         (selected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300')
+                          ? 'border-[var(--site-accent)] bg-[var(--site-accent)]/5'
+                          : 'border-[var(--site-border)] hover:opacity-80')
                       }
                     >
                       <div className="flex items-center gap-3">
                         <span
                           className={
                             'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ' +
-                            (selected ? 'border-primary bg-primary' : 'border-gray-300')
+                            (selected ? 'border-[var(--site-accent)] bg-[var(--site-accent)]' : 'border-[var(--site-border)]')
                           }
                         >
-                          {selected && <span className="h-2 w-2 rounded-full bg-white" />}
+                          {selected && <span className="h-2 w-2 rounded-full bg-[color:var(--site-accent-fg)]" />}
                         </span>
-                        <span className="font-semibold text-[#1A1A1A]">{v.name}</span>
+                        <span className="font-semibold text-[color:var(--site-text)]">{v.name}</span>
                       </div>
-                      <span className="font-display font-bold text-primary tabular-nums">
+                      <span className="font-[family-name:var(--font-site-heading)] font-bold text-[color:var(--site-accent)] tabular-nums">
                         {formatPrice(v.price)}
                       </span>
                       <input
@@ -424,11 +424,11 @@ function ItemModal({
           {/* Prix de base (sans variantes) */}
           {!hasVariants && (
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-display text-lg font-extrabold text-primary tabular-nums">
+              <span className="font-[family-name:var(--font-site-heading)] text-lg font-extrabold text-[color:var(--site-accent)] tabular-nums">
                 {formatPrice(item.promo_price ?? item.price)}
               </span>
               {item.promo_price != null && (
-                <span className="text-sm text-gray-400 line-through">
+                <span className="text-sm text-[color:var(--site-muted)] line-through">
                   {formatPrice(item.price)}
                 </span>
               )}
@@ -438,10 +438,10 @@ function ItemModal({
           {/* Suppléments / Sauces */}
           {availableExtras.length > 0 && (
             <div className="mt-5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
                 Sauces & suppléments
               </p>
-              <ul className="mt-3 divide-y divide-gray-100">
+              <ul className="mt-3 divide-y divide-[var(--site-border)]">
                 {availableExtras.map((extra) => {
                   const checked = selectedExtras.has(extra.id);
                   const isFree = freeExtraIds.includes(extra.id);
@@ -455,7 +455,7 @@ function ItemModal({
                           (eDisabled ? 'cursor-not-allowed opacity-40' : '')
                         }
                       >
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[var(--site-bg)]">
                           {extra.image_url ? (
                             <Image
                               src={extra.image_url}
@@ -471,9 +471,9 @@ function ItemModal({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-[#1A1A1A]">{extra.name}</p>
+                          <p className="text-sm font-semibold text-[color:var(--site-text)]">{extra.name}</p>
                           {extra.description && (
-                            <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
+                            <p className="mt-0.5 line-clamp-1 text-xs text-[color:var(--site-muted)]">
                               {extra.description}
                             </p>
                           )}
@@ -482,7 +482,7 @@ function ItemModal({
                               ✓ Inclus gratuitement
                             </span>
                           ) : (
-                            <p className="mt-0.5 text-xs font-bold text-primary">
+                            <p className="mt-0.5 text-xs font-bold text-[color:var(--site-accent)]">
                               +{formatPrice(ePrice)}
                             </p>
                           )}
@@ -492,7 +492,8 @@ function ItemModal({
                           checked={checked}
                           disabled={eDisabled}
                           onChange={() => toggleExtra(extra.id)}
-                          className="h-5 w-5 shrink-0 accent-primary"
+                          className="h-5 w-5 shrink-0"
+                          style={{ accentColor: 'var(--site-accent)' }}
                         />
                       </label>
                     </li>
@@ -507,14 +508,14 @@ function ItemModal({
             type="button"
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="mt-6 flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-4 text-white shadow-[0_4px_20px_rgb(255,92,26,0.30)] transition-all hover:bg-primary-dark active:scale-[0.99] disabled:opacity-50"
+            className="mt-6 flex w-full items-center justify-between rounded-2xl bg-[var(--site-accent)] px-5 py-4 text-[color:var(--site-accent-fg)] shadow-lg transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
           >
             <span className="flex items-center gap-2 font-bold">
               <ShoppingBag className="h-4 w-4" />
               {hasVariants && !selectedVariant ? 'Choisir une taille' : 'Ajouter au panier'}
             </span>
             {(selectedVariant || !hasVariants) && basePrice != null && (
-              <span className="font-display text-base font-black tabular-nums">
+              <span className="font-[family-name:var(--font-site-heading)] text-base font-black tabular-nums">
                 {formatPrice(total)}
               </span>
             )}

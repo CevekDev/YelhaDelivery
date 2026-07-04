@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
@@ -53,17 +52,17 @@ function ReviewForm({ orderId }: { orderId: string }) {
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-success/30 bg-success/10 p-5 text-center shadow-card">
-        <p className="font-display text-lg font-bold text-success">Merci pour votre avis !</p>
-        <p className="mt-1 text-sm text-muted-foreground">Votre retour aide le restaurant à s&apos;améliorer.</p>
+      <div className="rounded-2xl border border-success/30 bg-success/10 p-5 text-center ">
+        <p className="font-[family-name:var(--font-site-heading)] text-lg font-bold text-success">Merci pour votre avis !</p>
+        <p className="mt-1 text-sm text-[color:var(--site-muted)]">Votre retour aide le restaurant à s&apos;améliorer.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
-      <p className="font-display text-base font-bold">Donnez votre avis</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">Partagez votre expérience en quelques secondes.</p>
+    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 ">
+      <p className="font-[family-name:var(--font-site-heading)] text-base font-bold">Donnez votre avis</p>
+      <p className="mt-0.5 text-xs text-[color:var(--site-muted)]">Partagez votre expérience en quelques secondes.</p>
 
       {/* Stars */}
       <div className="mt-4 flex gap-1">
@@ -80,7 +79,7 @@ function ReviewForm({ orderId }: { orderId: string }) {
               className={`h-8 w-8 transition-colors ${
                 i <= (hovered || rating)
                   ? 'fill-yellow-400 text-yellow-400'
-                  : 'fill-muted text-muted-foreground/30'
+                  : 'fill-muted text-[color:var(--site-muted)]/30'
               }`}
             />
           </button>
@@ -93,14 +92,13 @@ function ReviewForm({ orderId }: { orderId: string }) {
         maxLength={500}
         rows={3}
         placeholder="Votre commentaire (optionnel)"
-        className="mt-4 w-full resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="mt-4 w-full resize-none rounded-lg border border-[var(--site-border)] bg-[var(--site-bg)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
       />
 
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
 
-      <Button
+      <button
         type="button"
-        className="mt-3 w-full"
         disabled={rating === 0 || isPending}
         onClick={() => {
           startTransition(async () => {
@@ -113,9 +111,10 @@ function ReviewForm({ orderId }: { orderId: string }) {
             }
           });
         }}
+        className="mt-3 flex h-11 w-full items-center justify-center rounded-[var(--site-radius)] bg-[var(--site-accent)] px-4 text-sm font-bold text-[color:var(--site-accent-fg)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending ? 'Envoi…' : 'Envoyer l\'avis'}
-      </Button>
+      </button>
     </div>
   );
 }
@@ -150,21 +149,21 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
   const remainingMin = Math.max(0, Math.round((etaMs - now) / 60_000));
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <header className="border-b border-border bg-background">
-        <div className="container max-w-xl py-5">
-          <Link href={`/r/${slug}/menu`} className="text-xs text-muted-foreground hover:text-foreground">
+    <main>
+      <header className="border-b border-[var(--site-border)]">
+        <div className="mx-auto max-w-xl px-4 py-5 md:px-6">
+          <Link href={`/r/${slug}/menu`} className="text-xs text-[color:var(--site-muted)] hover:text-[color:var(--site-text)]">
             ← Retour au menu
           </Link>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
                 Suivi en direct
               </p>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              <h1 className="font-[family-name:var(--font-site-heading)] text-2xl font-extrabold tracking-tight text-[color:var(--site-text)]">
                 {order.restaurant_name}
               </h1>
-              <p className="mt-1 font-mono text-xs text-primary">{order.order_number}</p>
+              <p className="mt-1 font-mono text-xs text-[color:var(--site-accent)]">{order.order_number}</p>
             </div>
             <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
               {ORDER_STATUS_LABELS[order.status]}
@@ -173,20 +172,20 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
         </div>
       </header>
 
-      <section className="container max-w-xl space-y-4 py-6">
+      <section className="mx-auto max-w-xl space-y-4 px-4 py-6 md:px-6">
         {/* Big ETA card */}
         {!isCancelled && !isDelivered && (
-          <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-card">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+          <div className="overflow-hidden rounded-2xl border border-[var(--site-border)] bg-gradient-to-br from-[var(--site-accent)]/10 via-[var(--site-surface)] to-[var(--site-surface)] p-6">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-accent)]">
               Arrivée estimée
             </p>
             <div className="mt-2 flex items-baseline gap-3">
-              <p className="font-display text-5xl font-extrabold tracking-tight tabular-nums">
+              <p className="font-[family-name:var(--font-site-heading)] text-5xl font-extrabold tracking-tight tabular-nums">
                 {remainingMin}
               </p>
-              <p className="font-display text-xl font-bold text-muted-foreground">min</p>
+              <p className="font-[family-name:var(--font-site-heading)] text-xl font-bold text-[color:var(--site-muted)]">min</p>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-[color:var(--site-muted)]">
               Commandée {formatRelativeTime(order.created_at)}
             </p>
           </div>
@@ -194,12 +193,12 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
 
         {isDelivered && (
           <>
-            <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-center shadow-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success text-background">
+            <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-center ">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success text-white">
                 <PackageCheck className="h-6 w-6" />
               </div>
-              <p className="mt-3 font-display text-xl font-extrabold">Bon appétit !</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-3 font-[family-name:var(--font-site-heading)] text-xl font-extrabold text-[color:var(--site-text)]">Bon appétit !</p>
+              <p className="mt-1 text-sm text-[color:var(--site-muted)]">
                 Votre commande a été livrée. Merci d&apos;avoir choisi {order.restaurant_name}.
               </p>
             </div>
@@ -208,17 +207,17 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
         )}
 
         {isCancelled && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center shadow-card">
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center ">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
               <XCircle className="h-6 w-6" />
             </div>
-            <p className="mt-3 font-display text-xl font-extrabold">Commande annulée</p>
+            <p className="mt-3 font-[family-name:var(--font-site-heading)] text-xl font-extrabold text-[color:var(--site-text)]">Commande annulée</p>
             {order.cancellation_reason ? (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-[color:var(--site-muted)]">
                 Raison : <span className="font-medium">{order.cancellation_reason}</span>
               </p>
             ) : (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-[color:var(--site-muted)]">
                 Contactez {order.restaurant_name} pour plus d&apos;informations.
               </p>
             )}
@@ -227,8 +226,8 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
 
         {/* Progress timeline */}
         {!isCancelled && (
-          <div className="rounded-2xl border border-border bg-background p-6 shadow-card">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-6 ">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
               Progression
             </p>
             <ol className="mt-4 space-y-4">
@@ -243,7 +242,7 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
                       <span
                         className={
                           'absolute left-[15px] top-8 h-full w-0.5 -translate-x-1/2 ' +
-                          (done ? 'bg-success' : 'bg-border')
+                          (done ? 'bg-success' : 'bg-[var(--site-border)]')
                         }
                       />
                     )}
@@ -251,10 +250,10 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
                       className={
                         'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors ' +
                         (done
-                          ? 'bg-success text-background'
+                          ? 'bg-success text-white'
                           : current
-                            ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-                            : 'border border-border bg-background text-muted-foreground')
+                            ? 'bg-[var(--site-accent)] text-[color:var(--site-accent-fg)] ring-4 ring-[var(--site-accent)]/20'
+                            : 'border border-[var(--site-border)] bg-[var(--site-surface)] text-[color:var(--site-muted)]')
                       }
                     >
                       <Icon className="h-4 w-4" />
@@ -263,14 +262,14 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
                       <p
                         className={
                           'font-semibold ' +
-                          (upcoming ? 'text-muted-foreground' : 'text-foreground')
+                          (upcoming ? 'text-[color:var(--site-muted)]' : 'text-[color:var(--site-text)]')
                         }
                       >
                         {s.label}
                       </p>
                       {current && (
-                        <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-primary">
-                          <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                        <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-[color:var(--site-accent)]">
+                          <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--site-accent)]" />
                           En cours
                         </p>
                       )}
@@ -283,23 +282,23 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
         )}
 
         {/* Détails */}
-        <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 ">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
             Détails
           </p>
           <div className="mt-3 space-y-2 text-sm">
             <p className="flex items-center justify-between">
-              <span className="text-muted-foreground">Adresse</span>
+              <span className="text-[color:var(--site-muted)]">Adresse</span>
               <span className="text-right font-medium">{order.customer_address}</span>
             </p>
             <p className="flex items-center justify-between">
-              <span className="text-muted-foreground">Total à payer</span>
-              <span className="font-display text-base font-bold tabular-nums">
+              <span className="text-[color:var(--site-muted)]">Total à payer</span>
+              <span className="font-[family-name:var(--font-site-heading)] text-base font-bold tabular-nums">
                 {formatPrice(order.total)}
               </span>
             </p>
             {!isDelivered && !isCancelled && (
-              <p className="flex items-center gap-1.5 pt-2 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1.5 pt-2 text-xs text-[color:var(--site-muted)]">
                 <Clock className="h-3 w-3" />
                 Cette page se met à jour automatiquement
               </p>
@@ -307,9 +306,12 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
           </div>
         </div>
 
-        <Button asChild variant="outline" className="w-full">
-          <Link href={`/r/${slug}/menu`}>Commander à nouveau</Link>
-        </Button>
+        <Link
+          href={`/r/${slug}/menu`}
+          className="flex h-11 w-full items-center justify-center rounded-[var(--site-radius)] border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[color:var(--site-text)] transition-opacity hover:opacity-80"
+        >
+          Commander à nouveau
+        </Link>
       </section>
     </main>
   );

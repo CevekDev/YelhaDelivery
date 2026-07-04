@@ -32,7 +32,7 @@ export default async function SiteWebPage() {
       <PanelCard padded={false}>
         <PanelHeader
           title="Design & pages"
-          description="7 modèles de site, chacun avec sa typographie et son ambiance."
+          description="8 modèles de site, chacun avec sa typographie et son ambiance."
         />
         <div className="p-5 md:p-6">
           <SiteSettingsForm

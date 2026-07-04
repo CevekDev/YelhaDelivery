@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, ShoppingBag } from 'lucide-react';
+import { useCart } from '@/stores/cart';
 
 export interface SiteNavLink {
   href: string;
@@ -14,16 +15,40 @@ export function SiteNav({
   brand,
   logoUrl,
   links,
+  slug,
   orderHref,
   orderLabel = 'Commander',
 }: {
   brand: string;
   logoUrl: string | null;
   links: SiteNavLink[];
+  slug: string;
   orderHref: string;
   orderLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const cartCount = useCart((s) => (s.restaurantSlug === slug ? s.lines.reduce((n, l) => n + l.quantity, 0) : 0));
+  const hasCart = mounted && cartCount > 0;
+  const ctaHref = hasCart ? `/r/${slug}/checkout` : orderHref;
+  const ctaLabel = hasCart ? 'Panier' : orderLabel;
+
+  // Fermer au Escape + verrouiller le scroll du body pendant que le drawer est ouvert.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--site-border)] bg-[var(--site-bg)]/90 backdrop-blur-md">
@@ -52,11 +77,16 @@ export function SiteNav({
             </Link>
           ))}
           <Link
-            href={orderHref}
-            className="inline-flex items-center gap-2 rounded-[var(--site-radius)] bg-[var(--site-accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--site-accent-fg)] transition-transform hover:scale-[1.03]"
+            href={ctaHref}
+            className="relative inline-flex items-center gap-2 rounded-[var(--site-radius)] bg-[var(--site-accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--site-accent-fg)] transition-transform hover:scale-[1.03]"
           >
             <ShoppingBag className="h-4 w-4" />
-            {orderLabel}
+            {ctaLabel}
+            {hasCart && (
+              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[color:var(--site-accent-fg)] px-1.5 text-[10px] font-black text-[color:var(--site-accent)]">
+                {cartCount > 9 ? '9+' : cartCount}
+              </span>
+            )}
           </Link>
         </div>
 
@@ -65,7 +95,9 @@ export function SiteNav({
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--site-radius)] text-[color:var(--site-text)] md:hidden"
-          aria-label="Menu"
+          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={open}
+          aria-controls="site-mobile-drawer"
         >
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -73,7 +105,13 @@ export function SiteNav({
 
       {/* Mobile drawer */}
       {open && (
-        <div className="border-t border-[var(--site-border)] bg-[var(--site-bg)] px-4 py-4 md:hidden">
+        <div
+          id="site-mobile-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de navigation"
+          className="border-t border-[var(--site-border)] bg-[var(--site-bg)] px-4 py-4 md:hidden"
+        >
           <div className="flex flex-col gap-1">
             {links.map((l) => (
               <Link
@@ -86,12 +124,17 @@ export function SiteNav({
               </Link>
             ))}
             <Link
-              href={orderHref}
+              href={ctaHref}
               onClick={() => setOpen(false)}
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-[var(--site-radius)] bg-[var(--site-accent)] px-5 py-3 text-base font-semibold text-[color:var(--site-accent-fg)]"
+              className="relative mt-2 inline-flex items-center justify-center gap-2 rounded-[var(--site-radius)] bg-[var(--site-accent)] px-5 py-3 text-base font-semibold text-[color:var(--site-accent-fg)]"
             >
               <ShoppingBag className="h-5 w-5" />
-              {orderLabel}
+              {ctaLabel}
+              {hasCart && (
+                <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[color:var(--site-accent-fg)] px-1.5 text-[10px] font-black text-[color:var(--site-accent)]">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
             </Link>
           </div>
         </div>

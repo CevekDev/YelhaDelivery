@@ -173,10 +173,10 @@ function Highlights({ template, highlights }: { template: Template; highlights: 
     case 'bold':
       return (
         <section className="overflow-hidden">
-          <style>{`@keyframes yd-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
+          <style>{`@keyframes yd-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}@media(prefers-reduced-motion:reduce){.yd-marquee-track{animation:none!important}}`}</style>
           <div className="border-y-2 border-[var(--site-text)] bg-[var(--site-accent)] py-3 text-[color:var(--site-accent-fg)]">
             <div
-              className="flex w-max gap-8 whitespace-nowrap"
+              className="yd-marquee-track flex w-max gap-8 whitespace-nowrap"
               style={{ animation: 'yd-marquee 22s linear infinite' }}
             >
               {Array.from({ length: 2 }).map((_, dup) => (

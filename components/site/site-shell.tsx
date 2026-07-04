@@ -39,6 +39,7 @@ export function SiteShell({
         brand={restaurant.name}
         logoUrl={restaurant.logo_url}
         links={links}
+        slug={slug}
         orderHref={`/r/${slug}/menu`}
       />
 

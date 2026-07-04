@@ -1,5 +1,5 @@
 // =====================================================================
-// Registre des 7 templates de site web YelhaDelivery.
+// Registre des 8 templates de site web YelhaDelivery.
 // Chaque template = une identité visuelle complète (palette, typographie,
 // style de hero/cartes). Le rendu public applique ces tokens via des
 // variables CSS (voir components/site/site-shell.tsx).
@@ -29,7 +29,7 @@ export interface TemplatePalette {
 }
 
 export interface Template {
-  id: number; // 1..7
+  id: number; // 1..8
   key: string;
   name: string;
   tagline: string;

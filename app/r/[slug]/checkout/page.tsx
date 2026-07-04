@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { CheckoutClient } from './checkout-client';
+import { SiteShell } from '@/components/site/site-shell';
+import { getTemplate } from '@/lib/templates';
 import type { Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +13,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
   const supabase = await createClient();
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select(
-      'id, name, slug, delivery_fee, min_order, is_open, accept_orders, status, estimated_delivery_time, free_delivery_above',
-    )
+    .select('*')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle<Restaurant>();
@@ -27,17 +27,21 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
   const estimatedDeliveryTime =
     typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
 
+  const template = getTemplate(restaurant.template_id);
+
   return (
-    <CheckoutClient
-      slug={slug}
-      restaurantName={restaurant.name}
-      deliveryFee={Number(restaurant.delivery_fee)}
-      minOrder={Number(restaurant.min_order)}
-      canOrder={restaurant.is_open && restaurant.accept_orders}
-      estimatedDeliveryTime={estimatedDeliveryTime}
-      freeDeliveryAbove={
-        restaurant.free_delivery_above != null ? Number(restaurant.free_delivery_above) : null
-      }
-    />
+    <SiteShell template={template} restaurant={restaurant} slug={slug}>
+      <CheckoutClient
+        slug={slug}
+        restaurantName={restaurant.name}
+        deliveryFee={Number(restaurant.delivery_fee)}
+        minOrder={Number(restaurant.min_order)}
+        canOrder={restaurant.is_open && restaurant.accept_orders}
+        estimatedDeliveryTime={estimatedDeliveryTime}
+        freeDeliveryAbove={
+          restaurant.free_delivery_above != null ? Number(restaurant.free_delivery_above) : null
+        }
+      />
+    </SiteShell>
   );
 }
