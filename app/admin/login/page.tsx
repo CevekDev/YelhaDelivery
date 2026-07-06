@@ -29,18 +29,20 @@ export default function AdminLoginPage() {
     >
       <form action={formAction} className="space-y-4" noValidate>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="username">Identifiant</Label>
           <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
             required
             autoFocus
-            aria-invalid={!!state?.fieldErrors?.email}
+            aria-invalid={!!state?.fieldErrors?.username}
           />
-          {state?.fieldErrors?.email && (
-            <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
+          {state?.fieldErrors?.username && (
+            <p className="text-xs text-destructive">{state.fieldErrors.username}</p>
           )}
         </div>
 

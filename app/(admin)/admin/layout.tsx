@@ -4,6 +4,7 @@ import {
   BarChart3,
   LayoutDashboard,
   LogOut,
+  Settings,
   Shield,
   ShoppingBag,
   Star,
@@ -21,6 +22,7 @@ const NAV = [
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
   { href: '/admin/avis', label: 'Avis clients', icon: Star },
   { href: '/admin/promos', label: 'Codes promo', icon: Ticket },
+  { href: '/admin/parametres', label: 'Paramètres', icon: Settings },
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

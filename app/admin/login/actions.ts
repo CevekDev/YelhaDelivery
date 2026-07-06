@@ -3,31 +3,35 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { emailLoginSchema } from '@/lib/validators/auth';
+import { adminLoginSchema } from '@/lib/validators/auth';
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 
 export interface AdminLoginState {
   error?: string;
-  fieldErrors?: { email?: string; password?: string };
+  fieldErrors?: { username?: string; password?: string };
 }
+
+/** Domaine synthétique : l'admin se connecte par identifiant, mappé en interne
+ *  vers `<username>@admin.yelha.net` (l'auth Supabase requiert un email). */
+const ADMIN_SYNTH_DOMAIN = '@admin.yelha.net';
 
 export async function adminLoginAction(
   _prev: AdminLoginState | undefined,
   formData: FormData,
 ): Promise<AdminLoginState> {
-  const parsed = emailLoginSchema.safeParse({
-    email: String(formData.get('email') ?? ''),
+  const parsed = adminLoginSchema.safeParse({
+    username: String(formData.get('username') ?? ''),
     password: String(formData.get('password') ?? ''),
   });
   if (!parsed.success) {
     const fe = parsed.error.flatten().fieldErrors;
-    return { fieldErrors: { email: fe.email?.[0], password: fe.password?.[0] } };
+    return { fieldErrors: { username: fe.username?.[0], password: fe.password?.[0] } };
   }
 
   const hdrs = await headers();
   const ip =
     hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip') || 'unknown';
-  const rlKey = `login:admin:${parsed.data.email.toLowerCase()}:${ip}`;
+  const rlKey = `login:admin:${parsed.data.username}:${ip}`;
   const rl = await checkRateLimit(rlKey);
   if (!rl.allowed) {
     return {
@@ -37,11 +41,11 @@ export async function adminLoginAction(
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
+    email: `${parsed.data.username}${ADMIN_SYNTH_DOMAIN}`,
     password: parsed.data.password,
   });
   if (error || !data.user) {
-    return { error: 'Email ou mot de passe incorrect.' };
+    return { error: 'Identifiant ou mot de passe incorrect.' };
   }
 
   const { data: profile } = await supabase
