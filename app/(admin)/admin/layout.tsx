@@ -1,12 +1,26 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import { LayoutDashboard, LogOut, Shield, Store, Users } from 'lucide-react';
+import {
+  BarChart3,
+  LayoutDashboard,
+  LogOut,
+  Shield,
+  ShoppingBag,
+  Star,
+  Store,
+  Ticket,
+  Users,
+} from 'lucide-react';
 import { AdminSidebarLink } from '@/components/admin/sidebar-link';
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
+  { href: '/admin/analytiques', label: 'Analytiques', icon: BarChart3 },
+  { href: '/admin/commandes', label: 'Commandes', icon: ShoppingBag },
   { href: '/admin/restaurants', label: 'Restaurants', icon: Store },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
+  { href: '/admin/avis', label: 'Avis clients', icon: Star },
+  { href: '/admin/promos', label: 'Codes promo', icon: Ticket },
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
