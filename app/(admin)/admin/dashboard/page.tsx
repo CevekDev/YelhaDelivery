@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
@@ -33,7 +33,7 @@ interface OrderLite {
 
 export default async function AdminDashboard() {
   await requireRole('admin');
-  const admin = await createAdminClient();
+  const admin = await createClient();
 
   const now = new Date();
   const startOfDay = new Date(now);

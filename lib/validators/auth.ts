@@ -37,7 +37,7 @@ export const adminChangeUsernameSchema = z.object({
 
 export const adminChangePasswordSchema = z
   .object({
-    password: z.string().min(4, 'Mot de passe trop court (min 4)').max(128),
+    password: z.string().min(6, 'Mot de passe trop court (min 6)').max(128),
     confirm: z.string(),
   })
   .refine((d) => d.password === d.confirm, {

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminPromosPage() {
   await requireRole('admin');
-  const admin = await createAdminClient();
+  const admin = await createClient();
 
   const [{ data: promos }, { data: restaurants }] = await Promise.all([
     admin

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { formatRelativeTime } from '@/lib/utils';
 import { Star } from 'lucide-react';
@@ -26,7 +26,7 @@ export default async function AdminAvisPage({
   const params = await searchParams;
   const ratingFilter = params.rating ? Number(params.rating) : null;
 
-  const admin = await createAdminClient();
+  const admin = await createClient();
 
   let q = admin
     .from('order_reviews')

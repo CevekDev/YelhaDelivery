@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +52,7 @@ export default async function AdminRestaurantDetailPage({
 }) {
   await requireRole('admin');
   const { id } = await params;
-  const admin = await createAdminClient();
+  const admin = await createClient();
 
   const { data: restaurant } = await admin
     .from('restaurants')

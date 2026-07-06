@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { slugSchema } from '@/lib/validators/common';
 import { sendRestaurateurWelcome } from '@/lib/emails/send';
@@ -127,8 +127,9 @@ export async function setRestaurantStatusAction(formData: FormData): Promise<Adm
     .safeParse({ id: formData.get('id'), status: formData.get('status') });
   if (!parsed.success) return { ok: false, error: 'Requête invalide' };
 
-  const admin = await createAdminClient();
-  const { error } = await admin
+  // Session admin : la RLS restaurants_update_owner autorise is_admin().
+  const supabase = await createClient();
+  const { error } = await supabase
     .from('restaurants')
     .update({ status: parsed.data.status })
     .eq('id', parsed.data.id);

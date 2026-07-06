@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { formatPrice } from '@/lib/utils';
 import { ORDER_STATUS_LABELS } from '@/lib/order-status';
@@ -25,7 +25,7 @@ interface OrderItemRow {
 
 export default async function AdminAnalyticsPage() {
   await requireRole('admin');
-  const admin = await createAdminClient();
+  const admin = await createClient();
 
   const now = new Date();
   const days = 30;
