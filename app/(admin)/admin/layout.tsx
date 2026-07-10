@@ -26,7 +26,23 @@ const NAV = [
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireRole('admin');
+  try {
+    await requireRole('admin');
+  } catch (e) {
+    const err = e as { digest?: string; message?: string; stack?: string };
+    if (typeof err?.digest === 'string' && err.digest.startsWith('NEXT_REDIRECT')) throw e;
+    return (
+      <div className="container py-8">
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          <p className="font-bold">DIAGNOSTIC (temporaire) — erreur dans le layout admin</p>
+          <pre className="mt-2 whitespace-pre-wrap break-words">{String(err?.message ?? e)}</pre>
+          <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] opacity-70">
+            {String(err?.stack ?? '').slice(0, 2000)}
+          </pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">

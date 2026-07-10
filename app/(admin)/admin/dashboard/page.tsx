@@ -32,6 +32,26 @@ interface OrderLite {
 }
 
 export default async function AdminDashboard() {
+  try {
+    return await AdminDashboardInner();
+  } catch (e) {
+    const err = e as { message?: string; stack?: string; digest?: string };
+    if (typeof err?.digest === 'string' && err.digest.startsWith('NEXT_REDIRECT')) throw e;
+    return (
+      <div className="container py-8">
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          <p className="font-bold">DIAGNOSTIC (temporaire) — erreur de rendu du dashboard</p>
+          <pre className="mt-2 whitespace-pre-wrap break-words">{String(err?.message ?? e)}</pre>
+          <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] opacity-70">
+            {String(err?.stack ?? '').slice(0, 2000)}
+          </pre>
+        </div>
+      </div>
+    );
+  }
+}
+
+async function AdminDashboardInner() {
   await requireRole('admin');
   const admin = await createClient();
 
