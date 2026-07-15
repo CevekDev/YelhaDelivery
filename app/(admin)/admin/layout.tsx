@@ -1,48 +1,10 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
-import {
-  BarChart3,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  Shield,
-  ShoppingBag,
-  Star,
-  Store,
-  Ticket,
-  Users,
-} from 'lucide-react';
-import { AdminSidebarLink } from '@/components/admin/sidebar-link';
-
-const NAV = [
-  { href: '/admin/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
-  { href: '/admin/analytiques', label: 'Analytiques', icon: BarChart3 },
-  { href: '/admin/commandes', label: 'Commandes', icon: ShoppingBag },
-  { href: '/admin/restaurants', label: 'Restaurants', icon: Store },
-  { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
-  { href: '/admin/avis', label: 'Avis clients', icon: Star },
-  { href: '/admin/promos', label: 'Codes promo', icon: Ticket },
-  { href: '/admin/parametres', label: 'Paramètres', icon: Settings },
-] as const;
+import { LogOut, Shield } from 'lucide-react';
+import { AdminNav } from '@/components/admin/sidebar-link';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  try {
-    await requireRole('admin');
-  } catch (e) {
-    const err = e as { digest?: string; message?: string; stack?: string };
-    if (typeof err?.digest === 'string' && err.digest.startsWith('NEXT_REDIRECT')) throw e;
-    return (
-      <div className="container py-8">
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          <p className="font-bold">DIAGNOSTIC (temporaire) — erreur dans le layout admin</p>
-          <pre className="mt-2 whitespace-pre-wrap break-words">{String(err?.message ?? e)}</pre>
-          <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] opacity-70">
-            {String(err?.stack ?? '').slice(0, 2000)}
-          </pre>
-        </div>
-      </div>
-    );
-  }
+  await requireRole('admin');
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -63,16 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="text-xs text-muted-foreground">Accès global</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {NAV.map((item) => (
-            <AdminSidebarLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-            />
-          ))}
-        </nav>
+        <AdminNav />
         <form action="/api/auth/signout" method="post" className="border-t border-border p-3">
           <button
             type="submit"
