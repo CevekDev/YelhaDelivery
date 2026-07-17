@@ -99,15 +99,16 @@ export async function registerRestaurateurAction(
     return { error: profileErr.message };
   }
 
-  // Restaurant créé en "active" — visible publiquement immédiatement (pas de modération).
-  // Le restaurateur doit toujours cocher "Restaurant ouvert" dans /dashboard/parametres
-  // pour commencer à recevoir des commandes.
+  // Restaurant créé en "pending" (en attente) — INVISIBLE publiquement tant qu'un
+  // admin ne l'a pas activé depuis /admin/restaurants. Le restaurateur peut déjà
+  // préparer son menu et sa page dans /dashboard ; le site ne devient live qu'à
+  // l'activation.
   const { error: restErr } = await admin.from('restaurants').insert({
     owner_id: created.user.id,
     name: parsed.data.restaurant_name,
     slug: parsed.data.slug,
     phone: parsed.data.owner_phone || null,
-    status: 'active',
+    status: 'pending',
     is_open: false,
     accept_orders: true,
   });
@@ -136,5 +137,5 @@ export async function registerRestaurateurAction(
     redirect('/login?created=1');
   }
 
-  redirect('/dashboard?welcome=1');
+  redirect('/dashboard?pending=1');
 }

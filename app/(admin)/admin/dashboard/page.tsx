@@ -48,6 +48,7 @@ export default async function AdminDashboard() {
     { count: restaurantsCount },
     { count: activeRestaurantsCount },
     { count: suspendedCount },
+    { data: pendingRestaurants },
     { count: usersCount },
     { data: last14dOrders },
     { data: last30dOrders },
@@ -61,6 +62,11 @@ export default async function AdminDashboard() {
       .from('restaurants')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'suspended'),
+    admin
+      .from('restaurants')
+      .select('id, name, slug, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }),
     admin.from('profiles').select('*', { count: 'exact', head: true }),
     admin
       .from('orders')
@@ -138,6 +144,47 @@ export default async function AdminDashboard() {
         title="Vue d’ensemble"
         description="Activité globale de la plateforme YelhaDelivery — comparaison 7j vs 7j précédents."
       />
+
+      {/* Demandes d'activation — nouveaux restaurateurs en attente */}
+      {(pendingRestaurants?.length ?? 0) > 0 && (
+        <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              ⏳
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-sm font-bold">
+                {pendingRestaurants!.length} restaurant{pendingRestaurants!.length > 1 ? 's' : ''} en
+                attente d’activation
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Validez leur compte pour mettre leur site en ligne.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {pendingRestaurants!.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">{r.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        /r/{r.slug} · inscrit {formatRelativeTime(r.created_at)}
+                      </span>
+                    </span>
+                    <Link
+                      href={`/admin/restaurants/${r.id}`}
+                      className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-dark"
+                    >
+                      Examiner & activer
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alertes prioritaires */}
       {((pendingOrders?.length ?? 0) > 0 || (suspendedCount ?? 0) > 0) && (

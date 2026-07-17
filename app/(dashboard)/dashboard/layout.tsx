@@ -65,6 +65,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           )}
         </header>
 
+        {restaurant?.status === 'pending' && (
+          <div className="border-b border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning md:px-6">
+            <strong>⏳ Compte en attente de validation.</strong> Vous pouvez préparer votre menu et
+            votre page dès maintenant. Votre site sera mis en ligne dès qu’un administrateur
+            YelhaDelivery aura activé votre compte.
+          </div>
+        )}
         {restaurant?.status === 'suspended' && (
           <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive md:px-6">
             <strong>⛔ Compte suspendu.</strong> Contactez le support pour réactiver votre restaurant.
