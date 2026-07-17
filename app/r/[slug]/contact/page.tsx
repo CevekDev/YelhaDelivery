@@ -14,12 +14,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const supabase = await createClient();
   const { data } = await supabase
     .from('restaurants')
-    .select('name')
+    .select('name, city')
     .eq('slug', slug)
     .eq('status', 'active')
-    .maybeSingle<Pick<Restaurant, 'name'>>();
+    .maybeSingle<Pick<Restaurant, 'name' | 'city'>>();
   if (!data) return { title: 'Introuvable' };
-  return { title: `Contact — ${data.name}` };
+  const title = `Contact — ${data.name}`;
+  const description = `Adresse, téléphone et horaires de ${data.name}${data.city ? ` à ${data.city}` : ''}. Commandez en ligne, livraison à domicile.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/r/${slug}/contact` },
+    openGraph: { title, description, url: `/r/${slug}/contact`, siteName: data.name, locale: 'fr_FR' },
+  };
 }
 
 export default async function ContactPage({ params }: { params: Promise<{ slug: string }> }) {

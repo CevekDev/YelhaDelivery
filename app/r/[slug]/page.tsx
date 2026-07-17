@@ -68,15 +68,18 @@ export default async function RestaurantHomePage({
 
   const template = getTemplate(restaurant.template_id);
 
-  const jsonLd = restaurantJsonLd({
-    name: restaurant.name,
-    description: restaurant.description,
-    slug,
-    city: restaurant.city,
-    address: restaurant.address,
-    phone: restaurant.phone,
-    coverUrl: restaurant.cover_url,
-  });
+  const jsonLd = restaurantJsonLd(
+    {
+      name: restaurant.name,
+      description: restaurant.description,
+      slug,
+      city: restaurant.city,
+      address: restaurant.address,
+      phone: restaurant.phone,
+      coverUrl: restaurant.cover_url,
+    },
+    { ratingValue: avgRating, reviewCount },
+  );
 
   return (
     <>

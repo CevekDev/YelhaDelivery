@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
+import { APP_URL } from '@/lib/seo';
 import type { BlogPost, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -25,13 +26,40 @@ export async function generateMetadata({
   if (!restaurant) return { title: 'Introuvable' };
   const { data: post } = await supabase
     .from('blog_posts')
-    .select('title, excerpt')
+    .select('title, excerpt, cover_url, published_at, updated_at')
     .eq('restaurant_id', restaurant.id)
     .eq('slug', postSlug)
     .eq('status', 'published')
-    .maybeSingle<Pick<BlogPost, 'title' | 'excerpt'>>();
+    .maybeSingle<
+      Pick<BlogPost, 'title' | 'excerpt' | 'cover_url' | 'published_at' | 'updated_at'>
+    >();
   if (!post) return { title: 'Article introuvable' };
-  return { title: `${post.title} — ${restaurant.name}`, description: post.excerpt ?? undefined };
+
+  const url = `${APP_URL}/r/${slug}/blog/${postSlug}`;
+  const description = post.excerpt ?? undefined;
+  const images = post.cover_url ? [{ url: post.cover_url }] : undefined;
+  return {
+    title: `${post.title} — ${restaurant.name}`,
+    description,
+    alternates: { canonical: `/r/${slug}/blog/${postSlug}` },
+    openGraph: {
+      title: post.title,
+      description,
+      url,
+      type: 'article',
+      siteName: restaurant.name,
+      locale: 'fr_FR',
+      publishedTime: post.published_at ?? undefined,
+      modifiedTime: post.updated_at ?? undefined,
+      ...(images ? { images } : {}),
+    },
+    twitter: {
+      card: images ? 'summary_large_image' : 'summary',
+      title: post.title,
+      description,
+      ...(images ? { images: images.map((i) => i.url) } : {}),
+    },
+  };
 }
 
 function formatDate(iso: string | null) {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { siteFontVariables } from '@/lib/fonts';
+import { APP_URL } from '@/lib/seo';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -17,11 +18,12 @@ export const metadata: Metadata = {
   },
   description:
     'Plateforme de gestion de livraison pour restaurants algériens. Menu en ligne, commandes en temps réel, livreurs intégrés.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://delivery.yelha.net'),
+  metadataBase: new URL(APP_URL),
   openGraph: {
     type: 'website',
     locale: 'fr_DZ',
     siteName: 'YelhaDelivery',
+    url: APP_URL,
   },
   robots: { index: true, follow: true },
 };

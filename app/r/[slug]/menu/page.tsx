@@ -184,15 +184,18 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
 
   const template = getTemplate(restaurant.template_id);
 
-  const jsonLd = restaurantJsonLd({
-    name: restaurant.name,
-    description: restaurant.description,
-    slug,
-    city: restaurant.city,
-    address: restaurant.address,
-    phone: restaurant.phone,
-    coverUrl: restaurant.cover_url,
-  });
+  const jsonLd = restaurantJsonLd(
+    {
+      name: restaurant.name,
+      description: restaurant.description,
+      slug,
+      city: restaurant.city,
+      address: restaurant.address,
+      phone: restaurant.phone,
+      coverUrl: restaurant.cover_url,
+    },
+    { openingHours: hours ?? [], ratingValue: avgRating, reviewCount },
+  );
 
   return (
     <SiteShell template={template} restaurant={restaurant} slug={slug}>

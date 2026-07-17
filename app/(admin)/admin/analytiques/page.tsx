@@ -31,7 +31,7 @@ export default async function AdminAnalyticsPage() {
   const days = 30;
   const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-  const [{ data: orders }, { data: restaurants }, { data: itemsRows }] = await Promise.all([
+  const [{ data: orders }, { data: restaurants }] = await Promise.all([
     admin
       .from('orders')
       .select('id, restaurant_id, status, total, created_at')
@@ -41,21 +41,23 @@ export default async function AdminAnalyticsPage() {
       .from('restaurants')
       .select('id, name, slug')
       .returns<Pick<Restaurant, 'id' | 'name' | 'slug'>[]>(),
-    admin
-      .from('order_items')
-      .select('order_id, item_name, quantity')
-      .in(
-        'order_id',
-        (
-          await admin
-            .from('orders')
-            .select('id')
-            .gte('created_at', start.toISOString())
-            .eq('status', 'delivered')
-        ).data?.map((o) => o.id) ?? [],
-      )
-      .returns<OrderItemRow[]>(),
   ]);
+
+  // Top plats : uniquement à partir des commandes livrées. On dérive les ids
+  // depuis `orders` déjà chargé (évite un `.in([])` invalide quand 0 livraison).
+  const deliveredIds = (orders ?? [])
+    .filter((o) => o.status === 'delivered')
+    .map((o) => o.id);
+  const itemsRows =
+    deliveredIds.length > 0
+      ? (
+          await admin
+            .from('order_items')
+            .select('order_id, item_name, quantity')
+            .in('order_id', deliveredIds)
+            .returns<OrderItemRow[]>()
+        ).data
+      : [];
 
   const allOrders = orders ?? [];
   const deliveredOrders = allOrders.filter((o) => o.status === 'delivered');
