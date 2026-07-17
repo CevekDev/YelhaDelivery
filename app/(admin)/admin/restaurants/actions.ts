@@ -7,6 +7,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { slugSchema } from '@/lib/validators/common';
 import { sendRestaurateurWelcome } from '@/lib/emails/send';
+import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 const createRestaurateurSchema = z.object({
   restaurant_name: z.string().trim().min(1).max(120),
@@ -113,6 +114,7 @@ export async function createRestaurateurAccountAction(
     slug: parsed.data.slug,
   }).catch((e) => console.error('[emails] welcome failed', e));
 
+  revalidatePublicRestaurant(parsed.data.slug);
   revalidatePath('/admin/restaurants');
   redirect('/admin/restaurants');
 }
@@ -129,11 +131,15 @@ export async function setRestaurantStatusAction(formData: FormData): Promise<Adm
 
   // Session admin : la RLS restaurants_update_owner autorise is_admin().
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('restaurants')
     .update({ status: parsed.data.status })
-    .eq('id', parsed.data.id);
+    .eq('id', parsed.data.id)
+    .select('slug')
+    .maybeSingle<{ slug: string }>();
   if (error) return { ok: false, error: error.message };
+  // Un passage active↔suspended change la visibilité publique → invalider le cache.
+  if (updated?.slug) revalidatePublicRestaurant(updated.slug);
   revalidatePath('/admin/restaurants');
   revalidatePath(`/admin/restaurants/${parsed.data.id}`);
   return { ok: true };

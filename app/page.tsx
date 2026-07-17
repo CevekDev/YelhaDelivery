@@ -14,13 +14,21 @@ import {
   Utensils,
   Zap,
 } from 'lucide-react';
+import { getDemoRestaurantSlug } from '@/lib/public-data';
 
 /* ═══════════════════════════════════════════════════════════════════
    Page d'accueil YelhaDelivery
    Design : hero sombre + orange, sections alternées, mobile-first
 ═══════════════════════════════════════════════════════════════════ */
 
-export default function LandingPage() {
+// Rendu à la demande (pas de prerender au build) : le slug démo vient de la DB
+// mais reste mémorisé (unstable_cache 5 min), donc coût quasi nul par requête.
+export const dynamic = 'force-dynamic';
+
+export default async function LandingPage() {
+  // Slug démo réel (caché) → pas de lien codé en dur qui finit en 404.
+  const demoSlug = await getDemoRestaurantSlug();
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-white font-sans text-[#1A1A1A]">
       {/* ── Navbar ───────────────────────────────────────────────── */}
@@ -95,12 +103,14 @@ export default function LandingPage() {
                   Inscrire mon restaurant
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link
-                  href="/r/el-bahia-alger"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-base font-semibold text-white/80 backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/10"
-                >
-                  Voir un menu démo
-                </Link>
+                {demoSlug && (
+                  <Link
+                    href={`/r/${demoSlug}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-base font-semibold text-white/80 backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/10"
+                  >
+                    Voir un menu démo
+                  </Link>
+                )}
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/40">
@@ -243,7 +253,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ─────────────────────────────────────────────── */}
-      <section id="fonctionnalites" className="mx-auto max-w-6xl px-4 py-20 md:px-6">
+      <section id="fonctionnalites" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 md:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
             <Sparkles className="h-3.5 w-3.5" /> Tout ce qu&apos;il vous faut
@@ -312,7 +322,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Comment ça marche ─────────────────────────────────────── */}
-      <section id="comment" className="bg-[#0D0D0D] py-20 text-white">
+      <section id="comment" className="scroll-mt-16 bg-[#0D0D0D] py-20 text-white">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
@@ -440,7 +450,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Tarifs ───────────────────────────────────────────────── */}
-      <section id="tarifs" className="bg-gray-50 py-20">
+      <section id="tarifs" className="scroll-mt-16 bg-gray-50 py-20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-black tracking-tight md:text-4xl">
@@ -578,9 +588,11 @@ export default function LandingPage() {
                 <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
                   Démo
                 </p>
-                <Link href="/r/el-bahia-alger" className="block hover:text-[#FF5C1A]">
-                  Voir un menu
-                </Link>
+                {demoSlug && (
+                  <Link href={`/r/${demoSlug}`} className="block hover:text-[#FF5C1A]">
+                    Voir un menu
+                  </Link>
+                )}
                 <Link href="/register" className="block hover:text-[#FF5C1A]">
                   S&apos;inscrire
                 </Link>

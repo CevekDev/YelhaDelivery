@@ -17,7 +17,11 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { ToggleOpenButton } from './toggle-open-button';
+import { APP_URL } from '@/lib/seo';
 import type { Order } from '@/types/database';
+
+/** Domaine public affiché (sans protocole) — source unique via APP_URL. */
+const PUBLIC_HOST = APP_URL.replace(/^https?:\/\//, '');
 
 export const dynamic = 'force-dynamic';
 
@@ -243,7 +247,7 @@ export default async function DashboardHome() {
             <p className="mt-1 text-xs text-muted-foreground">
               Ajoutez{' '}
               <code className="rounded bg-background px-1 py-0.5 text-[10px]">
-                yelha-delivery.vercel.app/r/{restaurant.slug}
+                {PUBLIC_HOST}/r/{restaurant.slug}
               </code>{' '}
               dans votre bio pour transformer vos abonnés en clients.
             </p>

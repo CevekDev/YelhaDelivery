@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +22,6 @@ interface Props {
 }
 
 export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
-  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [filter, setFilter] = useState<'active' | 'all' | OrderStatus>('active');
   const [isPending, startTransition] = useTransition();
@@ -64,9 +62,11 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
         },
         (payload) => {
           const newOrder = payload.new as Order;
-          setOrders((prev) => [newOrder, ...prev]);
+          // Dédup : un replay d'événement (reconnexion) ne doit pas dupliquer la ligne.
+          setOrders((prev) =>
+            prev.some((o) => o.id === newOrder.id) ? prev : [newOrder, ...prev],
+          );
           playBeep();
-          router.refresh();
         },
       )
       .on(
@@ -87,7 +87,7 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [restaurantId, router, playBeep]);
+  }, [restaurantId, playBeep]);
 
   const visible = orders.filter((o) => {
     if (filter === 'all') return true;
@@ -147,6 +147,21 @@ function OrderCard({
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Échap + verrou du scroll pendant que la modale d'annulation est ouverte.
+  useEffect(() => {
+    if (!cancelModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCancelModal(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [cancelModal]);
 
   const handleCancel = () => {
     const fd = new FormData();
@@ -283,7 +298,12 @@ function OrderCard({
             onClick={() => setCancelModal(false)}
             aria-hidden
           />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card p-6 shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Annuler la commande"
+            className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card p-6 shadow-2xl"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-display text-lg font-bold">Annuler la commande</h2>

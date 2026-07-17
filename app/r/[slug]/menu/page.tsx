@@ -1,105 +1,46 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { CartButton } from '../cart-button';
 import { CategoryNav } from '../category-nav';
 import { ItemRow } from '../item-row';
 import { MenuSearch } from '../menu-search';
 import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
-import type {
-  MenuCategory,
-  MenuItem,
-  MenuItemExtra,
-  MenuItemVariant,
-  OpeningHour,
-  Restaurant,
-} from '@/types/database';
+import type { MenuItem, MenuItemVariant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
-import { restaurantMetadata, restaurantJsonLd } from '@/lib/seo';
+import { restaurantMetadata, restaurantJsonLd, serializeJsonLd } from '@/lib/seo';
 import { getTemplate } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
-
-export const dynamic = 'force-dynamic';
+import { getMenuData } from '@/lib/public-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('restaurants')
-    .select('name, description, city, address, phone, cover_url')
-    .eq('slug', slug)
-    .eq('status', 'active')
-    .maybeSingle<Pick<Restaurant, 'name' | 'description' | 'city' | 'address' | 'phone' | 'cover_url'>>();
-  if (!data) return { title: 'Restaurant introuvable' };
-  return restaurantMetadata({ ...data, slug, coverUrl: data.cover_url }, 'menu');
+  const { restaurant } = await getMenuData(slug);
+  if (!restaurant) return { title: 'Restaurant introuvable' };
+  return restaurantMetadata({ ...restaurant, slug, coverUrl: restaurant.cover_url }, 'menu');
 }
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
 
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'active')
-    .maybeSingle<Restaurant>();
+  const {
+    restaurant,
+    categories,
+    items,
+    hours,
+    extrasLinks,
+    variants: variantRows,
+    avgRating,
+    reviewCount,
+    estimatedDeliveryTime: rawEta,
+  } = await getMenuData(slug);
 
   if (!restaurant) notFound();
 
-  const [
-    { data: categories },
-    { data: items },
-    { data: hours },
-    { data: etaData },
-    { data: extrasLinks },
-    { data: variantRows },
-    { data: ratingData },
-  ] = await Promise.all([
-    supabase
-      .from('menu_categories')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_visible', true)
-      .order('sort_order')
-      .returns<MenuCategory[]>(),
-    supabase
-      .from('menu_items')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('sort_order')
-      .returns<MenuItem[]>(),
-    supabase
-      .from('opening_hours')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('day_of_week')
-      .returns<OpeningHour[]>(),
-    supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
-    supabase
-      .from('menu_item_extras')
-      .select('menu_item_id, extra_item_id, is_free')
-      .returns<Pick<MenuItemExtra, 'menu_item_id' | 'extra_item_id' | 'is_free'>[]>(),
-    supabase
-      .from('menu_item_variants')
-      .select('*')
-      .eq('is_available', true)
-      .order('sort_order')
-      .returns<MenuItemVariant[]>(),
-    supabase.rpc('get_restaurant_rating', { p_restaurant_id: restaurant.id }),
-  ]);
+  const openNow = isOpenNow(hours);
+  const estimatedDeliveryTime = rawEta ?? restaurant.estimated_delivery_time;
 
-  const openNow = isOpenNow(hours ?? []);
-  const estimatedDeliveryTime =
-    typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
-
-  type RatingRow = { avg_rating: number | null; review_count: number };
-  const rating = ((ratingData ?? []) as unknown as RatingRow[])[0];
-  const reviewCount = rating?.review_count ?? 0;
-  const avgRating = rating?.avg_rating != null ? Number(rating.avg_rating) : null;
-
-  const allItems = items ?? [];
+  const allItems = items;
   const regularItems = allItems.filter(
     (i) => !i.is_extra && i.item_type !== 'sauce' && i.item_type !== 'supplement',
   );
@@ -201,7 +142,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <main className="pb-32">
 

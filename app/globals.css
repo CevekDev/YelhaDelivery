@@ -48,9 +48,11 @@
     @apply font-display tracking-tight;
   }
 
-  /* Touch targets minimum 44x44 — accessibilité */
-  button, a {
-    @apply min-h-[44px] inline-flex items-center;
+  /* Cibles tactiles ≥ 44px : appliquer .tap-target aux vrais contrôles.
+     (Ne pas forcer inline-flex/min-height sur TOUS les <a>, sinon les liens
+     inline dans du texte cassent l'alignement sur la ligne de base.) */
+  .tap-target {
+    @apply inline-flex min-h-[44px] items-center;
   }
 
   /* Focus visible cohérent */

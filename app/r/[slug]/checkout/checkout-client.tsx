@@ -434,7 +434,13 @@ export function CheckoutClient({
                     <span>Total</span>
                     <span className="tabular-nums">{formatPrice(total)}</span>
                   </div>
-                  {belowMin && (
+                  {!canOrder && (
+                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                      Ce restaurant est actuellement fermé et n’accepte pas de commande pour le
+                      moment.
+                    </p>
+                  )}
+                  {canOrder && belowMin && (
                     <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
                       Encore {formatPrice(minOrder - subtotal)} pour atteindre le minimum de{' '}
                       {formatPrice(minOrder)}.

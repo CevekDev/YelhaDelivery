@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { uploadMenuImage } from '@/lib/storage/upload';
 import { siteSettingsSchema, siteContentSchema } from '@/lib/validators/site';
+import { revalidatePublicRestaurant } from '@/lib/public-data';
 import type { Restaurant, SiteConfig } from '@/types/database';
 
 export interface SiteResult {
@@ -47,6 +48,7 @@ export async function updateSiteSettingsAction(formData: FormData): Promise<Site
     .eq('owner_id', profile.id);
   if (error) return { ok: false, error: error.message };
 
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/site');
   return { ok: true };
 }
@@ -132,6 +134,7 @@ export async function updateSiteContentAction(formData: FormData): Promise<SiteR
     .eq('owner_id', profile.id);
   if (error) return { ok: false, error: error.message };
 
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/site');
   return { ok: true };
 }

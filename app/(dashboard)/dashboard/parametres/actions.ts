@@ -5,6 +5,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { restaurantUpdateSchema } from '@/lib/validators/restaurant';
 import { uploadMenuImage } from '@/lib/storage/upload';
+import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 export interface SettingsResult {
   ok: boolean;
@@ -101,6 +102,9 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     if (error) return { ok: false, error: error.message };
   }
 
+  // Invalide le cache public (l'ancien ET le nouveau slug, car il peut changer).
+  if (existing?.slug) revalidatePublicRestaurant(existing.slug);
+  revalidatePublicRestaurant(parsed.data.slug);
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/parametres');
   return { ok: true };
@@ -114,10 +118,11 @@ export async function toggleOpenAction(formData: FormData): Promise<SettingsResu
     .from('restaurants')
     .update({ is_open: !isOpen })
     .eq('owner_id', profile.id)
-    .select('id')
-    .maybeSingle();
+    .select('id, slug')
+    .maybeSingle<{ id: string; slug: string }>();
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: 'Restaurant introuvable' };
+  revalidatePublicRestaurant(data.slug);
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/parametres');
   return { ok: true };

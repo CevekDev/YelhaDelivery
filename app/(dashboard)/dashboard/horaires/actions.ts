@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
+import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 const daySchema = z.object({
   day_of_week: z.number().int().min(1).max(7),
@@ -62,6 +63,7 @@ export async function saveHoursAction(formData: FormData): Promise<HoursResult> 
   });
   if (error) return { ok: false, error: error.message };
 
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/horaires');
   revalidatePath('/dashboard');
   return { ok: true };

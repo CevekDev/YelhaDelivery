@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { restaurantMetadata, restaurantJsonLd } from '@/lib/seo';
+import { restaurantMetadata, restaurantJsonLd, serializeJsonLd } from '@/lib/seo';
 
 const base = { name: 'El Bahia', slug: 'el-bahia-alger', city: 'Alger' };
 
@@ -61,5 +61,20 @@ describe('restaurantJsonLd', () => {
     const ld = restaurantJsonLd({ name: 'X', slug: 'x' });
     expect(ld.address).toBeUndefined();
     expect(ld.telephone).toBeUndefined();
+  });
+});
+
+describe('serializeJsonLd (protection XSS)', () => {
+  it('échappe < > & pour empêcher toute évasion de la balise <script>', () => {
+    const out = serializeJsonLd(restaurantJsonLd({ name: '</script><script>alert(1)</script>', slug: 'x' }));
+    expect(out).not.toContain('</script>');
+    expect(out).not.toContain('<script>');
+    expect(out).toContain('\\u003c');
+  });
+
+  it('reste un JSON valide et décodable vers la valeur originale', () => {
+    const name = 'Chez <A> & <B>';
+    const out = serializeJsonLd(restaurantJsonLd({ name, slug: 'x' }));
+    expect(JSON.parse(out).name).toBe(name);
   });
 });

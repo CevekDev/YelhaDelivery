@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { generateSlug } from '@/lib/utils';
+import { APP_URL } from '@/lib/seo';
 import { registerRestaurateurAction, type RegisterState } from './actions';
 
 const initial: RegisterState = {};
+const PUBLIC_HOST = APP_URL.replace(/^https?:\/\//, '');
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -58,7 +60,7 @@ export function RegisterForm() {
           <div className="space-y-2">
             <Label htmlFor="slug">URL publique *</Label>
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-sm text-muted-foreground">delivery.yelha.net/r/</span>
+              <span className="shrink-0 text-sm text-muted-foreground">{PUBLIC_HOST}/r/</span>
               <Input
                 id="slug"
                 name="slug"

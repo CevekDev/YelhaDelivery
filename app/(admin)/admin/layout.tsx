@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { LogOut, Shield } from 'lucide-react';
-import { AdminNav } from '@/components/admin/sidebar-link';
+import { AdminNav, AdminMobileBar } from '@/components/admin/sidebar-link';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireRole('admin');
@@ -36,7 +36,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </button>
         </form>
       </aside>
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AdminMobileBar />
         <main className="flex-1">{children}</main>
       </div>
     </div>

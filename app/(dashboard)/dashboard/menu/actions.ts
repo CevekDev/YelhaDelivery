@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
 import { menuCategorySchema, menuItemSchema } from '@/lib/validators/menu';
 import { uploadMenuImage } from '@/lib/storage/upload';
+import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 export interface FormResult {
   ok: boolean;
@@ -32,6 +33,7 @@ export async function createCategoryAction(formData: FormData): Promise<FormResu
     .from('menu_categories')
     .insert({ ...parsed.data, restaurant_id: restaurant.id });
   if (error) return { ok: false, error: error.message };
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   return { ok: true };
 }
@@ -47,6 +49,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<FormResu
     .eq('id', id.data)
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   return { ok: true };
 }
@@ -235,6 +238,7 @@ export async function createMenuItemAction(formData: FormData): Promise<FormResu
     if (va.error) return { ok: false, error: va.error };
   }
 
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   redirect('/dashboard/menu');
 }
@@ -290,6 +294,7 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     if (va.error) return { ok: false, error: va.error };
   }
 
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   redirect('/dashboard/menu');
 }
@@ -305,6 +310,7 @@ export async function deleteMenuItemAction(formData: FormData): Promise<FormResu
     .eq('id', id.data)
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   return { ok: true };
 }
@@ -321,6 +327,7 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData): Prom
     .eq('id', id.data)
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
+  revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   return { ok: true };
 }

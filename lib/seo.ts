@@ -68,6 +68,24 @@ const SCHEMA_DAYS = [
   'https://schema.org/Sunday',
 ];
 
+// Caractères à neutraliser avant injection dans une balise <script> : `<` et `>`
+// (évasion de la balise) et `&` (entités). Les valeurs (name, description…) sont
+// saisies par le restaurateur, donc non fiables — sans échappement c'est un XSS stocké.
+const JSONLD_ESCAPES: Record<string, string> = {
+  '<': '\\u003c',
+  '>': '\\u003e',
+  '&': '\\u0026',
+};
+
+/**
+ * Sérialise un objet en JSON sûr pour injection dans `<script type="application/ld+json">`.
+ * `JSON.stringify` seul n'échappe pas `<`, ce qui permettrait à un nom de restaurant
+ * du type `</script><script>…` de s'exécuter chez tous les visiteurs.
+ */
+export function serializeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/[<>&]/g, (c) => JSONLD_ESCAPES[c]!);
+}
+
 /** Données structurées schema.org Restaurant (JSON-LD) pour le référencement. */
 export function restaurantJsonLd(
   r: RestaurantSeo,

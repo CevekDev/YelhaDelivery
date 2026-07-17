@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ArrowRight, Check, Minus, Plus, ShoppingBag, Star, X } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
@@ -254,6 +254,21 @@ function ItemModal({
   const [selectedDesserts, setSelectedDesserts] = useState<Map<string, number>>(new Map());
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
+  // Fermeture sur Échap + verrouillage du scroll du body pendant l'ouverture
+  // (sinon l'arrière-plan défile sous la bottom-sheet sur mobile).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
   const hasVariants = availableVariants.length > 0;
   const allImages = [item.image_url, ...(item.image_urls ?? [])].filter(Boolean) as string[];
   const basePrice = hasVariants
@@ -392,7 +407,12 @@ function ItemModal({
         aria-hidden
       />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={item.name}
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl"
+      >
         <button
           type="button"
           onClick={onClose}
