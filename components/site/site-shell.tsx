@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Facebook, Instagram, MapPin, Phone } from 'lucide-react';
 import type { Restaurant } from '@/types/database';
 import type { Template } from '@/lib/templates';
-import { templateCssVars } from '@/lib/templates';
+import { siteCssVars } from '@/lib/site-theme';
 import { SiteNav, type SiteNavLink } from './site-nav';
 
 /** Construit la liste des liens de navigation selon les pages activées. */
@@ -32,7 +32,7 @@ export function SiteShell({
 
   return (
     <div
-      style={templateCssVars(template) as React.CSSProperties}
+      style={siteCssVars(template, restaurant.site_config) as React.CSSProperties}
       className="min-h-screen bg-[var(--site-bg)] font-[family-name:var(--font-site-body)] text-[color:var(--site-text)] antialiased"
     >
       <SiteNav

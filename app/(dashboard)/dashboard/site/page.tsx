@@ -7,13 +7,14 @@ import { editorLayout } from '@/lib/site-sections';
 import { SiteSettingsForm } from './site-settings-form';
 import { SiteContentForm } from './site-content-form';
 import { SiteLayoutEditor } from './site-layout-editor';
+import { SiteAccentPicker } from './site-accent-picker';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SiteWebPage() {
   const { restaurant } = await requireRestaurateur();
-  const heroStyle = getTemplate(restaurant.template_id).heroStyle;
-  const initialLayout = editorLayout(heroStyle, restaurant.site_config?.layout);
+  const template = getTemplate(restaurant.template_id);
+  const initialLayout = editorLayout(template.heroStyle, restaurant.site_config?.layout);
 
   return (
     <div className="container max-w-4xl space-y-6 py-6 md:py-8">
@@ -44,6 +45,19 @@ export default async function SiteWebPage() {
             initialTemplateId={restaurant.template_id}
             initialHome={restaurant.home_enabled}
             initialBlog={restaurant.blog_enabled}
+          />
+        </div>
+      </PanelCard>
+
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Couleur de marque"
+          description="La couleur d’accent de vos boutons, prix et éléments mis en avant."
+        />
+        <div className="p-5 md:p-6">
+          <SiteAccentPicker
+            initialAccent={restaurant.site_config?.accent ?? ''}
+            templateAccent={template.palette.accent}
           />
         </div>
       </PanelCard>

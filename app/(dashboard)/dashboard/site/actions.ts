@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { uploadMenuImage } from '@/lib/storage/upload';
-import { siteSettingsSchema, siteContentSchema, siteLayoutSchema } from '@/lib/validators/site';
+import {
+  siteSettingsSchema,
+  siteContentSchema,
+  siteLayoutSchema,
+  siteAccentSchema,
+} from '@/lib/validators/site';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
 import type { Restaurant, SiteConfig, SiteSection } from '@/types/database';
 
@@ -185,6 +190,31 @@ export async function updateSiteLayoutAction(formData: FormData): Promise<SiteRe
   const { error } = await supabase
     .from('restaurants')
     .update({ site_config: { ...prev, layout } })
+    .eq('id', restaurant.id)
+    .eq('owner_id', profile.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePublicRestaurant(restaurant.slug);
+  revalidatePath('/dashboard/site');
+  return { ok: true };
+}
+
+/**
+ * Couleur d'accent (marque) du site. La valeur est validée contre la palette
+ * curatée (liste blanche) → impossible de poser une couleur qui casse le rendu.
+ * Vide = retour à la couleur par défaut du template.
+ */
+export async function updateSiteAccentAction(formData: FormData): Promise<SiteResult> {
+  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
+
+  const parsed = siteAccentSchema.safeParse(formData.get('accent') ?? '');
+  if (!parsed.success) return { ok: false, error: 'Couleur non autorisée.' };
+
+  const prev: SiteConfig = restaurant.site_config ?? {};
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ site_config: { ...prev, accent: parsed.data || undefined } })
     .eq('id', restaurant.id)
     .eq('owner_id', profile.id);
   if (error) return { ok: false, error: error.message };

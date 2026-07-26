@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidAccent } from '@/lib/site-theme';
 
 /** Génère un slug à partir d'un titre (accents retirés, espaces → tirets). */
 export function slugify(input: string): string {
@@ -51,6 +52,12 @@ export const siteSectionSchema = z.object({
 /** Agencement complet (≤ 24 sections). Nettoyé/normalisé côté action. */
 export const siteLayoutSchema = z.array(siteSectionSchema).max(24);
 export type SiteSectionInput = z.infer<typeof siteSectionSchema>;
+
+/** Couleur d'accent : vide (= défaut du template) ou une couleur de la palette curatée. */
+export const siteAccentSchema = z
+  .string()
+  .trim()
+  .refine((v) => v === '' || isValidAccent(v), 'Couleur non autorisée');
 
 /** Article de blog. */
 export const blogPostSchema = z.object({

@@ -84,6 +84,8 @@ export interface SiteConfig {
   };
   /** Mise en avant de 3 atouts (page d'accueil). */
   highlights?: { title: string; text: string }[];
+  /** Couleur d'accent (marque) — hex issu de la palette curatée (lib/site-theme). */
+  accent?: string;
   /**
    * Agencement libre de la page d'accueil (éditeur de sections).
    * Ordre + visibilité des sections du corps, plus des blocs de texte
