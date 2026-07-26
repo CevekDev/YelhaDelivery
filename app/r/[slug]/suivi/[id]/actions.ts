@@ -12,7 +12,9 @@ export async function submitReviewAction(
   if (!z.string().uuid().safeParse(orderId).success) {
     return { ok: false, reason: 'Commande invalide' };
   }
-  if (rating < 1 || rating > 5) return { ok: false, reason: 'Note invalide' };
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { ok: false, reason: 'Note invalide' };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('submit_order_review', {
     p_order_id: orderId,

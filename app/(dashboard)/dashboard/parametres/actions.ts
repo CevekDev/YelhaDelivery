@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { restaurantUpdateSchema } from '@/lib/validators/restaurant';
-import { uploadMenuImage } from '@/lib/storage/upload';
+import { uploadMenuImage, deleteStoredImages } from '@/lib/storage/upload';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 export interface SettingsResult {
@@ -49,9 +49,9 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from('restaurants')
-    .select('id, slug')
+    .select('id, slug, banner_image_url')
     .eq('owner_id', profile.id)
-    .maybeSingle<{ id: string; slug: string }>();
+    .maybeSingle<{ id: string; slug: string; banner_image_url: string | null }>();
 
   // Slug unicité (vérification explicite -> message clair)
   if (!existing || existing.slug !== parsed.data.slug) {
@@ -95,6 +95,15 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
       .eq('id', existing.id)
       .eq('owner_id', profile.id);
     if (error) return { ok: false, error: error.message };
+
+    // Supprime l'ancienne bannière si elle a été remplacée ou retirée.
+    if (
+      existing.banner_image_url &&
+      (removeBanner || bannerImageUrl !== undefined) &&
+      existing.banner_image_url !== bannerImageUrl
+    ) {
+      await deleteStoredImages([existing.banner_image_url]);
+    }
   } else {
     // Premier setup : on doit créer le restaurant via admin (RLS insert restreint aux admins)
     const admin = await createAdminClient();

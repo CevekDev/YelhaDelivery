@@ -1,6 +1,6 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase/server';
-import { isR2Configured, r2Upload } from './r2';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { isR2Configured, r2Delete, r2KeyFromUrl, r2Upload } from './r2';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '@/lib/validators/menu';
 
 export interface ImageUploadResult {
@@ -47,4 +47,51 @@ export async function uploadMenuImage(
 
   const { data } = supabase.storage.from('restaurant-images').getPublicUrl(key);
   return { publicUrl: data.publicUrl, provider: 'supabase' };
+}
+
+// Marqueur d'une URL publique Supabase Storage → permet d'en extraire la clé.
+const SUPABASE_PUBLIC_MARKER = '/storage/v1/object/public/restaurant-images/';
+
+/**
+ * Supprime des images du stockage (R2 et/ou Supabase) à partir de leurs URLs
+ * publiques. Évite les images orphelines lors d'un remplacement/retrait.
+ * Best-effort : ne lève jamais, ignore les URLs vides ou non reconnues.
+ */
+export async function deleteStoredImages(urls: (string | null | undefined)[]): Promise<void> {
+  const r2Keys: string[] = [];
+  const supabaseKeys: string[] = [];
+
+  for (const url of urls) {
+    if (!url) continue;
+    const r2Key = r2KeyFromUrl(url);
+    if (r2Key) {
+      r2Keys.push(r2Key);
+      continue;
+    }
+    const idx = url.indexOf(SUPABASE_PUBLIC_MARKER);
+    if (idx >= 0) {
+      supabaseKeys.push(decodeURIComponent(url.slice(idx + SUPABASE_PUBLIC_MARKER.length)));
+    }
+  }
+
+  const tasks: Promise<unknown>[] = r2Keys.map((k) => r2Delete(k));
+  if (supabaseKeys.length > 0) {
+    tasks.push(
+      (async () => {
+        try {
+          // Client admin : la suppression storage est fiable (pas de dépendance RLS).
+          const admin = await createAdminClient();
+          await admin.storage.from('restaurant-images').remove(supabaseKeys);
+        } catch (e) {
+          console.warn('[storage] suppression Supabase échouée', e);
+        }
+      })(),
+    );
+  }
+  await Promise.all(tasks);
+}
+
+/** Supprime une seule image (best-effort). */
+export async function deleteStoredImage(url: string | null | undefined): Promise<void> {
+  await deleteStoredImages([url]);
 }

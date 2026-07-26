@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
-import { uploadMenuImage } from '@/lib/storage/upload';
+import { uploadMenuImage, deleteStoredImages } from '@/lib/storage/upload';
 import {
   siteSettingsSchema,
   siteContentSchema,
@@ -138,6 +138,17 @@ export async function updateSiteContentAction(formData: FormData): Promise<SiteR
     .eq('id', restaurant.id)
     .eq('owner_id', profile.id);
   if (error) return { ok: false, error: error.message };
+
+  // Supprime du stockage l'ancienne image « à propos » remplacée/retirée + les
+  // photos de galerie qui ne sont plus référencées.
+  const removedImages: (string | null | undefined)[] = [];
+  if (prev.about_image_url && prev.about_image_url !== aboutImageUrl) {
+    removedImages.push(prev.about_image_url);
+  }
+  for (const old of prev.gallery ?? []) {
+    if (!gallery.includes(old)) removedImages.push(old);
+  }
+  await deleteStoredImages(removedImages);
 
   revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/site');

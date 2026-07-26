@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
 import { menuCategorySchema, menuItemSchema } from '@/lib/validators/menu';
-import { uploadMenuImage } from '@/lib/storage/upload';
+import { uploadMenuImage, deleteStoredImages } from '@/lib/storage/upload';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 export interface FormResult {
@@ -269,6 +269,14 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
 
   const supabase = await createClient();
 
+  // Anciennes images (pour supprimer celles qui deviennent orphelines).
+  const { data: prevItem } = await supabase
+    .from('menu_items')
+    .select('image_url, image_urls')
+    .eq('id', id.data)
+    .eq('restaurant_id', restaurant.id)
+    .maybeSingle<{ image_url: string | null; image_urls: string[] | null }>();
+
   // Gestion des images supplémentaires existantes
   const keepUrlsRaw = formData.getAll('keep_image_url[]').map(String).filter(Boolean);
 
@@ -287,6 +295,16 @@ export async function updateMenuItemAction(formData: FormData): Promise<FormResu
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
+  // Supprime du stockage l'ancienne photo principale remplacée + les photos retirées.
+  const removedImages: (string | null)[] = [];
+  if (uploads.mainUrl && prevItem?.image_url && prevItem.image_url !== uploads.mainUrl) {
+    removedImages.push(prevItem.image_url);
+  }
+  for (const old of prevItem?.image_urls ?? []) {
+    if (!keepUrlsRaw.includes(old)) removedImages.push(old);
+  }
+  await deleteStoredImages(removedImages);
+
   if (!is_extra) {
     const ex = await syncExtras(supabase, id.data, parseLinkedExtras(formData));
     if (ex.error) return { ok: false, error: ex.error };
@@ -304,12 +322,24 @@ export async function deleteMenuItemAction(formData: FormData): Promise<FormResu
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return { ok: false, error: 'ID invalide' };
   const supabase = await createClient();
+
+  // Récupère les images avant suppression pour les retirer du stockage.
+  const { data: toDelete } = await supabase
+    .from('menu_items')
+    .select('image_url, image_urls')
+    .eq('id', id.data)
+    .eq('restaurant_id', restaurant.id)
+    .maybeSingle<{ image_url: string | null; image_urls: string[] | null }>();
+
   const { error } = await supabase
     .from('menu_items')
     .delete()
     .eq('id', id.data)
     .eq('restaurant_id', restaurant.id);
   if (error) return { ok: false, error: error.message };
+
+  await deleteStoredImages([toDelete?.image_url, ...(toDelete?.image_urls ?? [])]);
+
   revalidatePublicRestaurant(restaurant.slug);
   revalidatePath('/dashboard/menu');
   return { ok: true };

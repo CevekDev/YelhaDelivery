@@ -52,7 +52,7 @@ export function CategoryNav({
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories.length, hasUncategorized, hasExtras, hasPromos]);
+  }, [categories.length, hasUncategorized, hasExtras, hasPromos, hasFavorites]);
 
   useEffect(() => {
     if (!active || !scrollerRef.current) return;

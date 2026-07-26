@@ -107,6 +107,18 @@ export async function assignDriverAction(formData: FormData): Promise<ActionResu
     return { ok: false, error: 'Livreur invalide' };
   }
 
+  // Garde-fou : ne pas (ré)assigner une commande déjà clôturée.
+  const { data: order } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', parsed.data.order_id)
+    .eq('restaurant_id', restaurant.id)
+    .maybeSingle<{ status: OrderStatus }>();
+  if (!order) return { ok: false, error: 'Commande introuvable' };
+  if (order.status === 'delivered' || order.status === 'cancelled') {
+    return { ok: false, error: 'Commande déjà clôturée' };
+  }
+
   const { error } = await supabase
     .from('orders')
     .update({ driver_id: parsed.data.driver_id, status: 'assigned' })

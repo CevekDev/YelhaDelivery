@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setRestaurantStatusAction } from '../actions';
 import type { RestaurantStatus } from '@/types/database';
 
 export function StatusActions({ id, current }: { id: string; current: RestaurantStatus }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +18,12 @@ export function StatusActions({ id, current }: { id: string; current: Restaurant
       fd.set('id', id);
       fd.set('status', status);
       const res = await setRestaurantStatusAction(fd);
-      setError(res.ok ? null : res.error ?? 'Action impossible');
+      if (res.ok) {
+        setError(null);
+        router.refresh(); // reflète le nouveau statut dans les boutons
+      } else {
+        setError(res.error ?? 'Action impossible');
+      }
     });
 
   return (

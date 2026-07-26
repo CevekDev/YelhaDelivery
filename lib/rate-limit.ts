@@ -35,7 +35,12 @@ async function checkUpstash(key: string, cfg: RateLimitConfig): Promise<RateLimi
   if (count === null) return null;
   if (count === 1) await upstashCmd('EXPIRE', key, windowSec);
   let ttl = await upstashCmd<number>('TTL', key);
-  if (ttl === null || ttl < 0) ttl = windowSec;
+  // Auto-réparation : si la clé n'a pas de TTL (EXPIRE initial échoué), on le
+  // (re)pose, sinon la clé persisterait → blocage permanent.
+  if (ttl === null || ttl < 0) {
+    await upstashCmd('EXPIRE', key, windowSec);
+    ttl = windowSec;
+  }
   if (count > cfg.max) return { allowed: false, remaining: 0, resetInSeconds: ttl };
   return { allowed: true, remaining: cfg.max - count, resetInSeconds: ttl };
 }
