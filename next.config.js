@@ -23,13 +23,15 @@ const cspDirectives = [
   `connect-src 'self' https://${supabaseWsHost} wss://${supabaseWsHost}`,
   // Objets/iframes interdits
   "object-src 'none'",
-  "frame-ancestors 'none'",
+  // 'self' (et non 'none') : autorise l'aperçu du site en iframe MÊME ORIGINE
+  // (dashboard → /site-preview) tout en bloquant tout framing cross-origin.
+  "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
 
 const securityHeaders = [
-  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },

@@ -8,6 +8,7 @@ import { SiteSettingsForm } from './site-settings-form';
 import { SiteContentForm } from './site-content-form';
 import { SiteLayoutEditor } from './site-layout-editor';
 import { SiteAccentPicker } from './site-accent-picker';
+import { SitePreviewPanel } from './site-preview-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function SiteWebPage() {
   const initialLayout = editorLayout(template.heroStyle, restaurant.site_config?.layout);
 
   return (
-    <div className="container max-w-4xl space-y-6 py-6 md:py-8">
+    <div className="container max-w-6xl space-y-6 py-6 md:py-8">
       <PageHeader
         eyebrow="Site web"
         title="Votre site web"
@@ -35,6 +36,16 @@ export default async function SiteWebPage() {
         }
       />
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        {/* Aperçu — en haut sur mobile, colonne droite sticky sur desktop */}
+        <div className="order-1 xl:order-2">
+          <div className="xl:sticky xl:top-6">
+            <SitePreviewPanel />
+          </div>
+        </div>
+
+        {/* Éditeur */}
+        <div className="order-2 space-y-6 xl:order-1">
       <PanelCard padded={false}>
         <PanelHeader
           title="Design & pages"
@@ -105,6 +116,8 @@ export default async function SiteWebPage() {
           </Link>
         </div>
       </PanelCard>
+        </div>
+      </div>
     </div>
   );
 }
