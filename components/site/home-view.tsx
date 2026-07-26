@@ -2,7 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Clock, CreditCard, Leaf, ShoppingBag, Sparkles, Star, Truck, UtensilsCrossed } from 'lucide-react';
 import type { MenuItem, Restaurant } from '@/types/database';
-import type { HeroStyle, Template } from '@/lib/templates';
+import type { Template } from '@/lib/templates';
+import { resolveLayout, type SiteSection } from '@/lib/site-sections';
 import { formatPrice } from '@/lib/utils';
 
 interface HomeViewProps {
@@ -33,24 +34,6 @@ function highlightIcon(i: number) {
   return Icon;
 }
 
-type SectionKey = 'highlights' | 'about' | 'menu' | 'gallery';
-
-/**
- * Ordre des sections propre à chaque template — c'est ce qui casse la
- * monotonie « même scroll partout ». Le hero ouvre et le CTA ferme toujours ;
- * seul le corps est réordonné selon la personnalité du modèle.
- */
-const SECTION_ORDER: Record<HeroStyle, SectionKey[]> = {
-  split: ['menu', 'about', 'highlights', 'gallery'], // Saveur — l'appétit d'abord
-  centered: ['about', 'menu', 'highlights', 'gallery'], // Trattoria — l'histoire d'abord
-  fullbleed: ['menu', 'about', 'gallery', 'highlights'], // Noir — la carte d'abord
-  bold: ['menu', 'gallery', 'highlights', 'about'], // Urban — punchy, food-forward
-  minimal: ['about', 'menu', 'gallery', 'highlights'], // Pure — éditorial posé
-  pattern: ['about', 'menu', 'highlights', 'gallery'], // Riad — héritage puis carte
-  magazine: ['gallery', 'menu', 'about', 'highlights'], // Cocon — visuel magazine d'abord
-  editorial: ['menu', 'highlights', 'about', 'gallery'], // Audace — la carte d'abord, punchy
-};
-
 export function HomeView(props: HomeViewProps) {
   const { template, restaurant, slug, featured } = props;
   const cfg = restaurant.site_config ?? {};
@@ -65,14 +48,18 @@ export function HomeView(props: HomeViewProps) {
   const gallery = cfg.gallery?.slice(0, 8) ?? [];
   const hasAbout = Boolean(cfg.about_text || cfg.about_image_url);
 
-  function renderSection(key: SectionKey) {
-    switch (key) {
+  // Agencement libre : ordre + visibilité choisis par le restaurateur, sinon
+  // l'ordre par défaut du template. Le hero et le CTA restent les bornes fixes.
+  const layout = resolveLayout(template.heroStyle, cfg.layout);
+
+  function renderSection(section: SiteSection) {
+    switch (section.type) {
       case 'highlights':
-        return <Highlights key="highlights" template={template} highlights={highlights} />;
+        return <Highlights key={section.id} template={template} highlights={highlights} />;
       case 'about':
         return hasAbout ? (
           <About
-            key="about"
+            key={section.id}
             template={template}
             title={cfg.about_title || 'À propos de nous'}
             text={cfg.about_text || ''}
@@ -81,21 +68,72 @@ export function HomeView(props: HomeViewProps) {
         ) : null;
       case 'menu':
         return featured.length > 0 ? (
-          <MenuPreview key="menu" template={template} featured={featured} menuHref={menuHref} />
+          <MenuPreview key={section.id} template={template} featured={featured} menuHref={menuHref} />
         ) : null;
       case 'gallery':
         return gallery.length > 0 ? (
-          <Gallery key="gallery" template={template} gallery={gallery} />
+          <Gallery key={section.id} template={template} gallery={gallery} />
         ) : null;
+      case 'text':
+        return section.title || section.body ? (
+          <TextBlock
+            key={section.id}
+            title={section.title}
+            body={section.body}
+            cta={section.cta}
+            menuHref={menuHref}
+          />
+        ) : null;
+      default:
+        return null;
     }
   }
 
   return (
     <main>
       <Hero {...props} heroTitle={heroTitle} heroSubtitle={heroSubtitle} ctaLabel={ctaLabel} menuHref={menuHref} />
-      {SECTION_ORDER[template.heroStyle].map(renderSection)}
+      {layout.filter((s) => s.enabled).map(renderSection)}
       <FinalCta template={template} menuHref={menuHref} restaurant={restaurant} />
     </main>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TEXT BLOCK — bloc de texte libre ajouté par le restaurateur
+   Stylé avec les tokens du template → cohérent sur les 8 modèles.
+   ════════════════════════════════════════════════════════════════════ */
+
+function TextBlock({
+  title,
+  body,
+  cta,
+  menuHref,
+}: {
+  title?: string;
+  body?: string;
+  cta?: boolean;
+  menuHref: string;
+}) {
+  return (
+    <section className="bg-[var(--site-surface)]">
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center md:px-6 md:py-20">
+        {title && (
+          <h2 className="font-[family-name:var(--font-site-heading)] text-3xl font-bold md:text-4xl">
+            {title}
+          </h2>
+        )}
+        {body && (
+          <p className="mx-auto mt-5 max-w-2xl whitespace-pre-line leading-relaxed text-[color:var(--site-muted)]">
+            {body}
+          </p>
+        )}
+        {cta && (
+          <div className="mt-8 flex justify-center">
+            <PrimaryCta href={menuHref} label="Voir le menu" />
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

@@ -2,13 +2,18 @@ import Link from 'next/link';
 import { ExternalLink, Newspaper } from 'lucide-react';
 import { requireRestaurateur } from '@/lib/auth';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
+import { getTemplate } from '@/lib/templates';
+import { editorLayout } from '@/lib/site-sections';
 import { SiteSettingsForm } from './site-settings-form';
 import { SiteContentForm } from './site-content-form';
+import { SiteLayoutEditor } from './site-layout-editor';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SiteWebPage() {
   const { restaurant } = await requireRestaurateur();
+  const heroStyle = getTemplate(restaurant.template_id).heroStyle;
+  const initialLayout = editorLayout(heroStyle, restaurant.site_config?.layout);
 
   return (
     <div className="container max-w-4xl space-y-6 py-6 md:py-8">
@@ -50,6 +55,16 @@ export default async function SiteWebPage() {
         />
         <div className="p-5 md:p-6">
           <SiteContentForm config={restaurant.site_config ?? {}} />
+        </div>
+      </PanelCard>
+
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Agencement de la page d’accueil"
+          description="Réordonnez avec les flèches, masquez ce que vous ne voulez pas, ajoutez vos propres blocs de texte."
+        />
+        <div className="p-5 md:p-6">
+          <SiteLayoutEditor initialLayout={initialLayout} />
         </div>
       </PanelCard>
 

@@ -38,6 +38,20 @@ export const siteContentSchema = z.object({
 });
 export type SiteContentInput = z.infer<typeof siteContentSchema>;
 
+/** Une section de l'agencement libre de la page d'accueil. */
+export const siteSectionSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  type: z.enum(['about', 'menu', 'highlights', 'gallery', 'text']),
+  enabled: z.boolean(),
+  title: z.string().trim().max(120).optional(),
+  body: z.string().trim().max(2000).optional(),
+  cta: z.boolean().optional(),
+});
+
+/** Agencement complet (≤ 24 sections). Nettoyé/normalisé côté action. */
+export const siteLayoutSchema = z.array(siteSectionSchema).max(24);
+export type SiteSectionInput = z.infer<typeof siteSectionSchema>;
+
 /** Article de blog. */
 export const blogPostSchema = z.object({
   title: z.string().trim().min(2, 'Titre trop court').max(160),

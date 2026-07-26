@@ -4,9 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { uploadMenuImage } from '@/lib/storage/upload';
-import { siteSettingsSchema, siteContentSchema } from '@/lib/validators/site';
+import { siteSettingsSchema, siteContentSchema, siteLayoutSchema } from '@/lib/validators/site';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
-import type { Restaurant, SiteConfig } from '@/types/database';
+import type { Restaurant, SiteConfig, SiteSection } from '@/types/database';
 
 export interface SiteResult {
   ok: boolean;
@@ -130,6 +130,61 @@ export async function updateSiteContentAction(formData: FormData): Promise<SiteR
   const { error } = await supabase
     .from('restaurants')
     .update({ site_config: config })
+    .eq('id', restaurant.id)
+    .eq('owner_id', profile.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePublicRestaurant(restaurant.slug);
+  revalidatePath('/dashboard/site');
+  return { ok: true };
+}
+
+/**
+ * Agencement libre de la page d'accueil : ordre + visibilité des sections et
+ * blocs de texte. Normalise défensivement (dédup des sections natives, ids
+ * uniques, nettoyage) pour garantir un rendu cohérent quoi qu'il arrive.
+ */
+export async function updateSiteLayoutAction(formData: FormData): Promise<SiteResult> {
+  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(formData.get('layout') ?? '[]'));
+  } catch {
+    return { ok: false, error: 'Agencement illisible.' };
+  }
+
+  const parsed = siteLayoutSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Agencement invalide.' };
+
+  // Normalisation : sections natives uniques, ids uniques, blocs texte ≤ 8.
+  const seenBuiltin = new Set<string>();
+  const seenIds = new Set<string>();
+  let textCount = 0;
+  const layout: SiteSection[] = [];
+  for (const s of parsed.data) {
+    if (s.type === 'text') {
+      if (textCount >= 8) continue;
+      textCount++;
+      let id = s.id;
+      if (seenIds.has(id)) id = crypto.randomUUID();
+      seenIds.add(id);
+      const title = s.title?.trim() || undefined;
+      const body = s.body?.trim() || undefined;
+      layout.push({ id, type: 'text', enabled: s.enabled, title, body, cta: s.cta || undefined });
+    } else {
+      if (seenBuiltin.has(s.type)) continue; // pas de doublon de section native
+      seenBuiltin.add(s.type);
+      seenIds.add(s.type);
+      layout.push({ id: s.type, type: s.type, enabled: s.enabled });
+    }
+  }
+
+  const prev: SiteConfig = restaurant.site_config ?? {};
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ site_config: { ...prev, layout } })
     .eq('id', restaurant.id)
     .eq('owner_id', profile.id);
   if (error) return { ok: false, error: error.message };

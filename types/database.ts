@@ -84,6 +84,29 @@ export interface SiteConfig {
   };
   /** Mise en avant de 3 atouts (page d'accueil). */
   highlights?: { title: string; text: string }[];
+  /**
+   * Agencement libre de la page d'accueil (éditeur de sections).
+   * Ordre + visibilité des sections du corps, plus des blocs de texte
+   * personnalisés. Absent → ordre par défaut du template. Le hero et le CTA
+   * final restent toujours en tête et en pied (cohérence structurelle).
+   */
+  layout?: SiteSection[];
+}
+
+/** Types de section disponibles dans l'éditeur de page d'accueil. */
+export type SiteSectionType = 'about' | 'menu' | 'highlights' | 'gallery' | 'text';
+
+/** Une section du corps de la page d'accueil (éditeur libre). */
+export interface SiteSection {
+  /** Identifiant stable (= type pour les sections natives, uuid pour les blocs texte). */
+  id: string;
+  type: SiteSectionType;
+  enabled: boolean;
+  /** Bloc de texte personnalisé (type === 'text') uniquement. */
+  title?: string;
+  body?: string;
+  /** Afficher un bouton « Voir le menu » sous le bloc texte. */
+  cta?: boolean;
 }
 
 export interface BlogPost {
