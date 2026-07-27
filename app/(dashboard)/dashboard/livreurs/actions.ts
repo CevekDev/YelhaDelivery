@@ -42,20 +42,21 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
     };
   }
 
-  const supabase = await createClient();
+  const admin = await createAdminClient();
 
-  // Empêche un doublon de username au sein du même restaurant (RLS le permet déjà
-  // au niveau global via UNIQUE — on remonte un message clair).
-  const { data: existing } = await supabase
+  // Unicité GLOBALE du username : la contrainte SQL est globale, mais la RLS
+  // masquerait les profils d'autres restaurants ou les admins. On vérifie donc
+  // via le client admin (bypass RLS), sinon un doublon invisible remonterait en
+  // erreur Postgres brute.
+  const { data: existing } = await admin
     .from('profiles')
     .select('id')
     .eq('username', parsed.data.username)
     .maybeSingle();
   if (existing) {
-    return { ok: false, fieldErrors: { username: 'Identifiant déjà utilisé' } };
+    return { ok: false, fieldErrors: { username: 'Cet identifiant est déjà utilisé' } };
   }
 
-  const admin = await createAdminClient();
   const syntheticEmail = `${parsed.data.username}@livreur.delivery.yelha.net`;
 
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
@@ -66,6 +67,9 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
   });
 
   if (createErr || !created.user) {
+    if (createErr?.message && /already|exist|registered|duplicate/i.test(createErr.message)) {
+      return { ok: false, fieldErrors: { username: 'Cet identifiant est déjà utilisé' } };
+    }
     return { ok: false, error: createErr?.message ?? 'Création échouée' };
   }
 
@@ -86,6 +90,11 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
   if (profileErr) {
     // Rollback : supprimer l'utilisateur auth si le profil n'a pas pu être créé
     await admin.auth.admin.deleteUser(created.user.id);
+    // Garde-fou (course entre la vérif et l'insert) : mappe la violation
+    // d'unicité du username sur un message clair plutôt que l'erreur brute.
+    if (profileErr.code === '23505' || /username/i.test(profileErr.message)) {
+      return { ok: false, fieldErrors: { username: 'Cet identifiant est déjà utilisé' } };
+    }
     return { ok: false, error: profileErr.message };
   }
 
