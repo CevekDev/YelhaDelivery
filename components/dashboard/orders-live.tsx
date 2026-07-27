@@ -89,6 +89,14 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
     };
   }, [restaurantId, playBeep]);
 
+  // Mise à jour optimiste : reflète immédiatement une action du restaurateur
+  // sans attendre le realtime (qui, lui, synchronise les autres onglets/appareils).
+  const patchOrder = useCallback(
+    (id: string, patch: Partial<Order>) =>
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o))),
+    [],
+  );
+
   const visible = orders.filter((o) => {
     if (filter === 'all') return true;
     if (filter === 'active')
@@ -123,7 +131,7 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
         <ul className="space-y-3">
           {visible.map((o) => (
             <li key={o.id}>
-              <OrderCard order={o} drivers={drivers} disabled={isPending} startTransition={startTransition} />
+              <OrderCard order={o} drivers={drivers} disabled={isPending} startTransition={startTransition} patchOrder={patchOrder} />
             </li>
           ))}
         </ul>
@@ -137,11 +145,13 @@ function OrderCard({
   drivers,
   disabled,
   startTransition,
+  patchOrder,
 }: {
   order: Order;
   drivers: Pick<Profile, 'id' | 'full_name' | 'username'>[];
   disabled: boolean;
   startTransition: (cb: () => void) => void;
+  patchOrder: (id: string, patch: Partial<Order>) => void;
 }) {
   const next = RESTAURATEUR_TRANSITIONS[order.status] ?? [];
   const [cancelModal, setCancelModal] = useState(false);
@@ -176,6 +186,10 @@ function OrderCard({
       }
       setActionError(null);
       setCancelModal(false);
+      patchOrder(order.id, {
+        status: 'cancelled',
+        cancellation_reason: cancelReason.trim() || null,
+      });
       setCancelReason('');
     });
   };
@@ -225,6 +239,7 @@ function OrderCard({
                         fd.set('order_id', order.id);
                         fd.set('next_status', s);
                         const res = await updateOrderStatusAction(fd);
+                        if (res.ok) patchOrder(order.id, { status: s });
                         setActionError(res.ok ? null : res.error ?? 'Action impossible');
                       })
                     }
@@ -256,6 +271,12 @@ function OrderCard({
                       startTransition(async () => {
                         fd.set('order_id', order.id);
                         const res = await assignDriverAction(fd);
+                        if (res.ok) {
+                          patchOrder(order.id, {
+                            status: 'assigned',
+                            driver_id: String(fd.get('driver_id') ?? '') || null,
+                          });
+                        }
                         setActionError(res.ok ? null : res.error ?? 'Action impossible');
                       })
                     }
