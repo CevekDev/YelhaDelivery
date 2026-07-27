@@ -65,11 +65,11 @@ export default async function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-black/5 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5C1A] text-sm font-black text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-white">
               Y
             </span>
             <span className="font-extrabold tracking-tight">
-              Yelha<span className="text-[#FF5C1A]">Delivery</span>
+              Yelha<span className="text-primary">Delivery</span>
             </span>
           </Link>
 
@@ -89,7 +89,7 @@ export default async function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#FF5C1A] px-4 py-2 text-sm font-bold text-white shadow-[0_2px_10px_rgb(255,92,26,0.35)] transition-all hover:bg-[#e84f14] active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-[0_2px_10px_rgb(255,92,26,0.35)] transition-all hover:bg-primary-dark active:scale-[0.98]"
             >
               Démarrer gratuitement
               <ArrowRight className="h-3.5 w-3.5" />
@@ -101,22 +101,22 @@ export default async function LandingPage() {
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-[#0D0D0D] text-white">
         {/* Decorative glow */}
-        <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[#FF5C1A]/20 blur-[120px]" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-[#FF5C1A]/10 blur-[80px]" />
+        <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-primary/20 blur-[120px]" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-primary/10 blur-[80px]" />
 
         <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-20 md:px-6 md:pb-28 md:pt-24">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             {/* Left — text */}
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-[#FF5C1A]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF5C1A]" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-primary">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                 Plateforme pensée pour l&apos;Algérie 🇩🇿
               </div>
 
               <h1 className="mt-6 text-[2.6rem] font-black leading-[1.05] tracking-tight md:text-6xl lg:text-[4rem]">
                 Gérez votre
                 <br />
-                <span className="text-[#FF5C1A]">livraison.</span>
+                <span className="text-primary">livraison.</span>
                 <br />
                 Sans commission.
               </h1>
@@ -129,7 +129,7 @@ export default async function LandingPage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5C1A] px-6 py-3.5 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.40)] transition-all hover:bg-[#e84f14] active:scale-[0.99]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.40)] transition-all hover:bg-primary-dark active:scale-[0.99]"
                 >
                   Inscrire mon restaurant
                   <ArrowRight className="h-4 w-4" />
@@ -144,30 +144,30 @@ export default async function LandingPage() {
                 )}
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/40">
+              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/60">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#FF5C1A]" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   Inscription gratuite
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#FF5C1A]" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   2 min pour démarrer
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#FF5C1A]" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   Sans engagement
                 </span>
               </div>
             </div>
 
-            {/* Right — Dashboard mock */}
-            <div className="relative hidden lg:block">
+            {/* Right — Dashboard mock (illustration décorative) */}
+            <div className="relative hidden lg:block" aria-hidden>
               <div className="relative mx-auto w-full max-w-sm">
                 {/* Phone frame */}
                 <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#1A1A1A] shadow-[0_30px_80px_-10px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.05)]">
                   {/* Status bar */}
                   <div className="flex items-center justify-between px-6 py-3">
-                    <span className="text-[11px] font-semibold text-white/40">9:41</span>
+                    <span className="text-[11px] font-semibold text-white/60">9:41</span>
                     <div className="h-3 w-20 rounded-full bg-black" />
                     <div className="flex items-center gap-1">
                       <span className="block h-2.5 w-1 rounded-sm bg-white/40" />
@@ -180,7 +180,7 @@ export default async function LandingPage() {
                   {/* App content */}
                   <div className="px-4 pb-6">
                     {/* New order alert */}
-                    <div className="mb-3 flex items-center gap-3 rounded-2xl bg-[#FF5C1A] p-3.5">
+                    <div className="mb-3 flex items-center gap-3 rounded-2xl bg-primary p-3.5">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20">
                         <Smartphone className="h-4 w-4 text-white" />
                       </div>
@@ -188,7 +188,7 @@ export default async function LandingPage() {
                         <p className="text-xs font-bold text-white">Nouvelle commande !</p>
                         <p className="text-[10px] text-white/70">Karim B. · 1 850 DA</p>
                       </div>
-                      <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#FF5C1A]">
+                      <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] font-black text-primary">
                         1
                       </span>
                     </div>
@@ -205,7 +205,7 @@ export default async function LandingPage() {
                         >
                           <p className="text-base">{s.icon}</p>
                           <p className="mt-1 font-black text-white">{s.val}</p>
-                          <p className="text-[10px] text-white/40">{s.label}</p>
+                          <p className="text-[10px] text-white/60">{s.label}</p>
                         </div>
                       ))}
                     </div>
@@ -233,7 +233,7 @@ export default async function LandingPage() {
                             </p>
                             <div className="flex items-center gap-1">
                               <span className={`h-1.5 w-1.5 rounded-full ${o.color}`} />
-                              <p className="text-[10px] text-white/40">{o.status}</p>
+                              <p className="text-[10px] text-white/60">{o.status}</p>
                             </div>
                           </div>
                           <span className="text-[11px] font-bold text-white">{o.amount} DA</span>
@@ -245,14 +245,14 @@ export default async function LandingPage() {
 
                 {/* Floating badges */}
                 <div className="absolute -right-8 top-16 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 shadow-xl backdrop-blur-md">
-                  <ShieldCheck className="h-4 w-4 text-[#FF5C1A]" />
+                  <ShieldCheck className="h-4 w-4 text-primary" />
                   <span className="text-xs font-bold text-white">0% commission</span>
                 </div>
                 <div className="absolute -left-10 bottom-24 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 shadow-xl backdrop-blur-md">
                   <span className="text-lg">🚀</span>
                   <div>
                     <p className="text-[10px] font-bold text-white">Actif en 5 min</p>
-                    <p className="text-[9px] text-white/50">Inscription gratuite</p>
+                    <p className="text-[9px] text-white/60">Inscription gratuite</p>
                   </div>
                 </div>
               </div>
@@ -272,7 +272,9 @@ export default async function LandingPage() {
               { val: '24/7', label: 'Plateforme disponible', icon: '🛡️' },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <p className="text-2xl">{s.icon}</p>
+                <p className="text-2xl" aria-hidden>
+                  {s.icon}
+                </p>
                 <p className="mt-1 font-black text-[1.6rem] leading-none text-[#1A1A1A] md:text-3xl">
                   {s.val}
                 </p>
@@ -286,11 +288,11 @@ export default async function LandingPage() {
       {/* ── Features ─────────────────────────────────────────────── */}
       <section id="fonctionnalites" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 md:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
             <Sparkles className="h-3.5 w-3.5" /> Tout ce qu&apos;il vous faut
           </span>
           <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
-            Tout en un. <span className="text-[#FF5C1A]">Rien à installer.</span>
+            Tout en un. <span className="text-primary">Rien à installer.</span>
           </h2>
           <p className="mt-3 text-base text-gray-500">
             Conçu pour les restaurants algériens qui veulent reprendre le contrôle de leur livraison.
@@ -301,7 +303,7 @@ export default async function LandingPage() {
           {[
             {
               icon: Store,
-              color: 'bg-orange-50 text-[#FF5C1A]',
+              color: 'bg-orange-50 text-primary',
               title: 'Menu en ligne illimité',
               desc: 'Plats, photos, catégories, prix en DA, sauces, suppléments, offres. Modifications instantanées.',
             },
@@ -338,7 +340,7 @@ export default async function LandingPage() {
           ].map((f) => (
             <div
               key={f.title}
-              className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-[#FF5C1A]/20 hover:shadow-md"
+              className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-md"
             >
               <div
                 className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${f.color} transition-transform group-hover:scale-110`}
@@ -356,13 +358,13 @@ export default async function LandingPage() {
       <section id="comment" className="scroll-mt-16 bg-[#0D0D0D] py-20 text-white">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-primary">
               <Zap className="h-3.5 w-3.5" /> Mise en route express
             </span>
             <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
-              Lancé en <span className="text-[#FF5C1A]">3 étapes</span>
+              Lancé en <span className="text-primary">3 étapes</span>
             </h2>
-            <p className="mt-3 text-base text-white/50">
+            <p className="mt-3 text-base text-white/60">
               Pas de contrat, pas de technicien. Vous gérez tout vous-même.
             </p>
           </div>
@@ -401,15 +403,15 @@ export default async function LandingPage() {
                 >
                   <div className="flex items-start justify-between">
                     <span className="font-black text-5xl leading-none text-white/10">{s.n}</span>
-                    <span className="rounded-full bg-[#FF5C1A]/15 px-2.5 py-0.5 text-[11px] font-bold text-[#FF5C1A]">
+                    <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-bold text-primary">
                       {s.badge}
                     </span>
                   </div>
-                  <div className="mt-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#FF5C1A]/15 text-[#FF5C1A]">
+                  <div className="mt-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
                     <s.icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 text-lg font-bold text-white">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/50">{s.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/60">{s.desc}</p>
                 </div>
               ))}
             </div>
@@ -422,11 +424,11 @@ export default async function LandingPage() {
         <section className="bg-[#FAFAFA] py-20">
           <div className="mx-auto max-w-6xl px-4 md:px-6">
             <div className="mx-auto max-w-2xl text-center">
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
                 <Store className="h-3.5 w-3.5" /> Déjà en ligne
               </span>
               <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
-                Des sites <span className="text-[#FF5C1A]">créés avec YelhaDelivery</span>
+                Des sites <span className="text-primary">créés avec YelhaDelivery</span>
               </h2>
               <p className="mt-3 text-base text-gray-500">
                 Chaque restaurant a sa propre page de commande. Cliquez pour en visiter.
@@ -456,12 +458,12 @@ export default async function LandingPage() {
                   <div className="p-5">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="truncate font-bold">{r.name}</h3>
-                      {r.city && <span className="shrink-0 text-xs text-gray-400">{r.city}</span>}
+                      {r.city && <span className="shrink-0 text-xs text-gray-500">{r.city}</span>}
                     </div>
                     {r.description && (
                       <p className="mt-1 line-clamp-2 text-sm text-gray-500">{r.description}</p>
                     )}
-                    <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#FF5C1A]">
+                    <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary">
                       Voir le site <ArrowRight className="h-3.5 w-3.5" />
                     </span>
                   </div>
@@ -476,13 +478,13 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 py-20 md:px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
               <MessageSquare className="h-3.5 w-3.5" /> Fait pour vous
             </span>
             <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
               Pensé pour les
               <br />
-              <span className="text-[#FF5C1A]">restaurants algériens</span>
+              <span className="text-primary">restaurants algériens</span>
             </h2>
             <p className="mt-4 text-base text-gray-500">
               Les grandes plateformes prennent entre 15% et 30% sur chaque commande.
@@ -500,7 +502,7 @@ export default async function LandingPage() {
                 'Suivi commande en temps réel pour vos clients',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-gray-600">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5C1A]" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   {item}
                 </li>
               ))}
@@ -509,10 +511,10 @@ export default async function LandingPage() {
 
           {/* Comparison table */}
           <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            <div className="grid grid-cols-3 bg-gray-50 px-5 py-3.5 text-xs font-bold text-gray-400">
+            <div className="grid grid-cols-3 bg-gray-50 px-5 py-3.5 text-xs font-bold text-gray-500">
               <span>Critère</span>
               <span className="text-center">Grandes plateformes</span>
-              <span className="text-center text-[#FF5C1A]">YelhaDelivery</span>
+              <span className="text-center text-primary">YelhaDelivery</span>
             </div>
             {[
               { label: 'Commission', other: '15–30%', ours: '0%', win: true },
@@ -527,8 +529,8 @@ export default async function LandingPage() {
                 className={`grid grid-cols-3 items-center px-5 py-3.5 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
               >
                 <span className="font-medium text-gray-700">{row.label}</span>
-                <span className="text-center text-gray-400">{row.other}</span>
-                <span className="text-center font-bold text-[#FF5C1A]">{row.ours}</span>
+                <span className="text-center text-gray-500">{row.other}</span>
+                <span className="text-center font-bold text-primary">{row.ours}</span>
               </div>
             ))}
           </div>
@@ -540,7 +542,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-black tracking-tight md:text-4xl">
-              Tarif simple. <span className="text-[#FF5C1A]">Gratuit.</span>
+              Tarif simple. <span className="text-primary">Gratuit.</span>
             </h2>
             <p className="mt-3 text-base text-gray-500">
               Un seul plan. Toutes les fonctionnalités incluses.
@@ -548,24 +550,24 @@ export default async function LandingPage() {
           </div>
 
           <div className="mx-auto mt-12 max-w-md">
-            <div className="relative overflow-hidden rounded-3xl border-2 border-[#FF5C1A]/30 bg-white shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl border-2 border-primary/30 bg-white shadow-xl">
               {/* Popular badge */}
-              <div className="absolute right-6 top-0 -translate-y-1/2 rounded-full bg-[#FF5C1A] px-3 py-1 text-xs font-bold text-white shadow-lg">
+              <div className="absolute right-6 top-0 -translate-y-1/2 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white shadow-lg">
                 Recommandé
               </div>
 
               <div className="p-8">
-                <p className="text-sm font-bold uppercase tracking-widest text-gray-400">
+                <p className="text-sm font-bold uppercase tracking-widest text-gray-500">
                   Plan Restaurant
                 </p>
                 <div className="mt-3 flex items-baseline gap-2">
                   <span className="font-black text-5xl text-[#1A1A1A]">Gratuit</span>
                 </div>
-                <p className="mt-1 text-sm text-gray-400">Pour toujours. Aucune carte bancaire.</p>
+                <p className="mt-1 text-sm text-gray-500">Pour toujours. Aucune carte bancaire.</p>
 
                 <Link
                   href="/register"
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF5C1A] py-3.5 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.30)] transition-all hover:bg-[#e84f14]"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.30)] transition-all hover:bg-primary-dark"
                 >
                   Créer mon restaurant
                   <ArrowRight className="h-4 w-4" />
@@ -586,7 +588,7 @@ export default async function LandingPage() {
                     'Données hébergées en Europe',
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-gray-600">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-[#FF5C1A]" />
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                       {item}
                     </li>
                   ))}
@@ -600,7 +602,7 @@ export default async function LandingPage() {
       {/* ── FAQ ──────────────────────────────────────────────────── */}
       <section id="faq" className="mx-auto max-w-3xl scroll-mt-16 px-4 py-20 md:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
             <MessageSquare className="h-3.5 w-3.5" /> Questions fréquentes
           </span>
           <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
@@ -615,7 +617,7 @@ export default async function LandingPage() {
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">
                 {f.q}
-                <span className="shrink-0 text-xl leading-none text-[#FF5C1A] transition-transform duration-200 group-open:rotate-45">
+                <span className="shrink-0 text-xl leading-none text-primary transition-transform duration-200 group-open:rotate-45">
                   +
                 </span>
               </summary>
@@ -629,26 +631,26 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 py-20 md:px-6">
         <div className="relative overflow-hidden rounded-3xl bg-[#0D0D0D] px-8 py-16 text-center text-white shadow-[0_20px_60px_-10px_rgba(0,0,0,0.3)]">
           {/* Decorative glows */}
-          <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-[#FF5C1A]/20 blur-[60px]" />
-          <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-[#FF5C1A]/15 blur-[60px]" />
+          <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-[60px]" />
+          <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-[60px]" />
 
           <div className="relative">
-            <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FF5C1A]/20 text-[#FF5C1A]">
+            <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/20 text-primary">
               <Zap className="h-7 w-7" />
             </div>
             <h2 className="text-3xl font-black tracking-tight md:text-4xl">
               Prêt à digitaliser
               <br />
-              <span className="text-[#FF5C1A]">votre livraison ?</span>
+              <span className="text-primary">votre livraison ?</span>
             </h2>
-            <p className="mx-auto mt-4 max-w-md text-base text-white/50">
+            <p className="mx-auto mt-4 max-w-md text-base text-white/60">
               Créez votre compte en 2 minutes. Partagez votre lien.
               Recevez votre première commande aujourd&apos;hui.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#FF5C1A] px-8 py-4 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.35)] transition-all hover:bg-[#e84f14] active:scale-[0.99]"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-[0_4px_20px_rgb(255,92,26,0.35)] transition-all hover:bg-primary-dark active:scale-[0.99]"
               >
                 Inscrire mon restaurant gratuitement
                 <ArrowRight className="h-4 w-4" />
@@ -670,14 +672,14 @@ export default async function LandingPage() {
           <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div>
               <Link href="/" className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5C1A] text-sm font-black text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-white">
                   Y
                 </span>
                 <span className="font-extrabold tracking-tight">
-                  Yelha<span className="text-[#FF5C1A]">Delivery</span>
+                  Yelha<span className="text-primary">Delivery</span>
                 </span>
               </Link>
-              <p className="mt-2 max-w-xs text-xs text-gray-400">
+              <p className="mt-2 max-w-xs text-xs text-gray-500">
                 Plateforme de gestion de livraison pour restaurants algériens.
                 Données hébergées en Europe 🇪🇺
               </p>
@@ -685,39 +687,39 @@ export default async function LandingPage() {
 
             <div className="flex flex-wrap gap-6 text-sm text-gray-500">
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
                   Accès
                 </p>
-                <Link href="/login" className="block hover:text-[#FF5C1A]">Restaurateur</Link>
-                <Link href="/livreur/login" className="block hover:text-[#FF5C1A]">Livreur</Link>
+                <Link href="/login" className="block hover:text-primary">Restaurateur</Link>
+                <Link href="/livreur/login" className="block hover:text-primary">Livreur</Link>
               </div>
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
                   Légal
                 </p>
-                <Link href="/cgu" className="block hover:text-[#FF5C1A]">CGU</Link>
-                <a href="mailto:contact@yelha.net" className="block hover:text-[#FF5C1A]">Contact</a>
+                <Link href="/cgu" className="block hover:text-primary">CGU</Link>
+                <a href="mailto:contact@yelha.net" className="block hover:text-primary">Contact</a>
               </div>
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-300">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
                   Démo
                 </p>
                 {demoSlug && (
-                  <Link href={`/r/${demoSlug}`} className="block hover:text-[#FF5C1A]">
+                  <Link href={`/r/${demoSlug}`} className="block hover:text-primary">
                     Voir un menu
                   </Link>
                 )}
-                <Link href="/register" className="block hover:text-[#FF5C1A]">
+                <Link href="/register" className="block hover:text-primary">
                   S&apos;inscrire
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-400 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-500 sm:flex-row">
             <p>© {new Date().getFullYear()} YelhaDelivery. Tous droits réservés.</p>
             <p className="flex items-center gap-1">
-              Fait avec <span className="text-[#FF5C1A]">♥</span> pour l&apos;Algérie
+              Fait avec <span className="text-primary">♥</span> pour l&apos;Algérie
             </p>
           </div>
         </div>
