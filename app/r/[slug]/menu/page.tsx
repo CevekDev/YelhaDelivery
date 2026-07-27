@@ -161,8 +161,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-5">
-          <div className="flex items-end gap-3">
+        <div className="absolute inset-x-0 bottom-0 pb-5">
+          <div className="mx-auto flex max-w-5xl items-end gap-3 px-4">
             {restaurant.logo_url && (
               <div className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-2xl border-2 border-white/30 bg-white shadow-lg">
                 <Image src={restaurant.logo_url} alt="" fill className="object-cover" sizes="60px" />
@@ -195,7 +195,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       </div>
 
-      <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4">
+      <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)]">
+        <div className="mx-auto max-w-5xl px-4 py-4">
         <div className="flex flex-wrap gap-2">
           <InfoPill icon={<Truck className="h-3.5 w-3.5" />}>
             {Number(restaurant.delivery_fee) === 0
@@ -244,11 +245,12 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
             </div>
           </details>
         )}
+        </div>
       </div>
 
       {(restaurant.banner_text || restaurant.banner_image_url) && (
         <div className="border-y border-[var(--site-accent)]/20 bg-[var(--site-accent)]/10">
-          <div className="flex items-center gap-2 px-4 py-2.5">
+          <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-2.5">
             {restaurant.banner_image_url && (
               <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded-lg">
                 <Image src={restaurant.banner_image_url} alt="" fill className="object-cover" sizes="48px" />
