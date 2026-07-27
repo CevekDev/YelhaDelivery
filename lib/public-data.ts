@@ -82,6 +82,40 @@ export function getDemoRestaurantSlug(): Promise<string | null> {
   )();
 }
 
+export interface ShowcaseRestaurant {
+  name: string;
+  slug: string;
+  city: string | null;
+  description: string | null;
+  cover_url: string | null;
+}
+
+/**
+ * Restaurants actifs mis en avant sur la landing (« exemples de sites »).
+ * Preuve concrète : de vrais sites créés avec la plateforme.
+ */
+export function getShowcaseRestaurants(limit = 6): Promise<ShowcaseRestaurant[]> {
+  return unstable_cache(
+    async (): Promise<ShowcaseRestaurant[]> => {
+      try {
+        const supabase = publicClient();
+        const { data } = await supabase
+          .from('restaurants')
+          .select('name, slug, city, description, cover_url')
+          .eq('status', 'active')
+          .order('created_at', { ascending: true })
+          .limit(limit)
+          .returns<ShowcaseRestaurant[]>();
+        return data ?? [];
+      } catch {
+        return [];
+      }
+    },
+    ['showcase-restaurants', String(limit)],
+    { tags: ['demo-restaurant'], revalidate: 300 },
+  )();
+}
+
 export interface HomeData {
   restaurant: Restaurant | null;
   featured: MenuItem[];

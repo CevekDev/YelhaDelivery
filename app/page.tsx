@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   Bike,
@@ -8,13 +9,39 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
-  Star,
   Store,
   TrendingUp,
   Utensils,
   Zap,
 } from 'lucide-react';
-import { getDemoRestaurantSlug } from '@/lib/public-data';
+import { getDemoRestaurantSlug, getShowcaseRestaurants } from '@/lib/public-data';
+
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: 'Combien ça coûte vraiment ?',
+    a: 'C’est gratuit, sans commission sur vos ventes ni frais cachés. Vous gardez 100 % de ce que paient vos clients.',
+  },
+  {
+    q: 'Alors comment YelhaDelivery se finance ?',
+    a: 'L’essentiel restera toujours gratuit. À l’avenir, des options avancées et facultatives pourront être proposées — mais jamais de commission prélevée sur vos commandes.',
+  },
+  {
+    q: 'Et si je n’ai pas de livreurs ?',
+    a: 'Vous pouvez démarrer avec un seul livreur, les vôtres, ou livrer vous-même. Vous créez leurs comptes en quelques secondes et ils reçoivent les commandes sur leur téléphone.',
+  },
+  {
+    q: 'Comment mes clients paient-ils ?',
+    a: 'En espèces, à la livraison — le mode le plus courant en Algérie. Aucune carte ni intégration bancaire nécessaire.',
+  },
+  {
+    q: 'À qui appartiennent mes clients et mes données ?',
+    a: 'À vous, à 100 %. Contrairement aux grandes plateformes, vos clients restent les vôtres. Vos données sont hébergées en Europe.',
+  },
+  {
+    q: 'Combien de temps pour être en ligne ?',
+    a: 'Environ 5 minutes : créez votre compte, ajoutez quelques plats, et votre lien de commande est prêt à partager sur Instagram ou WhatsApp.',
+  },
+];
 
 /* ═══════════════════════════════════════════════════════════════════
    Page d'accueil YelhaDelivery
@@ -26,8 +53,11 @@ import { getDemoRestaurantSlug } from '@/lib/public-data';
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
-  // Slug démo réel (caché) → pas de lien codé en dur qui finit en 404.
-  const demoSlug = await getDemoRestaurantSlug();
+  // Données réelles (cachées) : slug démo + vitrine de sites déjà en ligne.
+  const [demoSlug, showcase] = await Promise.all([
+    getDemoRestaurantSlug(),
+    getShowcaseRestaurants(6),
+  ]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white font-sans text-[#1A1A1A]">
@@ -47,6 +77,7 @@ export default async function LandingPage() {
             <a href="#fonctionnalites" className="hover:text-[#1A1A1A]">Fonctionnalités</a>
             <a href="#comment" className="hover:text-[#1A1A1A]">Comment ça marche</a>
             <a href="#tarifs" className="hover:text-[#1A1A1A]">Tarifs</a>
+            <a href="#faq" className="hover:text-[#1A1A1A]">FAQ</a>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -214,8 +245,8 @@ export default async function LandingPage() {
 
                 {/* Floating badges */}
                 <div className="absolute -right-8 top-16 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 shadow-xl backdrop-blur-md">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs font-bold text-white">4.9 / 5</span>
+                  <ShieldCheck className="h-4 w-4 text-[#FF5C1A]" />
+                  <span className="text-xs font-bold text-white">0% commission</span>
                 </div>
                 <div className="absolute -left-10 bottom-24 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 shadow-xl backdrop-blur-md">
                   <span className="text-lg">🚀</span>
@@ -386,6 +417,61 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── Exemples de sites (preuve réelle) ────────────────────── */}
+      {showcase.length > 0 && (
+        <section className="bg-[#FAFAFA] py-20">
+          <div className="mx-auto max-w-6xl px-4 md:px-6">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+                <Store className="h-3.5 w-3.5" /> Déjà en ligne
+              </span>
+              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+                Des sites <span className="text-[#FF5C1A]">créés avec YelhaDelivery</span>
+              </h2>
+              <p className="mt-3 text-base text-gray-500">
+                Chaque restaurant a sa propre page de commande. Cliquez pour en visiter.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {showcase.map((r) => (
+                <a
+                  key={r.slug}
+                  href={`/r/${r.slug}`}
+                  className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
+                    {r.cover_url ? (
+                      <Image
+                        src={r.cover_url}
+                        alt={r.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-4xl">🍽️</div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="truncate font-bold">{r.name}</h3>
+                      {r.city && <span className="shrink-0 text-xs text-gray-400">{r.city}</span>}
+                    </div>
+                    {r.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{r.description}</p>
+                    )}
+                    <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#FF5C1A]">
+                      Voir le site <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Pourquoi Yelha ───────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-20 md:px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -508,6 +594,34 @@ export default async function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────── */}
+      <section id="faq" className="mx-auto max-w-3xl scroll-mt-16 px-4 py-20 md:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#FF5C1A]/10 px-3 py-1 text-xs font-bold text-[#FF5C1A]">
+            <MessageSquare className="h-3.5 w-3.5" /> Questions fréquentes
+          </span>
+          <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+            Tout ce que vous vous demandez
+          </h2>
+        </div>
+        <div className="mt-10 space-y-3">
+          {FAQ.map((f) => (
+            <details
+              key={f.q}
+              className="group rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">
+                {f.q}
+                <span className="shrink-0 text-xl leading-none text-[#FF5C1A] transition-transform duration-200 group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-gray-500">{f.a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
