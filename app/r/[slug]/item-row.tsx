@@ -411,7 +411,7 @@ function ItemModal({
         role="dialog"
         aria-modal="true"
         aria-label={item.name}
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl"
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-3xl border-t border-[var(--site-border)] bg-[var(--site-surface)] shadow-2xl md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:max-h-[85vh] md:w-full md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border"
       >
         <button
           type="button"
@@ -463,13 +463,13 @@ function ItemModal({
           <>
         {/* Gallery */}
         {allImages.length > 0 && (
-          <div className="relative h-52 w-full overflow-hidden bg-[var(--site-bg)]">
+          <div className="relative h-52 w-full overflow-hidden bg-[var(--site-bg)] md:h-60">
             <Image
               src={allImages[gallery]!}
               alt={item.name}
               fill
               className="object-cover"
-              sizes="100vw"
+              sizes="(min-width: 768px) 512px, 100vw"
             />
             {allImages.length > 1 && (
               <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
