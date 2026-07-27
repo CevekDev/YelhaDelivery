@@ -52,6 +52,12 @@ export interface Restaurant {
   site_config: SiteConfig;
   home_enabled: boolean;
   blog_enabled: boolean;
+  // ── Abonnement ──
+  trial_started_at: string;
+  subscription_plan_id: string | null;
+  subscription_expires_at: string | null;
+  subscription_lifetime: boolean;
+  subscription_driver_limit: number | null; // null = illimité
   created_at: string;
   updated_at: string;
 }
@@ -254,3 +260,58 @@ export interface Notification {
   read: boolean;
   created_at: string;
 }
+
+// =====================================================================
+// Abonnements
+// =====================================================================
+
+/** Configuration globale de la plateforme (table à une seule ligne, id = 1). */
+export interface PlatformSettings {
+  id: number;
+  trial_days: number;
+  discount_6m_percent: number;
+  discount_12m_percent: number;
+  whatsapp_number: string;
+  ccp_number: string;
+  ccp_name: string;
+  ccp_key: string;
+  payment_note: string;
+  updated_at: string;
+}
+
+/** Une offre d'abonnement (Starter / Pro / Golden), prix éditable en admin. */
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  monthly_price: number;
+  driver_limit: number | null; // null = illimité
+  description: string;
+  sort_order: number;
+  is_active: boolean;
+  updated_at: string;
+}
+
+export type SubscriptionRequestStatus = 'pending' | 'approved' | 'rejected';
+
+/** Demande d'achat d'un abonnement, à valider par l'admin. */
+export interface SubscriptionRequest {
+  id: string;
+  restaurant_id: string;
+  plan_id: string;
+  plan_name: string;
+  months: number;
+  monthly_price: number;
+  discount_percent: number;
+  total_price: number;
+  driver_limit: number | null;
+  proof_url: string | null;
+  status: SubscriptionRequestStatus;
+  admin_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Phase d'abonnement dérivée d'un restaurant + settings. */
+export type SubscriptionPhase = 'trialing' | 'active' | 'expired';

@@ -6,6 +6,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
 import { livreurCreateSchema } from '@/lib/validators/livreur';
 import { sendLivreurCreated } from '@/lib/emails/send';
+import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
 
 export interface LivreurResult {
   ok: boolean;
@@ -43,6 +44,33 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
   }
 
   const admin = await createAdminClient();
+
+  // Enforcement de la limite de livreurs selon l'offre d'abonnement.
+  const settings = await fetchPlatformSettings(admin);
+  const state = computeSubscriptionState(restaurant, settings);
+  if (state.locked) {
+    return {
+      ok: false,
+      error: 'Votre abonnement a expiré. Souscrivez une offre pour gérer vos livreurs.',
+    };
+  }
+  const limit = state.driverLimit; // null = illimité
+  if (limit !== null) {
+    const { count: currentCount } = await admin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id)
+      .eq('role', 'livreur');
+    if ((currentCount ?? 0) >= limit) {
+      return {
+        ok: false,
+        error:
+          limit === 0
+            ? 'Votre offre ne permet pas d’ajouter de livreur. Choisissez une offre supérieure.'
+            : `Votre offre est limitée à ${limit} livreur${limit > 1 ? 's' : ''}. Passez à une offre supérieure pour en ajouter davantage.`,
+      };
+    }
+  }
 
   // Unicité GLOBALE du username : la contrainte SQL est globale, mais la RLS
   // masquerait les profils d'autres restaurants ou les admins. On vérifie donc

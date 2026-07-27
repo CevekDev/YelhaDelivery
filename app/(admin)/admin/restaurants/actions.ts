@@ -131,9 +131,33 @@ export async function setRestaurantStatusAction(formData: FormData): Promise<Adm
 
   // Session admin : la RLS restaurants_update_owner autorise is_admin().
   const supabase = await createClient();
+
+  // L'essai gratuit démarre réellement à l'ACTIVATION (pending → active), pas à
+  // l'inscription : sinon un resto en attente verrait son essai se consumer avant
+  // même d'être en ligne. On ne réinitialise pas un resto « à vie » ni un abonné payant.
+  const { data: current } = await supabase
+    .from('restaurants')
+    .select('status, subscription_lifetime, subscription_expires_at')
+    .eq('id', parsed.data.id)
+    .maybeSingle<{
+      status: string;
+      subscription_lifetime: boolean;
+      subscription_expires_at: string | null;
+    }>();
+
+  const update: { status: string; trial_started_at?: string } = { status: parsed.data.status };
+  if (
+    parsed.data.status === 'active' &&
+    current?.status === 'pending' &&
+    !current?.subscription_lifetime &&
+    !(current?.subscription_expires_at && new Date(current.subscription_expires_at) > new Date())
+  ) {
+    update.trial_started_at = new Date().toISOString();
+  }
+
   const { data: updated, error } = await supabase
     .from('restaurants')
-    .update({ status: parsed.data.status })
+    .update(update)
     .eq('id', parsed.data.id)
     .select('slug')
     .maybeSingle<{ slug: string }>();

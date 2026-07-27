@@ -5,6 +5,7 @@ import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LivreurToggle } from './livreur-toggle';
+import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
 import { Bike, Plus } from 'lucide-react';
 import type { Profile } from '@/types/database';
 
@@ -13,16 +14,24 @@ export const dynamic = 'force-dynamic';
 export default async function LivreursPage() {
   const { restaurant } = await requireRestaurateur();
   const supabase = await createClient();
-  const { data: livreurs } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('restaurant_id', restaurant.id)
-    .eq('role', 'livreur')
-    .order('created_at', { ascending: false })
-    .returns<Profile[]>();
+  const [{ data: livreurs }, settings] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .eq('role', 'livreur')
+      .order('created_at', { ascending: false })
+      .returns<Profile[]>(),
+    fetchPlatformSettings(supabase),
+  ]);
 
   const activeCount = livreurs?.filter((l) => l.is_active).length ?? 0;
   const total = livreurs?.length ?? 0;
+
+  const state = computeSubscriptionState(restaurant, settings);
+  const limit = state.driverLimit; // null = illimité
+  const atLimit = limit !== null && total >= limit;
+  const limitLabel = limit === null ? 'illimités' : `${limit} max`;
 
   return (
     <div className="container space-y-6 py-6 md:py-8">
@@ -31,18 +40,37 @@ export default async function LivreursPage() {
         title="Mes livreurs"
         description={
           total > 0
-            ? `${activeCount} actif${activeCount > 1 ? 's' : ''} sur ${total}`
-            : 'Créez les comptes de vos livreurs pour leur assigner les commandes.'
+            ? `${activeCount} actif${activeCount > 1 ? 's' : ''} sur ${total} · offre : ${limitLabel}`
+            : `Créez les comptes de vos livreurs pour leur assigner les commandes · offre : ${limitLabel}`
         }
         actions={
-          <Button asChild>
-            <Link href="/dashboard/livreurs/nouveau">
-              <Plus className="h-4 w-4" />
-              Nouveau livreur
-            </Link>
-          </Button>
+          atLimit ? (
+            <Button asChild variant="outline">
+              <Link href="/dashboard/abonnement">
+                <Plus className="h-4 w-4" />
+                Augmenter la limite
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/dashboard/livreurs/nouveau">
+                <Plus className="h-4 w-4" />
+                Nouveau livreur
+              </Link>
+            </Button>
+          )
         }
       />
+
+      {atLimit && (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          Vous avez atteint la limite de votre offre ({limit} livreur{(limit ?? 0) > 1 ? 's' : ''}).{' '}
+          <Link href="/dashboard/abonnement" className="font-semibold underline">
+            Passez à une offre supérieure
+          </Link>{' '}
+          pour ajouter plus de livreurs.
+        </div>
+      )}
 
       <PanelCard padded={false}>
         <PanelHeader title={`Liste (${total})`} description="Vos livreurs se connectent sur /livreur/login." />

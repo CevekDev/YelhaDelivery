@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart3,
+  CreditCard,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -27,6 +28,7 @@ const NAV = [
   { href: '/admin/analytiques', label: 'Analytiques', icon: BarChart3 },
   { href: '/admin/commandes', label: 'Commandes', icon: ShoppingBag },
   { href: '/admin/restaurants', label: 'Restaurants', icon: Store },
+  { href: '/admin/abonnements', label: 'Abonnements', icon: CreditCard },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
   { href: '/admin/avis', label: 'Avis clients', icon: Star },
   { href: '/admin/promos', label: 'Codes promo', icon: Ticket },

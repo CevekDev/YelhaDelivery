@@ -14,6 +14,7 @@ import {
   BarChart2,
   Star,
   Globe,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ const NAV = [
   { href: '/dashboard/livreurs', label: 'Livreurs', icon: Bike },
   { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart2 },
   { href: '/dashboard/avis', label: 'Avis clients', icon: Star },
+  { href: '/dashboard/abonnement', label: 'Abonnement', icon: CreditCard },
   { href: '/dashboard/parametres', label: 'Paramètres', icon: Settings },
 ] as const;
 

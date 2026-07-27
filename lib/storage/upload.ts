@@ -49,6 +49,45 @@ export async function uploadMenuImage(
   return { publicUrl: data.publicUrl, provider: 'supabase' };
 }
 
+/**
+ * Upload d'une preuve de paiement (capture de virement CCP). Comme le
+ * propriétaire d'un resto n'a pas de `restaurant_id` sur son profil, la RLS
+ * storage « owner write » (qui compare au current_restaurant_id) ne le laisse
+ * pas écrire → on passe par le client service_role pour le fallback Supabase.
+ * R2 reste prioritaire s'il est configuré.
+ */
+export async function uploadPaymentProof(
+  restaurantId: string,
+  file: File,
+): Promise<ImageUploadResult | ImageUploadError> {
+  if (file.size > MAX_IMAGE_BYTES) return { error: 'Image trop volumineuse (max 5 Mo)' };
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
+    return { error: 'Type d’image non autorisé (jpg, png, webp uniquement)' };
+  }
+
+  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
+  const key = `${restaurantId}/proofs/${crypto.randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (isR2Configured()) {
+    try {
+      const { publicUrl } = await r2Upload({ key, buffer, contentType: file.type });
+      return { publicUrl, provider: 'r2' };
+    } catch (e) {
+      console.error('[upload] r2 proof failed, falling back to supabase', e);
+    }
+  }
+
+  const admin = await createAdminClient();
+  const { error } = await admin.storage
+    .from('restaurant-images')
+    .upload(key, buffer, { contentType: file.type, upsert: false });
+  if (error) return { error: `Upload échoué : ${error.message}` };
+
+  const { data } = admin.storage.from('restaurant-images').getPublicUrl(key);
+  return { publicUrl: data.publicUrl, provider: 'supabase' };
+}
+
 // Marqueur d'une URL publique Supabase Storage → permet d'en extraire la clé.
 const SUPABASE_PUBLIC_MARKER = '/storage/v1/object/public/restaurant-images/';
 

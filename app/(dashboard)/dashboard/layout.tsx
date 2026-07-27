@@ -3,19 +3,86 @@ import { requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { BottomNav, Sidebar } from '@/components/dashboard/sidebar';
 import { OpenToggle } from '@/components/dashboard/open-toggle';
-import { ExternalLink } from 'lucide-react';
-import type { Restaurant } from '@/types/database';
+import { SubscriptionCenter } from '@/components/dashboard/subscription-center';
+import {
+  computeSubscriptionState,
+  fetchPlatformSettings,
+  fetchSubscriptionPlans,
+} from '@/lib/subscription';
+import { ExternalLink, LogOut } from 'lucide-react';
+import type { Restaurant, SubscriptionRequest } from '@/types/database';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireRole('restaurateur');
   const supabase = await createClient();
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('owner_id', profile.id)
-    .maybeSingle<Restaurant>();
+  const [{ data: restaurant }, settings] = await Promise.all([
+    supabase.from('restaurants').select('*').eq('owner_id', profile.id).maybeSingle<Restaurant>(),
+    fetchPlatformSettings(supabase),
+  ]);
 
   const restaurantName = restaurant?.name ?? 'Configuration initiale';
+  const state = restaurant ? computeSubscriptionState(restaurant, settings) : null;
+
+  // Essai expiré sans abonnement → espace de gestion verrouillé.
+  // Seuls les restos ACTIFS sont concernés : un resto « pending » attend encore
+  // l'activation admin (son essai ne démarre vraiment qu'à l'activation).
+  if (restaurant && restaurant.status === 'active' && state?.locked) {
+    const [plans, { data: requests }] = await Promise.all([
+      fetchSubscriptionPlans(supabase),
+      supabase
+        .from('subscription_requests')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .returns<SubscriptionRequest[]>(),
+    ]);
+    const list = requests ?? [];
+    const pendingRequest = list.find((r) => r.status === 'pending') ?? null;
+    const lastRejected = !pendingRequest && list[0]?.status === 'rejected' ? list[0] : null;
+
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6">
+          <Link href="/dashboard/abonnement" className="font-display text-lg font-extrabold">
+            Yelha<span className="text-primary">Delivery</span>
+          </Link>
+          <form action="/api/auth/signout" method="post">
+            <button
+              type="submit"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Se déconnecter
+            </button>
+          </form>
+        </header>
+        <main className="container max-w-4xl space-y-6 py-8">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {restaurantName}
+            </p>
+            <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+              Réactivez votre espace
+            </h1>
+            <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">
+              Votre essai gratuit est terminé. Choisissez une offre pour retrouver l’accès à la
+              gestion de votre restaurant. Votre page publique reste en ligne pendant ce temps.
+            </p>
+          </div>
+          <SubscriptionCenter
+            plans={plans}
+            settings={settings}
+            state={state}
+            restaurantName={restaurant.name}
+            pendingRequest={pendingRequest}
+            lastRejected={lastRejected}
+            locked
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -76,6 +143,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive md:px-6">
             <strong>⛔ Compte suspendu.</strong> Contactez le support pour réactiver votre restaurant.
           </div>
+        )}
+        {restaurant?.status === 'active' && state?.phase === 'trialing' && (
+          <Link
+            href="/dashboard/abonnement"
+            className="block border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-sm text-warning hover:bg-warning/15 md:px-6"
+          >
+            <strong>
+              ⏳ Essai gratuit — {state.daysLeft} jour{state.daysLeft > 1 ? 's' : ''} restant
+              {state.daysLeft > 1 ? 's' : ''}.
+            </strong>{' '}
+            Choisissez une offre pour continuer après l’essai →
+          </Link>
+        )}
+        {restaurant?.status === 'active' && state?.phase === 'active' && !state.isLifetime && state.daysLeft <= 5 && (
+          <Link
+            href="/dashboard/abonnement"
+            className="block border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-sm text-warning hover:bg-warning/15 md:px-6"
+          >
+            <strong>
+              Votre abonnement expire dans {state.daysLeft} jour{state.daysLeft > 1 ? 's' : ''}.
+            </strong>{' '}
+            Renouvelez pour éviter toute coupure →
+          </Link>
         )}
         {restaurant && !restaurant.accept_orders && restaurant.is_open && (
           <div className="border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning md:px-6">
