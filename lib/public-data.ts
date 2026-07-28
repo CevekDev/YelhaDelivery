@@ -116,6 +116,63 @@ export function getShowcaseRestaurants(limit = 6): Promise<ShowcaseRestaurant[]>
   )();
 }
 
+export interface LandingPlan {
+  id: string;
+  name: string;
+  monthly_price: number;
+  driver_limit: number | null;
+  description: string;
+}
+
+export interface LandingPricing {
+  plans: LandingPlan[];
+  trialDays: number;
+  discount6: number;
+  discount12: number;
+}
+
+/**
+ * Tarifs affichés sur la landing (offres + essai + remises). Lecture publique
+ * cookieless mémorisée ; invalidée par les Server Actions admin qui modifient
+ * les offres/paramètres (revalidateTag('subscription-plans')).
+ */
+export function getLandingPricing(): Promise<LandingPricing> {
+  return unstable_cache(
+    async (): Promise<LandingPricing> => {
+      try {
+        const supabase = publicClient();
+        const [{ data: plans }, { data: settings }] = await Promise.all([
+          supabase
+            .from('subscription_plans')
+            .select('id, name, monthly_price, driver_limit, description')
+            .eq('is_active', true)
+            .order('sort_order')
+            .returns<LandingPlan[]>(),
+          supabase
+            .from('platform_settings')
+            .select('trial_days, discount_6m_percent, discount_12m_percent')
+            .eq('id', 1)
+            .maybeSingle<{
+              trial_days: number;
+              discount_6m_percent: number;
+              discount_12m_percent: number;
+            }>(),
+        ]);
+        return {
+          plans: plans ?? [],
+          trialDays: settings?.trial_days ?? 7,
+          discount6: settings?.discount_6m_percent ?? 10,
+          discount12: settings?.discount_12m_percent ?? 20,
+        };
+      } catch {
+        return { plans: [], trialDays: 7, discount6: 10, discount12: 20 };
+      }
+    },
+    ['landing-pricing'],
+    { tags: ['subscription-plans'], revalidate: 300 },
+  )();
+}
+
 export interface HomeData {
   restaurant: Restaurant | null;
   featured: MenuItem[];

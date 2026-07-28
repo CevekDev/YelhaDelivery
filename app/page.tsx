@@ -1,4 +1,4 @@
-import { getDemoRestaurantSlug, getShowcaseRestaurants } from '@/lib/public-data';
+import { getDemoRestaurantSlug, getShowcaseRestaurants, getLandingPricing } from '@/lib/public-data';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingHero, StatsBand } from '@/components/landing/landing-hero';
 import { FeaturesSection, HowItWorks } from '@/components/landing/landing-features';
@@ -17,9 +17,10 @@ import { FinalCta, LandingFooter } from '@/components/landing/landing-footer';
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
-  const [demoSlug, showcase] = await Promise.all([
+  const [demoSlug, showcase, pricing] = await Promise.all([
     getDemoRestaurantSlug(),
     getShowcaseRestaurants(6),
+    getLandingPricing(),
   ]);
 
   return (
@@ -31,8 +32,8 @@ export default async function LandingPage() {
       <HowItWorks />
       <ShowcaseSection restaurants={showcase} />
       <WhyYelha />
-      <PricingSection />
-      <FaqSection />
+      <PricingSection pricing={pricing} />
+      <FaqSection trialDays={pricing.trialDays} startingPrice={pricing.plans[0]?.monthly_price ?? null} />
       <FinalCta />
       <LandingFooter demoSlug={demoSlug} />
     </div>

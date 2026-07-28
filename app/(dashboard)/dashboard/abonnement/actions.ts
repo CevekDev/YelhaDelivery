@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
-import { uploadPaymentProof } from '@/lib/storage/upload';
 import {
   computePlanPrice,
   fetchPlatformSettings,
@@ -64,14 +63,8 @@ export async function requestSubscriptionAction(
   const plan = plans.find((p) => p.id === parsed.data.plan_id && p.is_active);
   if (!plan) return { ok: false, error: 'Offre introuvable ou indisponible.' };
 
-  // Preuve de paiement obligatoire.
-  const proofFile = formData.get('proof');
-  if (!(proofFile instanceof File) || proofFile.size === 0) {
-    return { ok: false, error: 'Merci de joindre une capture de votre virement (preuve de paiement).' };
-  }
-  const upload = await uploadPaymentProof(restaurant.id, proofFile);
-  if ('error' in upload) return { ok: false, error: upload.error };
-
+  // La preuve de paiement est envoyée par le restaurateur sur le WhatsApp de
+  // l'admin (pas d'upload dans l'app) ; on n'enregistre que la demande à valider.
   const quote = computePlanPrice(plan.monthly_price, parsed.data.months, settings);
 
   const { error } = await admin.from('subscription_requests').insert({
@@ -83,7 +76,7 @@ export async function requestSubscriptionAction(
     discount_percent: quote.discountPercent,
     total_price: quote.total,
     driver_limit: plan.driver_limit,
-    proof_url: upload.publicUrl,
+    proof_url: null,
     status: 'pending',
   });
   if (error) return { ok: false, error: 'Impossible d’enregistrer la demande. Réessayez.' };

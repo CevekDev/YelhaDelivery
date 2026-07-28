@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { adminChangeUsernameSchema, adminChangePasswordSchema } from '@/lib/validators/auth';
@@ -127,6 +127,7 @@ export async function updatePlatformSettingsAction(formData: FormData): Promise<
   if (error) return { ok: false, error: 'Enregistrement impossible. Réessayez.' };
 
   revalidatePath('/admin/parametres');
+  revalidateTag('subscription-plans'); // rafraîchit la grille tarifaire de la landing
   return { ok: true, success: 'Paramètres d’abonnement enregistrés.' };
 }
 
@@ -179,5 +180,6 @@ export async function updateSubscriptionPlanAction(formData: FormData): Promise<
 
   revalidatePath('/admin/parametres');
   revalidatePath('/dashboard/abonnement');
+  revalidateTag('subscription-plans'); // rafraîchit la grille tarifaire de la landing
   return { ok: true, success: `Offre « ${parsed.data.name} » enregistrée.` };
 }
