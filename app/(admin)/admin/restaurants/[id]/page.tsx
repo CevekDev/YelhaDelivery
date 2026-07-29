@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { StatusActions } from './status-actions';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
+import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
 import {
   ArrowLeft,
   Bike,
+  CreditCard,
   ExternalLink,
   MapPin,
   Package,
@@ -60,6 +62,12 @@ export default async function AdminRestaurantDetailPage({
     .eq('id', id)
     .maybeSingle<Restaurant>();
   if (!restaurant) notFound();
+
+  const settings = await fetchPlatformSettings(admin);
+  const sub = computeSubscriptionState(restaurant, settings);
+  const subUntil = sub.until
+    ? new Date(sub.until).toLocaleDateString('fr-DZ', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   const start30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -276,6 +284,72 @@ export default async function AdminRestaurantDetailPage({
           </dl>
         </PanelCard>
       </div>
+
+      {/* Abonnement */}
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Abonnement"
+          description="État de l’abonnement du restaurant"
+          actions={
+            <Link
+              href="/admin/abonnements"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Demandes
+              <CreditCard className="h-3 w-3" />
+            </Link>
+          }
+        />
+        <div className="flex flex-wrap items-center gap-4 px-5 py-4 md:px-6">
+          <Badge
+            variant={
+              sub.isLifetime
+                ? 'secondary'
+                : sub.phase === 'active'
+                  ? 'success'
+                  : sub.phase === 'trialing'
+                    ? 'warning'
+                    : 'destructive'
+            }
+          >
+            {sub.isLifetime
+              ? 'Abonné à vie'
+              : sub.phase === 'active'
+                ? 'Abonnement actif'
+                : sub.phase === 'trialing'
+                  ? 'Essai gratuit'
+                  : 'Expiré'}
+          </Badge>
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            {sub.phase === 'trialing' && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Essai restant</dt>
+                <dd className="font-semibold">
+                  {sub.daysLeft} jour{sub.daysLeft > 1 ? 's' : ''}
+                </dd>
+              </div>
+            )}
+            {sub.planId && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Offre</dt>
+                <dd className="font-semibold capitalize">{sub.planId}</dd>
+              </div>
+            )}
+            {subUntil && !sub.isLifetime && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Expire le</dt>
+                <dd className="font-semibold">{subUntil}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-xs text-muted-foreground">Livreurs autorisés</dt>
+              <dd className="font-semibold">
+                {sub.driverLimit === null ? 'Illimités' : sub.driverLimit}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </PanelCard>
 
       {/* Propriétaire */}
       <PanelCard padded={false}>

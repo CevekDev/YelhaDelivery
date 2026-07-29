@@ -10,6 +10,7 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
+  CreditCard,
   Minus,
   Package,
   ShoppingBag,
@@ -17,7 +18,8 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import type { Order, OrderStatus, Restaurant } from '@/types/database';
+import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
+import type { Order, OrderStatus, Restaurant, SubscriptionRequest } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +57,8 @@ export default async function AdminDashboard() {
     { data: recentOrders },
     { data: pendingOrders },
     { data: allRestaurants },
+    { data: pendingSubRequests },
+    settings,
   ] = await Promise.all([
     admin.from('restaurants').select('*', { count: 'exact', head: true }),
     admin.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -94,9 +98,49 @@ export default async function AdminDashboard() {
       .limit(5),
     admin
       .from('restaurants')
-      .select('id, name, slug, status')
-      .returns<Pick<Restaurant, 'id' | 'name' | 'slug' | 'status'>[]>(),
+      .select(
+        'id, name, slug, status, trial_started_at, subscription_plan_id, subscription_expires_at, subscription_lifetime, subscription_driver_limit',
+      )
+      .returns<
+        Pick<
+          Restaurant,
+          | 'id'
+          | 'name'
+          | 'slug'
+          | 'status'
+          | 'trial_started_at'
+          | 'subscription_plan_id'
+          | 'subscription_expires_at'
+          | 'subscription_lifetime'
+          | 'subscription_driver_limit'
+        >[]
+      >(),
+    admin
+      .from('subscription_requests')
+      .select('id, plan_name, months, total_price, created_at, restaurant:restaurants(name)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .returns<
+        (Pick<SubscriptionRequest, 'id' | 'plan_name' | 'months' | 'total_price' | 'created_at'> & {
+          restaurant: { name: string } | { name: string }[] | null;
+        })[]
+      >(),
+    fetchPlatformSettings(admin),
   ]);
+
+  // Statistiques d'abonnement (calculées à la volée).
+  const subStats = { active: 0, trialing: 0, expired: 0, lifetime: 0, expiringSoon: 0 };
+  for (const r of allRestaurants ?? []) {
+    const st = computeSubscriptionState(r, settings);
+    if (st.isLifetime) subStats.lifetime++;
+    else if (st.phase === 'active') {
+      subStats.active++;
+      if (st.daysLeft <= 5) subStats.expiringSoon++;
+    } else if (st.phase === 'trialing') {
+      subStats.trialing++;
+      if (st.daysLeft <= 2) subStats.expiringSoon++;
+    } else if (st.phase === 'expired') subStats.expired++;
+  }
 
   const orders14d = last14dOrders ?? [];
   const orders7d = orders14d.filter((o) => new Date(o.created_at) >= last7d);
@@ -186,6 +230,53 @@ export default async function AdminDashboard() {
         </div>
       )}
 
+      {/* Demandes d'abonnement en attente de validation */}
+      {(pendingSubRequests?.length ?? 0) > 0 && (
+        <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <CreditCard className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-sm font-bold">
+                {pendingSubRequests!.length} demande{pendingSubRequests!.length > 1 ? 's' : ''}{' '}
+                d’abonnement à valider
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Vérifiez le paiement (reçu sur WhatsApp) puis validez pour activer l’accès.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {pendingSubRequests!.slice(0, 4).map((r) => {
+                  const name = Array.isArray(r.restaurant)
+                    ? r.restaurant[0]?.name
+                    : r.restaurant?.name;
+                  return (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold">{name ?? '—'}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {r.plan_name} · {r.months} mois · {formatPrice(r.total_price)} · demandé{' '}
+                          {formatRelativeTime(r.created_at)}
+                        </span>
+                      </span>
+                      <Link
+                        href="/admin/abonnements"
+                        className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-dark"
+                      >
+                        Valider
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Alertes prioritaires */}
       {((pendingOrders?.length ?? 0) > 0 || (suspendedCount ?? 0) > 0) && (
         <div className="rounded-2xl border border-warning/40 bg-warning/10 p-4">
@@ -243,6 +334,30 @@ export default async function AdminDashboard() {
           subtitle="Restaurateurs · livreurs · admins"
         />
       </div>
+
+      {/* Abonnements — synthèse */}
+      <PanelCard padded={false}>
+        <PanelHeader
+          title="Abonnements"
+          description="État des abonnements des restaurants"
+          actions={
+            <Link
+              href="/admin/abonnements"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Gérer
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          }
+        />
+        <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-5 sm:divide-y-0">
+          <SubStat label="Abonnés" value={subStats.active} tone="text-success" />
+          <SubStat label="En essai" value={subStats.trialing} tone="text-warning" />
+          <SubStat label="Expirent bientôt" value={subStats.expiringSoon} tone="text-warning" />
+          <SubStat label="Expirés" value={subStats.expired} tone="text-destructive" />
+          <SubStat label="À vie" value={subStats.lifetime} tone="text-muted-foreground" />
+        </div>
+      </PanelCard>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         {/* Top restaurants */}
@@ -341,6 +456,15 @@ export default async function AdminDashboard() {
           )}
         </PanelCard>
       </div>
+    </div>
+  );
+}
+
+function SubStat({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="px-4 py-4 text-center">
+      <p className={`font-display text-2xl font-extrabold tabular-nums ${tone}`}>{value}</p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }

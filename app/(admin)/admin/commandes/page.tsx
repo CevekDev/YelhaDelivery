@@ -3,9 +3,11 @@ import { requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader, PanelCard, PanelHeader } from '@/components/dashboard/page-header';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
-import { Package, ShoppingBag } from 'lucide-react';
+import { ExportOrdersButton } from './export-button';
+import { Package, Search, ShoppingBag } from 'lucide-react';
 import type { Order, OrderStatus, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -30,11 +32,12 @@ const RANGE_FILTERS = [
 export default async function AdminCommandesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; range?: string; resto?: string }>;
+  searchParams: Promise<{ status?: string; range?: string; resto?: string; q?: string }>;
 }) {
   await requireRole('admin');
   const admin = await createClient();
   const params = await searchParams;
+  const q = (params.q ?? '').trim().toLowerCase();
 
   const statusFilter =
     STATUS_FILTERS.includes((params.status ?? 'all') as OrderStatus | 'all')
@@ -86,17 +89,75 @@ export default async function AdminCommandesPage({
   ]);
 
   const restoById = new Map((restaurants ?? []).map((r) => [r.id, r]));
-  const totalRevenue = (orders ?? [])
+
+  const filteredOrders = q
+    ? (orders ?? []).filter(
+        (o) =>
+          o.customer_name.toLowerCase().includes(q) ||
+          o.order_number.toLowerCase().includes(q) ||
+          o.customer_phone.includes(q),
+      )
+    : (orders ?? []);
+
+  const totalRevenue = filteredOrders
     .filter((o) => o.status === 'delivered')
     .reduce((s, o) => s + Number(o.total), 0);
+
+  const exportHeaders = [
+    'N° commande',
+    'Date',
+    'Restaurant',
+    'Client',
+    'Téléphone',
+    'Adresse',
+    'Statut',
+    'Total (DA)',
+  ];
+  const exportRows: (string | number)[][] = filteredOrders.map((o) => [
+    o.order_number,
+    new Date(o.created_at).toLocaleString('fr-DZ'),
+    restoById.get(o.restaurant_id)?.name ?? '',
+    o.customer_name,
+    o.customer_phone,
+    o.customer_address,
+    ORDER_STATUS_LABELS[o.status],
+    Number(o.total),
+  ]);
 
   return (
     <div className="container space-y-6 py-6 md:py-8">
       <PageHeader
         eyebrow="Activité"
         title="Toutes les commandes"
-        description={`${orders?.length ?? 0} commande${(orders?.length ?? 0) > 1 ? 's' : ''} · ${formatPrice(totalRevenue)} livré${(orders?.length ?? 0) > 1 ? 's' : ''}`}
+        description={`${filteredOrders.length} commande${filteredOrders.length > 1 ? 's' : ''} · ${formatPrice(totalRevenue)} livré${filteredOrders.length > 1 ? 's' : ''}`}
+        actions={
+          <ExportOrdersButton
+            headers={exportHeaders}
+            rows={exportRows}
+            filename={`commandes-${new Date().toISOString().slice(0, 10)}.csv`}
+          />
+        }
       />
+
+      {/* Recherche */}
+      <form action="/admin/commandes" method="get" className="flex gap-2">
+        {statusFilter !== 'all' && <input type="hidden" name="status" value={statusFilter} />}
+        {rangeKey !== '7d' && <input type="hidden" name="range" value={rangeKey} />}
+        {restoIdFilter !== 'all' && <input type="hidden" name="resto" value={restoIdFilter} />}
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            name="q"
+            defaultValue={params.q ?? ''}
+            placeholder="Client, n° de commande ou téléphone…"
+            className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-sm focus:border-primary focus:outline-none"
+          />
+        </div>
+        <Button type="submit" variant="outline">
+          Rechercher
+        </Button>
+      </form>
 
       {/* Filtres */}
       <div className="space-y-3">
@@ -144,8 +205,8 @@ export default async function AdminCommandesPage({
       </div>
 
       <PanelCard padded={false}>
-        <PanelHeader title={`Résultat (${orders?.length ?? 0})`} />
-        {!orders || orders.length === 0 ? (
+        <PanelHeader title={`Résultat (${filteredOrders.length})`} />
+        {filteredOrders.length === 0 ? (
           <div className="py-16 text-center">
             <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground" />
             <p className="mt-3 font-display text-lg font-bold">Aucune commande</p>
@@ -155,7 +216,7 @@ export default async function AdminCommandesPage({
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {orders.map((o) => {
+            {filteredOrders.map((o) => {
               const r = restoById.get(o.restaurant_id);
               return (
                 <li key={o.id} className="flex items-start gap-3 px-5 py-4 hover:bg-muted/40 md:px-6">

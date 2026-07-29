@@ -80,6 +80,15 @@ export default async function AnalyticsPage() {
   }
   const maxDow = Math.max(...[...dowMap.values()].map((v) => v.revenue), 1);
 
+  // Heures de pointe (par heure de la journée)
+  const hourMap = new Array<number>(24).fill(0);
+  for (const o of allOrders) {
+    const h = new Date(o.created_at).getHours();
+    hourMap[h] = (hourMap[h] ?? 0) + 1;
+  }
+  const maxHour = Math.max(...hourMap, 1);
+  const peakHour = hourMap.indexOf(maxHour);
+
   // Top items
   const itemMap = new Map<string, number>();
   for (const item of allItems) {
@@ -218,6 +227,43 @@ export default async function AnalyticsPage() {
                     );
                   })}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Heures de pointe */}
+            <Card>
+              <CardContent className="p-5">
+                <div className="mb-4 flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold">Heures de pointe</p>
+                  {maxHour > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Pic à <strong className="text-foreground">{peakHour}h</strong>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-end gap-0.5" style={{ minHeight: 90 }}>
+                  {hourMap.map((count, h) => {
+                    const pct = (count / maxHour) * 100;
+                    return (
+                      <div key={h} className="group flex flex-1 flex-col items-center gap-1">
+                        <div
+                          className={
+                            'w-full rounded-t transition-all ' +
+                            (h === peakHour && count > 0 ? 'bg-primary' : 'bg-primary/40')
+                          }
+                          style={{ height: `${Math.max(count > 0 ? 4 : 1, (pct / 100) * 72)}px` }}
+                          title={`${h}h — ${count} commande${count > 1 ? 's' : ''}`}
+                        />
+                        {h % 6 === 0 && (
+                          <span className="text-[8px] text-muted-foreground">{h}h</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Nombre de commandes par heure sur 30 jours.
+                </p>
               </CardContent>
             </Card>
 

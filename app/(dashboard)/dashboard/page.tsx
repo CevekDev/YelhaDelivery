@@ -15,13 +15,17 @@ import {
   Bike,
   Share2,
   ArrowRight,
+  CreditCard,
+  CheckCircle2,
+  Circle,
+  Infinity as InfinityIcon,
 } from 'lucide-react';
 import { ToggleOpenButton } from './toggle-open-button';
+import { ShareCard } from '@/components/dashboard/share-card';
 import { APP_URL } from '@/lib/seo';
+import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
+import { qrSvg } from '@/lib/qrcode';
 import type { Order } from '@/types/database';
-
-/** Domaine public affiché (sans protocole) — source unique via APP_URL. */
-const PUBLIC_HOST = APP_URL.replace(/^https?:\/\//, '');
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +42,9 @@ export default async function DashboardHome() {
     { count: pendingCount },
     { count: itemsCount },
     { count: driversCount },
+    { count: hoursCount },
     { data: etaData },
+    settings,
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -68,10 +74,31 @@ export default async function DashboardHome() {
       .eq('restaurant_id', restaurant.id)
       .eq('role', 'livreur')
       .eq('is_active', true),
+    supabase
+      .from('opening_hours')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id),
     supabase.rpc('get_delivery_estimate', { p_restaurant_id: restaurant.id }),
+    fetchPlatformSettings(supabase),
   ]);
   const currentEta = typeof etaData === 'number' ? etaData : restaurant.estimated_delivery_time;
   const etaDelta = currentEta - restaurant.estimated_delivery_time;
+
+  const sub = computeSubscriptionState(restaurant, settings);
+  const driverLimit = sub.driverLimit; // null = illimité
+
+  // Guide de démarrage — étapes concrètes vérifiables.
+  const steps = [
+    { label: 'Ajouter un premier plat', done: (itemsCount ?? 0) > 0, href: '/dashboard/menu/nouveau' },
+    { label: 'Définir vos horaires', done: (hoursCount ?? 0) > 0, href: '/dashboard/horaires' },
+    { label: 'Ajouter un livreur', done: (driversCount ?? 0) > 0, href: '/dashboard/livreurs/nouveau' },
+    { label: 'Ouvrir votre restaurant', done: restaurant.is_open, href: '/dashboard/parametres' },
+  ];
+  const stepsDone = steps.filter((s) => s.done).length;
+  const onboardingComplete = stepsDone === steps.length;
+
+  const publicUrl = `${APP_URL}/r/${restaurant.slug}`;
+  const qr = await qrSvg(publicUrl);
 
   const todayCount = todayOrders?.length ?? 0;
   const todayRevenue = (todayOrders ?? [])
@@ -132,6 +159,47 @@ export default async function DashboardHome() {
         />
         <StatCard icon={TrendingUp} label="CA du jour" value={formatPrice(todayRevenue)} />
       </div>
+
+      {/* Guide de démarrage — masqué une fois complété */}
+      {!onboardingComplete && (
+        <div className="rounded-2xl border border-primary/30 bg-primary/[0.03] p-5 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-base font-bold">Guide de démarrage</h2>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {stepsDone}/{steps.length} complété{stepsDone > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${(stepsDone / steps.length) * 100}%` }}
+            />
+          </div>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {steps.map((s) => (
+              <li key={s.label}>
+                <Link
+                  href={s.href}
+                  className={
+                    'flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ' +
+                    (s.done
+                      ? 'border-success/30 bg-success/5 text-muted-foreground'
+                      : 'border-border bg-background hover:border-primary')
+                  }
+                >
+                  {s.done ? (
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+                  ) : (
+                    <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className={s.done ? 'line-through' : 'font-semibold'}>{s.label}</span>
+                  {!s.done && <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ETA dynamique */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background p-5 shadow-card">
@@ -215,6 +283,8 @@ export default async function DashboardHome() {
 
         {/* Side panel — Quick stats + actions */}
         <aside className="space-y-4">
+          <SubscriptionMiniCard sub={sub} />
+
           <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
             <h3 className="font-display text-base font-bold">Configuration</h3>
             <div className="mt-4 space-y-3">
@@ -230,6 +300,9 @@ export default async function DashboardHome() {
                 icon={Bike}
                 label="Livreurs actifs"
                 value={driversCount ?? 0}
+                valueText={
+                  driverLimit !== null ? `${driversCount ?? 0}/${driverLimit}` : undefined
+                }
                 href="/dashboard/livreurs"
                 empty={!driversCount}
                 emptyLabel="Ajouter un livreur"
@@ -237,21 +310,7 @@ export default async function DashboardHome() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/0 p-5 shadow-card">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-              Astuce
-            </p>
-            <p className="mt-2 font-display text-base font-bold leading-snug">
-              Partagez votre lien sur Instagram
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Ajoutez{' '}
-              <code className="rounded bg-background px-1 py-0.5 text-[10px]">
-                {PUBLIC_HOST}/r/{restaurant.slug}
-              </code>{' '}
-              dans votre bio pour transformer vos abonnés en clients.
-            </p>
-          </div>
+          <ShareCard url={publicUrl} svg={qr} />
         </aside>
       </div>
     </div>
@@ -301,6 +360,7 @@ function ConfigRow({
   icon: Icon,
   label,
   value,
+  valueText,
   href,
   empty,
   emptyLabel,
@@ -308,6 +368,7 @@ function ConfigRow({
   icon: typeof ShoppingBag;
   label: string;
   value: number;
+  valueText?: string;
   href: string;
   empty: boolean;
   emptyLabel: string;
@@ -325,10 +386,62 @@ function ConfigRow({
         {empty ? (
           <p className="truncate text-sm font-semibold text-primary">{emptyLabel}</p>
         ) : (
-          <p className="truncate font-display text-base font-bold">{value}</p>
+          <p className="truncate font-display text-base font-bold">{valueText ?? value}</p>
         )}
       </div>
       <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+    </Link>
+  );
+}
+
+function SubscriptionMiniCard({
+  sub,
+}: {
+  sub: ReturnType<typeof computeSubscriptionState>;
+}) {
+  const until = sub.until
+    ? new Date(sub.until).toLocaleDateString('fr-DZ', { day: 'numeric', month: 'long' })
+    : null;
+
+  let tone = 'border-border';
+  let icon = <CreditCard className="h-4 w-4" />;
+  let title = 'Abonnement';
+  let detail = '';
+
+  if (sub.isLifetime) {
+    tone = 'border-success/30 bg-success/5';
+    icon = <InfinityIcon className="h-4 w-4 text-success" />;
+    title = 'Accès à vie';
+    detail = 'Accès complet, sans abonnement.';
+  } else if (sub.phase === 'trialing') {
+    tone = 'border-warning/30 bg-warning/5';
+    icon = <Clock className="h-4 w-4 text-warning" />;
+    title = `Essai — ${sub.daysLeft} j restant${sub.daysLeft > 1 ? 's' : ''}`;
+    detail = 'Choisissez une offre avant la fin de l’essai.';
+  } else if (sub.phase === 'active') {
+    tone = 'border-success/30 bg-success/5';
+    icon = <CheckCircle2 className="h-4 w-4 text-success" />;
+    title = 'Abonnement actif';
+    detail = until ? `Jusqu’au ${until}${sub.daysLeft <= 7 ? ` · ${sub.daysLeft} j` : ''}` : 'Actif';
+  } else {
+    tone = 'border-destructive/30 bg-destructive/5';
+    title = 'Abonnement expiré';
+    detail = 'Renouvelez pour retrouver l’accès.';
+  }
+
+  return (
+    <Link
+      href="/dashboard/abonnement"
+      className={`group block rounded-2xl border p-5 shadow-card transition-colors hover:border-primary ${tone}`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
+          {icon}
+        </span>
+        <h3 className="font-display text-sm font-bold">{title}</h3>
+        <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      </div>
+      {detail && <p className="mt-2 text-xs text-muted-foreground">{detail}</p>}
     </Link>
   );
 }

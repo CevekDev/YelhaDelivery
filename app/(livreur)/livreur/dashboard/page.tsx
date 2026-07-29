@@ -8,33 +8,54 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { LivreurActions } from './livreur-actions';
 import { LivreurRealtime } from './livreur-realtime';
 import { PushSubscribe } from '@/components/push-subscribe';
-import { Bike, LogOut, MapPin, Phone, Banknote, History } from 'lucide-react';
+import { Bike, LogOut, MapPin, Phone, Banknote, History, MessageCircle, CheckCircle2 } from 'lucide-react';
 import type { Order, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
+
+/** Numéro DZ local (0X…) → lien wa.me international (213…). */
+function whatsappLink(phone: string, message: string): string | null {
+  const digits = (phone || '').replace(/[^\d]/g, '');
+  if (digits.length < 6) return null;
+  const intl = digits.startsWith('0') ? `213${digits.slice(1)}` : digits;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
 
 export default async function LivreurDashboardPage() {
   const { profile, userId } = await requireRole('livreur');
   const supabase = await createClient();
 
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('driver_id', userId)
-    .in('status', ['assigned', 'on_the_way'])
-    .order('created_at', { ascending: false })
-    .returns<Order[]>();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
 
-  const { data: restaurant } = profile.restaurant_id
-    ? await supabase
-        .from('restaurants')
-        .select('name')
-        .eq('id', profile.restaurant_id)
-        .maybeSingle<Pick<Restaurant, 'name'>>()
-    : { data: null };
+  const [{ data: orders }, { data: deliveredToday }, { data: restaurant }] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('*')
+      .eq('driver_id', userId)
+      .in('status', ['assigned', 'on_the_way'])
+      .order('created_at', { ascending: false })
+      .returns<Order[]>(),
+    supabase
+      .from('orders')
+      .select('total')
+      .eq('driver_id', userId)
+      .eq('status', 'delivered')
+      .gte('updated_at', startOfDay.toISOString())
+      .returns<Pick<Order, 'total'>[]>(),
+    profile.restaurant_id
+      ? supabase
+          .from('restaurants')
+          .select('name')
+          .eq('id', profile.restaurant_id)
+          .maybeSingle<Pick<Restaurant, 'name'>>()
+      : Promise.resolve({ data: null as Pick<Restaurant, 'name'> | null }),
+  ]);
 
   const total = orders?.length ?? 0;
   const totalCash = (orders ?? []).reduce((s, o) => s + Number(o.total), 0);
+  const deliveredTodayCount = deliveredToday?.length ?? 0;
+  const collectedToday = (deliveredToday ?? []).reduce((s, o) => s + Number(o.total), 0);
 
   return (
     <main className="min-h-screen bg-muted/30 pb-10">
@@ -91,12 +112,26 @@ export default async function LivreurDashboardPage() {
               {total} <span className="text-sm font-normal text-muted-foreground">à livrer</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-success/30 bg-success/5 p-4 shadow-card">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-success">
+          <div className="rounded-2xl border border-border bg-background p-4 shadow-card">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               À encaisser
             </p>
             <p className="mt-1 font-display text-2xl font-extrabold tabular-nums">
               {formatPrice(totalCash)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-success/30 bg-success/5 p-4 shadow-card">
+            <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success">
+              <CheckCircle2 className="h-3 w-3" /> Livrées aujourd’hui
+            </p>
+            <p className="mt-1 font-display text-2xl font-extrabold">{deliveredTodayCount}</p>
+          </div>
+          <div className="rounded-2xl border border-success/30 bg-success/5 p-4 shadow-card">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-success">
+              Encaissé aujourd’hui
+            </p>
+            <p className="mt-1 font-display text-2xl font-extrabold tabular-nums">
+              {formatPrice(collectedToday)}
             </p>
           </div>
         </div>
@@ -139,20 +174,41 @@ export default async function LivreurDashboardPage() {
                   </div>
 
                   <div className="grid gap-2">
-                    <a
-                      href={`tel:${o.customer_phone}`}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 hover:bg-muted"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Phone className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Appeler le client
-                        </p>
-                        <p className="font-semibold">{o.customer_phone}</p>
-                      </div>
-                    </a>
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <a
+                        href={`tel:${o.customer_phone}`}
+                        className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 hover:bg-muted"
+                      >
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Phone className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Appeler le client
+                          </p>
+                          <p className="font-semibold">{o.customer_phone}</p>
+                        </div>
+                      </a>
+                      {whatsappLink(
+                        o.customer_phone,
+                        `Bonjour, je suis votre livreur YelhaDelivery. J'arrive bientôt avec votre commande ${o.order_number}.`,
+                      ) && (
+                        <a
+                          href={
+                            whatsappLink(
+                              o.customer_phone,
+                              `Bonjour, je suis votre livreur YelhaDelivery. J'arrive bientôt avec votre commande ${o.order_number}.`,
+                            )!
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Contacter le client sur WhatsApp"
+                          className="flex w-14 items-center justify-center rounded-xl bg-[#25D366] text-white transition-opacity hover:opacity-90"
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                        </a>
+                      )}
+                    </div>
 
                     <a
                       href={`https://maps.google.com/?q=${encodeURIComponent(o.customer_address)}`}
