@@ -97,7 +97,6 @@ const platformSettingsSchema = z.object({
   discount_12m_percent: z.coerce.number().int().min(0).max(100),
   whatsapp_number: z.string().trim().max(30),
   ccp_number: z.string().trim().max(50),
-  ccp_key: z.string().trim().max(20),
   ccp_name: z.string().trim().max(120),
   payment_note: z.string().trim().max(500),
 });
@@ -112,7 +111,6 @@ export async function updatePlatformSettingsAction(formData: FormData): Promise<
     discount_12m_percent: formData.get('discount_12m_percent'),
     whatsapp_number: formData.get('whatsapp_number') ?? '',
     ccp_number: formData.get('ccp_number') ?? '',
-    ccp_key: formData.get('ccp_key') ?? '',
     ccp_name: formData.get('ccp_name') ?? '',
     payment_note: formData.get('payment_note') ?? '',
   });

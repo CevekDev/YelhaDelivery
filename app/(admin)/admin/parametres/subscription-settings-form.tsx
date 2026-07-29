@@ -206,20 +206,22 @@ function GeneralForm({ settings, onDone }: { settings: PlatformSettings; onDone:
             <Label htmlFor="whatsapp_number" className="text-xs">
               Numéro WhatsApp (paiement)
             </Label>
-            <Input id="whatsapp_number" name="whatsapp_number" defaultValue={settings.whatsapp_number} placeholder="213xxxxxxxxx" maxLength={30} />
-            <p className="text-[11px] text-muted-foreground">Format international, ex : 213770123456</p>
+            <Input
+              id="whatsapp_number"
+              name="whatsapp_number"
+              defaultValue={settings.whatsapp_number}
+              placeholder="33xxxxxxxxx"
+              maxLength={30}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Numéro français, format international, ex : 33612345678
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ccp_number" className="text-xs">
               Numéro CCP
             </Label>
             <Input id="ccp_number" name="ccp_number" defaultValue={settings.ccp_number} placeholder="0012345678" maxLength={50} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ccp_key" className="text-xs">
-              Clé CCP
-            </Label>
-            <Input id="ccp_key" name="ccp_key" defaultValue={settings.ccp_key} placeholder="45" maxLength={20} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ccp_name" className="text-xs">

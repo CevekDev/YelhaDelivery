@@ -399,12 +399,6 @@ Voici ma preuve de paiement (je joins la capture).`;
                 <dt className="text-muted-foreground">N° CCP</dt>
                 <dd className="font-mono font-semibold">{settings.ccp_number}</dd>
               </div>
-              {settings.ccp_key && (
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Clé</dt>
-                  <dd className="font-mono font-semibold">{settings.ccp_key}</dd>
-                </div>
-              )}
               {settings.ccp_name && (
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">Titulaire</dt>
