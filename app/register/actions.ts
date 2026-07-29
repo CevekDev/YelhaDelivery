@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { revalidateTag } from 'next/cache';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { restaurateurRegisterSchema } from '@/lib/validators/register';
 import { checkSignupRateLimit } from '@/lib/rate-limit';
@@ -99,16 +100,16 @@ export async function registerRestaurateurAction(
     return { error: profileErr.message };
   }
 
-  // Restaurant créé en "pending" (en attente) — INVISIBLE publiquement tant qu'un
-  // admin ne l'a pas activé depuis /admin/restaurants. Le restaurateur peut déjà
-  // préparer son menu et sa page dans /dashboard ; le site ne devient live qu'à
-  // l'activation.
+  // Restaurant créé directement ACTIF : plus d'approbation admin à l'inscription.
+  // Le site est en ligne immédiatement (l'essai gratuit démarre maintenant), mais
+  // reste "fermé" (is_open: false) tant que le restaurateur ne l'a pas ouvert —
+  // il configure son menu puis passe en ligne quand il est prêt.
   const { error: restErr } = await admin.from('restaurants').insert({
     owner_id: created.user.id,
     name: parsed.data.restaurant_name,
     slug: parsed.data.slug,
     phone: parsed.data.owner_phone || null,
-    status: 'pending',
+    status: 'active',
     is_open: false,
     accept_orders: true,
   });
@@ -117,6 +118,9 @@ export async function registerRestaurateurAction(
     await admin.auth.admin.deleteUser(created.user.id);
     return { error: restErr.message };
   }
+
+  // Le resto est actif immédiatement → rafraîchir la vitrine de la landing.
+  revalidateTag('demo-restaurant');
 
   // 5. Email de bienvenue (best-effort)
   void sendRestaurateurWelcome({
@@ -137,5 +141,5 @@ export async function registerRestaurateurAction(
     redirect('/login?created=1');
   }
 
-  redirect('/dashboard?pending=1');
+  redirect('/dashboard?welcome=1');
 }
