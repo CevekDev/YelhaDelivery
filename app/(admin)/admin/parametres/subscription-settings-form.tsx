@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { updatePlatformSettingsAction, updateSubscriptionPlanAction } from './actions';
+import { toast } from '@/stores/toast';
 import type { PlatformSettings, SubscriptionPlan } from '@/types/database';
 
 function Feedback({ error, success }: { error?: string | null; success?: string | null }) {
@@ -78,9 +79,11 @@ function PlanCard({ plan, onDone }: { plan: SubscriptionPlan; onDone: () => void
           const res = await updateSubscriptionPlanAction(fd);
           if (res.ok) {
             setSuccess('Enregistré');
+            toast.success(res.success ?? 'Offre enregistrée ✓');
             onDone();
           } else {
             setError(res.error ?? 'Erreur.');
+            toast.error(res.error ?? 'Erreur.');
           }
         })
       }
@@ -167,9 +170,11 @@ function GeneralForm({ settings, onDone }: { settings: PlatformSettings; onDone:
             const res = await updatePlatformSettingsAction(fd);
             if (res.ok) {
               setSuccess(res.success ?? 'Enregistré.');
+              toast.success(res.success ?? 'Enregistré ✓');
               onDone();
             } else {
               setError(res.error ?? 'Erreur.');
+              toast.error(res.error ?? 'Erreur.');
             }
           })
         }

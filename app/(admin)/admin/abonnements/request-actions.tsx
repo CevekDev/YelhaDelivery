@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/stores/toast';
 import {
   approveSubscriptionRequestAction,
   rejectSubscriptionRequestAction,
@@ -22,8 +23,13 @@ export function SubscriptionRequestActions({ id }: { id: string }) {
       const fd = new FormData();
       fd.set('id', id);
       const res = await approveSubscriptionRequestAction(fd);
-      if (!res.ok) setError(res.error ?? 'Erreur');
-      else router.refresh();
+      if (!res.ok) {
+        setError(res.error ?? 'Erreur');
+        toast.error(res.error ?? 'Erreur');
+      } else {
+        toast.success('Abonnement validé — accès activé.');
+        router.refresh();
+      }
     });
   }
 
@@ -34,8 +40,13 @@ export function SubscriptionRequestActions({ id }: { id: string }) {
       fd.set('id', id);
       fd.set('note', note);
       const res = await rejectSubscriptionRequestAction(fd);
-      if (!res.ok) setError(res.error ?? 'Erreur');
-      else router.refresh();
+      if (!res.ok) {
+        setError(res.error ?? 'Erreur');
+        toast.error(res.error ?? 'Erreur');
+      } else {
+        toast.info('Demande refusée.');
+        router.refresh();
+      }
     });
   }
 

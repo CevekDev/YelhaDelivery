@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { livreurUpdateOrderAction } from './actions';
+import { toast } from '@/stores/toast';
 import type { OrderStatus } from '@/types/database';
 
 export function LivreurActions({ orderId, status }: { orderId: string; status: OrderStatus }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +27,14 @@ export function LivreurActions({ orderId, status }: { orderId: string; status: O
           fd.set('order_id', orderId);
           fd.set('next_status', nextStatus);
           const res = await livreurUpdateOrderAction(fd);
-          setError(res.ok ? null : res.error ?? 'Action impossible');
+          if (res.ok) {
+            setError(null);
+            toast.success(nextStatus === 'delivered' ? 'Commande livrée ✓' : 'Livraison démarrée');
+            router.refresh();
+          } else {
+            setError(res.error ?? 'Action impossible');
+            toast.error(res.error ?? 'Action impossible');
+          }
         })
       }
     >

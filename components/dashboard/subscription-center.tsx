@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatPrice } from '@/lib/utils';
 import { buildWhatsAppLink, computePlanPrice, SUBSCRIPTION_PERIODS } from '@/lib/subscription';
+import { toast } from '@/stores/toast';
 import type {
   PlatformSettings,
   SubscriptionPlan,
@@ -88,8 +89,10 @@ export function SubscriptionCenter({
       const res = await requestSubscriptionAction(fd);
       if (!res.ok) {
         setError(res.error ?? 'Une erreur est survenue.');
+        toast.error(res.error ?? 'Une erreur est survenue.');
       } else {
         setSelectedPlanId(null);
+        toast.success('Demande envoyée ! Nous la validons après vérification.');
         router.refresh();
       }
     });
@@ -99,7 +102,8 @@ export function SubscriptionCenter({
     startTransition(async () => {
       const fd = new FormData();
       fd.set('id', id);
-      await cancelSubscriptionRequestAction(fd);
+      const res = await cancelSubscriptionRequestAction(fd);
+      if (res.ok) toast.info('Demande annulée.');
       router.refresh();
     });
   }

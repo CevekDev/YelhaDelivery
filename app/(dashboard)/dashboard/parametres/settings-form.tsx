@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { generateSlug } from '@/lib/utils';
 import { updateRestaurantAction } from './actions';
+import { toast } from '@/stores/toast';
 import type { Restaurant } from '@/types/database';
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) {
@@ -34,9 +35,11 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
           if (!res.ok) {
             setError(res.error ?? null);
             setFieldErrors(res.fieldErrors ?? {});
+            if (res.error) toast.error(res.error);
           } else {
             setSuccess(true);
             setRemoveBanner(false);
+            toast.success(restaurant ? 'Paramètres enregistrés ✓' : 'Restaurant créé ✓');
             router.refresh();
           }
         })
