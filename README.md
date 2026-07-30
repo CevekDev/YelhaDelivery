@@ -2,8 +2,8 @@
 
 > Plateforme SaaS de gestion de livraison pour restaurants algériens.
 
-**Site de production** : https://yelha-delivery.vercel.app  
-_(domaine custom `delivery.yelha.net` : DNS à finaliser côté registrar — voir section déploiement)_
+**Site de production** : https://delivery.yelha.net  
+_(l'ancienne URL `yelha-delivery.vercel.app` redirige automatiquement vers le domaine custom)_
 **Stack** : Next.js 15 · TypeScript strict · Supabase · Tailwind · Resend
 
 ---
@@ -47,11 +47,13 @@ pnpm install
 
 ### 3. Appliquer les migrations SQL
 
-Dans Supabase Dashboard → **SQL Editor** → **New query**, exécute dans l'ordre :
+Dans Supabase Dashboard → **SQL Editor** → **New query**, exécute **dans l'ordre chronologique** tous les fichiers de [`supabase/migrations/`](supabase/migrations/) (19 migrations, de `20260101…_initial_schema.sql` à `20260120…_subscriptions.sql`). Chaque fichier est idempotent.
 
-1. [`supabase/migrations/20260101000000_initial_schema.sql`](supabase/migrations/20260101000000_initial_schema.sql) — schéma + RLS + storage
-2. [`supabase/migrations/20260102000000_public_order_lookup.sql`](supabase/migrations/20260102000000_public_order_lookup.sql) — RPCs `place_order`, `get_public_order`
-3. (Optionnel) [`supabase/seed.sql`](supabase/seed.sql) — restaurant + menu de démo
+> 💡 Alternative automatisée : `node scripts/db-apply.mjs <fichier.sql>` applique un fichier via une connexion Postgres directe (nécessite `DATABASE_URL` ou `PG*` dans `.env.local`). Le suivi est enregistré dans la table `public._migrations`.
+
+Points clés du schéma : RLS + storage (`…_initial_schema`), RPCs `place_order` / `get_public_order` (`…_public_order_lookup`), builder de site (`…_website_builder`), abonnements (`…_subscriptions`).
+
+Optionnel : [`supabase/seed.sql`](supabase/seed.sql) — restaurant + menu de démo.
 
 ### 4. Créer le compte super admin
 
