@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BadgeCheck,
@@ -74,6 +74,17 @@ export function SubscriptionCenter({
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const purchaseRef = useRef<HTMLDivElement>(null);
+
+  // Quand une offre est sélectionnée, défile vers la section de paiement.
+  useEffect(() => {
+    if (selectedPlanId) {
+      // Laisse le panneau se monter avant de défiler.
+      requestAnimationFrame(() => {
+        purchaseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [selectedPlanId]);
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
   const quote = useMemo(
@@ -163,17 +174,19 @@ export function SubscriptionCenter({
               </div>
 
               {selectedPlan && quote && (
-                <PurchasePanel
-                  plan={selectedPlan}
-                  quote={quote}
-                  months={months}
-                  settings={settings}
-                  restaurantName={restaurantName}
-                  paymentConfigured={paymentConfigured}
-                  onSubmit={onSubmit}
-                  busy={isPending}
-                  error={error}
-                />
+                <div ref={purchaseRef} className="scroll-mt-4">
+                  <PurchasePanel
+                    plan={selectedPlan}
+                    quote={quote}
+                    months={months}
+                    settings={settings}
+                    restaurantName={restaurantName}
+                    paymentConfigured={paymentConfigured}
+                    onSubmit={onSubmit}
+                    busy={isPending}
+                    error={error}
+                  />
+                </div>
               )}
             </>
           )}

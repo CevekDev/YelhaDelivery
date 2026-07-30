@@ -16,7 +16,6 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
   const [name, setName] = useState(restaurant?.name ?? '');
   const [slug, setSlug] = useState(restaurant?.slug ?? '');
@@ -28,7 +27,6 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
       action={(fd) =>
         startTransition(async () => {
           setError(null);
-          setSuccess(false);
           setFieldErrors({});
           if (removeBanner) fd.set('remove_banner_image', 'true');
           const res = await updateRestaurantAction(fd);
@@ -37,7 +35,6 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
             setFieldErrors(res.fieldErrors ?? {});
             if (res.error) toast.error(res.error);
           } else {
-            setSuccess(true);
             setRemoveBanner(false);
             toast.success(restaurant ? 'Paramètres enregistrés ✓' : 'Restaurant créé ✓');
             router.refresh();
@@ -285,15 +282,6 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
           {error}
         </div>
       )}
-      {success && (
-        <div
-          role="status"
-          className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
-        >
-          ✓ Paramètres enregistrés.
-        </div>
-      )}
-
       <Button type="submit" size="lg" disabled={isPending}>
         {isPending ? 'Enregistrement…' : restaurant ? 'Enregistrer' : 'Créer mon restaurant'}
       </Button>

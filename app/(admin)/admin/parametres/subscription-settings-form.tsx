@@ -11,17 +11,14 @@ import { updatePlatformSettingsAction, updateSubscriptionPlanAction } from './ac
 import { toast } from '@/stores/toast';
 import type { PlatformSettings, SubscriptionPlan } from '@/types/database';
 
-function Feedback({ error, success }: { error?: string | null; success?: string | null }) {
+// Le succès est signalé par un toast global → on n'affiche inline que les erreurs
+// (le `success` reste accepté pour compat mais n'est plus rendu, pour éviter le
+// doublon message inline + toast).
+function Feedback({ error }: { error?: string | null; success?: string | null }) {
   if (error)
     return (
       <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
         {error}
-      </p>
-    );
-  if (success)
-    return (
-      <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success">
-        ✓ {success}
       </p>
     );
   return null;
