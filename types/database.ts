@@ -81,6 +81,8 @@ export interface SiteConfig {
   gallery?: string[];
   /** Bloc contact / infos pratiques. */
   contact_intro?: string;
+  /** Lien Google Maps de la position du restaurant (carte + itinéraire). */
+  map_url?: string;
   /** Liens réseaux sociaux. */
   social?: {
     facebook?: string;

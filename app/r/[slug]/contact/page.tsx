@@ -29,6 +29,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/** Extrait des coordonnées lat/lng d'un lien Google Maps (formats @, q=, !3d!4d, ll=). */
+function extractLatLng(url: string): { lat: string; lng: string } | null {
+  const patterns = [
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
+    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
+    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m) return { lat: m[1]!, lng: m[2]! };
+  }
+  return null;
+}
+
 export default async function ContactPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
@@ -53,8 +68,18 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
   const cfg = restaurant.site_config ?? {};
   const social = cfg.social ?? {};
   const fullAddress = [restaurant.address, restaurant.city].filter(Boolean).join(', ');
-  const mapsUrl = fullAddress
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${fullAddress}`)}`
+  const searchQuery = fullAddress ? `${restaurant.name} ${fullAddress}` : restaurant.name;
+  // Lien Google Maps précis fourni par le restaurateur (position exacte).
+  const mapUrl = cfg.map_url ?? null;
+  // Bouton « voir / itinéraire » : lien précis si fourni, sinon recherche par adresse.
+  const mapsUrl =
+    mapUrl ?? (fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}` : null);
+  // Carte intégrée (sans clé API) : coordonnées extraites du lien si possible,
+  // sinon requête par adresse.
+  const coords = mapUrl ? extractLatLng(mapUrl) : null;
+  const embedQuery = coords ? `${coords.lat},${coords.lng}` : fullAddress ? searchQuery : null;
+  const embedUrl = embedQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(embedQuery)}&z=16&output=embed`
     : null;
 
   return (
@@ -156,6 +181,37 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
         </div>
+
+        {/* Carte de localisation */}
+        {embedUrl && (
+          <div className="mt-6 overflow-hidden rounded-[var(--site-radius)] border border-[var(--site-border)] bg-[var(--site-surface)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--site-border)] px-5 py-4">
+              <h2 className="flex items-center gap-2 font-[family-name:var(--font-site-heading)] text-xl font-bold">
+                <MapPin className="h-5 w-5 text-[color:var(--site-accent)]" />
+                Où nous trouver
+              </h2>
+              {mapsUrl && (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-[var(--site-radius)] bg-[var(--site-accent)] px-4 py-2 text-sm font-bold text-[color:var(--site-accent-fg)] transition-opacity hover:opacity-90"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Itinéraire
+                </a>
+              )}
+            </div>
+            <iframe
+              src={embedUrl}
+              title={`Localisation de ${restaurant.name}`}
+              className="h-[360px] w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
+        )}
       </main>
     </SiteShell>
   );

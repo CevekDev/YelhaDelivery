@@ -21,8 +21,10 @@ const cspDirectives = [
   `img-src 'self' data: blob: https://${supabaseWsHost} https://*.r2.dev https://images.unsplash.com ${process.env.R2_PUBLIC_URL || ''}`,
   // API calls : supabase + self
   `connect-src 'self' https://${supabaseWsHost} wss://${supabaseWsHost}`,
-  // Objets/iframes interdits
+  // Objets interdits
   "object-src 'none'",
+  // Iframes autorisées : carte Google Maps (embed) sur la page contact.
+  "frame-src https://www.google.com https://maps.google.com",
   // 'self' (et non 'none') : autorise l'aperçu du site en iframe MÊME ORIGINE
   // (dashboard → /site-preview) tout en bloquant tout framing cross-origin.
   "frame-ancestors 'self'",

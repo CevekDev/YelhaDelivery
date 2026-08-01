@@ -16,6 +16,33 @@ export function slugify(input: string): string {
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(''));
 const optionalUrl = z.string().trim().url('URL invalide').max(500).optional().or(z.literal(''));
 
+/** Vrai si l'URL est un lien Google Maps en https (google.com/.cc, goo.gl, maps.app.goo.gl). */
+export function isGoogleMapsUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    if (u.protocol !== 'https:') return false;
+    const h = u.hostname.toLowerCase();
+    return (
+      h === 'goo.gl' ||
+      h.endsWith('.goo.gl') ||
+      h === 'google.com' ||
+      h.endsWith('.google.com') ||
+      /(^|\.)google\.[a-z.]+$/.test(h)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Lien Google Maps optionnel (vide autorisé). */
+const optionalMapUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .optional()
+  .or(z.literal(''))
+  .refine((v) => !v || isGoogleMapsUrl(v), 'Entrez un lien Google Maps valide (https://…google…).');
+
 /** Sélection d'un template (1..7) + bascules de pages. */
 export const siteSettingsSchema = z.object({
   template_id: z.coerce.number().int().min(1).max(8),
@@ -32,6 +59,7 @@ export const siteContentSchema = z.object({
   about_title: optionalText(120),
   about_text: optionalText(2000),
   contact_intro: optionalText(500),
+  map_url: optionalMapUrl,
   facebook: optionalUrl,
   instagram: optionalUrl,
   tiktok: optionalUrl,

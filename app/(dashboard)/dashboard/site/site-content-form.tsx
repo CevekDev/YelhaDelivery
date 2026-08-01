@@ -110,6 +110,26 @@ export function SiteContentForm({ config }: { config: SiteConfig }) {
           <Label htmlFor="contact_intro">Texte d’intro (page contact)</Label>
           <Textarea id="contact_intro" name="contact_intro" maxLength={500} rows={2} defaultValue={config.contact_intro ?? ''} placeholder="Une question, une envie ? Nous vous accueillons et vous livrons." />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="map_url">Localisation Google Maps</Label>
+          <Input
+            id="map_url"
+            name="map_url"
+            type="url"
+            maxLength={500}
+            defaultValue={config.map_url ?? ''}
+            placeholder="https://maps.app.goo.gl/…"
+          />
+          {fieldErrors.map_url ? (
+            <p className="text-xs text-destructive">{fieldErrors.map_url}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Ouvrez Google Maps, trouvez votre restaurant, puis « Partager → Copier le lien » (ou
+              copiez l’URL depuis la barre d’adresse pour une carte plus précise). Une carte et un
+              bouton « Itinéraire » s’afficheront sur votre page contact.
+            </p>
+          )}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <SocialInput name="facebook" label="Facebook (URL)" value={social.facebook} error={fieldErrors.facebook} />
           <SocialInput name="instagram" label="Instagram (URL)" value={social.instagram} error={fieldErrors.instagram} />
