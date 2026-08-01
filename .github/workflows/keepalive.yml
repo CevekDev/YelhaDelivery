@@ -23,11 +23,13 @@ jobs:
       - name: Ping /api/health
         run: |
           BASE="${{ vars.PROD_URL }}"
-          if [ -z "$BASE" ]; then BASE="https://yelha-delivery.vercel.app"; fi
+          if [ -z "$BASE" ]; then BASE="https://delivery.yelha.net"; fi
           URL="${BASE%/}/api/health"
           echo "Ping $URL"
           for i in 1 2 3 4 5; do
-            code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 30 "$URL" || echo "000")
+            # -L : suit les redirections (l'ancienne URL .vercel.app redirige en
+            # 307 vers le domaine custom → sans -L, curl renvoie 307 et non 200).
+            code=$(curl -sL -o /tmp/body -w "%{http_code}" --max-time 30 "$URL" || echo "000")
             echo "tentative $i → HTTP $code"
             cat /tmp/body 2>/dev/null; echo
             if [ "$code" = "200" ]; then exit 0; fi
