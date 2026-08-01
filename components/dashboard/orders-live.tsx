@@ -11,9 +11,13 @@ import {
   RESTAURATEUR_TRANSITIONS,
 } from '@/lib/order-status';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
-import { assignDriverAction, updateOrderStatusAction } from '@/app/(dashboard)/dashboard/commandes/actions';
+import {
+  assignDriverAction,
+  setDeliveryFeeAction,
+  updateOrderStatusAction,
+} from '@/app/(dashboard)/dashboard/commandes/actions';
 import type { Order, OrderStatus, Profile } from '@/types/database';
-import { X } from 'lucide-react';
+import { Check, Truck, X } from 'lucide-react';
 
 interface Props {
   restaurantId: string;
@@ -140,6 +144,93 @@ export function OrdersLive({ restaurantId, initialOrders, drivers }: Props) {
   );
 }
 
+function DeliveryFeeControl({
+  order,
+  disabled,
+  startTransition,
+  patchOrder,
+}: {
+  order: Order;
+  disabled: boolean;
+  startTransition: (cb: () => void) => void;
+  patchOrder: (id: string, patch: Partial<Order>) => void;
+}) {
+  const isSet = order.delivery_fee_set_at != null;
+  const [fee, setFee] = useState<string>(isSet ? String(order.delivery_fee) : '');
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = () => {
+    const value = Number(fee);
+    if (!Number.isFinite(value) || value < 0) {
+      setError('Montant invalide');
+      return;
+    }
+    const fd = new FormData();
+    fd.set('order_id', order.id);
+    fd.set('delivery_fee', String(value));
+    startTransition(async () => {
+      const res = await setDeliveryFeeAction(fd);
+      if (!res.ok) {
+        setError(res.error ?? 'Action impossible');
+        return;
+      }
+      setError(null);
+      const newTotal =
+        Math.max(0, order.subtotal - order.discount_amount) + value;
+      patchOrder(order.id, {
+        delivery_fee: value,
+        delivery_fee_set_at: new Date().toISOString(),
+        total: newTotal,
+      });
+    });
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-input/40 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Truck className="h-3.5 w-3.5" />
+          Prix de livraison
+        </span>
+        {isSet ? (
+          <span className="flex items-center gap-1 text-xs font-semibold text-success">
+            <Check className="h-3.5 w-3.5" />
+            Fixé · {formatPrice(order.delivery_fee)}
+          </span>
+        ) : (
+          <span className="text-xs font-semibold text-warning">À définir</span>
+        )}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={10}
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            placeholder="Ex: 200"
+            className="h-9 w-full rounded-md border border-border bg-input px-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+            DA
+          </span>
+        </div>
+        <Button type="button" size="sm" disabled={disabled} onClick={submit}>
+          {isSet ? 'Modifier' : 'Fixer'}
+        </Button>
+      </div>
+      {!isSet && (
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Le client verra ce montant et le nouveau total sur sa page de suivi.
+        </p>
+      )}
+      {error && <p className="mt-1.5 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 function OrderCard({
   order,
   drivers,
@@ -225,6 +316,16 @@ function OrderCard({
               <p className="font-display text-lg font-bold">{formatPrice(order.total)}</p>
             </div>
           </div>
+
+          {/* Prix de livraison (saisi par le restaurateur) */}
+          {!['delivered', 'cancelled'].includes(order.status) && (
+            <DeliveryFeeControl
+              order={order}
+              disabled={disabled}
+              startTransition={startTransition}
+              patchOrder={patchOrder}
+            />
+          )}
 
           {/* Actions */}
           {!['delivered', 'cancelled'].includes(order.status) && (

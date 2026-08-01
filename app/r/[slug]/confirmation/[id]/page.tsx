@@ -27,6 +27,7 @@ interface PublicOrder {
   promo_code: string | null;
   total: number;
   estimated_delivery_time: number;
+  delivery_fee_set_at: string | null;
 }
 
 interface PublicOrderItem {
@@ -176,7 +177,9 @@ export default async function ConfirmationPage({
               <div className="flex justify-between text-[color:var(--site-muted)]">
                 <span>Livraison</span>
                 <span className="tabular-nums">
-                  {Number(order.delivery_fee) === 0 ? (
+                  {order.delivery_fee_set_at == null ? (
+                    <span className="font-medium text-[color:var(--site-accent)]">À confirmer</span>
+                  ) : Number(order.delivery_fee) === 0 ? (
                     <span className="font-semibold text-success">Offerte</span>
                   ) : (
                     formatPrice(order.delivery_fee)
@@ -191,7 +194,16 @@ export default async function ConfirmationPage({
             <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-[var(--site-accent)] bg-[var(--site-accent)]/5 p-3 text-sm text-[color:var(--site-text)]">
               <Banknote className="h-5 w-5 shrink-0 text-[color:var(--site-accent)]" />
               <span>
-                <strong>Payez {formatPrice(order.total)}</strong> en espèces à la livraison.
+                {order.delivery_fee_set_at == null ? (
+                  <>
+                    Le restaurant va confirmer les <strong>frais de livraison</strong>. Suivez votre
+                    commande pour voir le total final à payer en espèces.
+                  </>
+                ) : (
+                  <>
+                    <strong>Payez {formatPrice(order.total)}</strong> en espèces à la livraison.
+                  </>
+                )}
               </span>
             </div>
           </div>

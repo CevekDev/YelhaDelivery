@@ -15,10 +15,14 @@ interface PublicOrder {
   status: OrderStatus;
   customer_name: string;
   customer_address: string;
+  subtotal: number;
+  delivery_fee: number;
+  discount_amount: number;
   total: number;
   created_at: string;
   estimated_delivery_time: number;
   cancellation_reason: string | null;
+  delivery_fee_set_at: string | null;
 }
 
 export default async function SuiviPage({

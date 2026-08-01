@@ -27,6 +27,11 @@ const assignSchema = z.object({
   driver_id: z.string().uuid(),
 });
 
+const deliveryFeeSchema = z.object({
+  order_id: z.string().uuid(),
+  delivery_fee: z.coerce.number().min(0).max(100000),
+});
+
 export interface ActionResult {
   ok: boolean;
   error?: string;
@@ -77,6 +82,60 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
   if (error) return { ok: false, error: error.message };
 
   revalidatePath('/dashboard');
+  revalidatePath('/dashboard/commandes');
+  return { ok: true };
+}
+
+/**
+ * Fixe (ou met à jour) le prix de livraison d'une commande, saisi manuellement
+ * par le restaurateur — le montant dépend en général du quartier du client.
+ * Recalcule le total (sous-total − remise + livraison) et marque
+ * delivery_fee_set_at, ce qui déclenche l'affichage côté client (page de suivi).
+ * RLS : seul le restaurateur propriétaire peut modifier ses commandes.
+ */
+export async function setDeliveryFeeAction(formData: FormData): Promise<ActionResult> {
+  const { restaurant } = await requireRestaurateur();
+  const parsed = deliveryFeeSchema.safeParse({
+    order_id: formData.get('order_id'),
+    delivery_fee: formData.get('delivery_fee'),
+  });
+  if (!parsed.success) return { ok: false, error: 'Montant invalide' };
+
+  const supabase = await createClient();
+
+  const { data: current } = await supabase
+    .from('orders')
+    .select('status, restaurant_id, subtotal, discount_amount')
+    .eq('id', parsed.data.order_id)
+    .maybeSingle<{
+      status: OrderStatus;
+      restaurant_id: string;
+      subtotal: number;
+      discount_amount: number;
+    }>();
+
+  if (!current || current.restaurant_id !== restaurant.id) {
+    return { ok: false, error: 'Commande introuvable' };
+  }
+  if (current.status === 'delivered' || current.status === 'cancelled') {
+    return { ok: false, error: 'Commande clôturée' };
+  }
+
+  const fee = parsed.data.delivery_fee;
+  const total = Math.max(0, Number(current.subtotal) - Number(current.discount_amount)) + fee;
+
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      delivery_fee: fee,
+      delivery_fee_set_at: new Date().toISOString(),
+      total,
+    })
+    .eq('id', parsed.data.order_id)
+    .eq('restaurant_id', restaurant.id);
+
+  if (error) return { ok: false, error: error.message };
+
   revalidatePath('/dashboard/commandes');
   return { ok: true };
 }

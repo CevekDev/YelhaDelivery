@@ -24,11 +24,9 @@ interface Props {
 export function CheckoutClient({
   slug,
   restaurantName,
-  deliveryFee: baseDeliveryFee,
   minOrder,
   canOrder,
   estimatedDeliveryTime,
-  freeDeliveryAbove,
 }: Props) {
   // Le slug est lié côté serveur (non falsifiable par le client)
   const placeOrderAction = _placeOrderAction.bind(null, slug);
@@ -59,15 +57,14 @@ export function CheckoutClient({
 
   const relevant = cartSlug === slug ? lines : [];
   const subtotal = relevant.reduce((s, l) => s + l.price * l.quantity, 0);
-  const isFreeDelivery = freeDeliveryAbove != null && subtotal >= freeDeliveryAbove;
-  const deliveryFee = isFreeDelivery ? 0 : baseDeliveryFee;
   const discount = appliedPromo ? Math.min(appliedPromo.discount, subtotal) : 0;
-  const total = Math.max(0, subtotal - discount) + deliveryFee;
+  // Frais de livraison « à confirmer » : fixés par le restaurateur quand la
+  // commande arrive (dépend du quartier). Le total affiché ici n'inclut donc
+  // pas la livraison — le client verra le total final sur sa page de suivi.
+  const total = Math.max(0, subtotal - discount);
   const empty = relevant.length === 0;
   const belowMin = subtotal < minOrder;
   const itemsCount = relevant.reduce((n, l) => n + l.quantity, 0);
-  const remainingForFree =
-    freeDeliveryAbove != null && !isFreeDelivery ? freeDeliveryAbove - subtotal : 0;
 
   const handleApplyPromo = () => {
     startPromoTransition(async () => {
@@ -254,8 +251,8 @@ export function CheckoutClient({
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">Espèces à la livraison</p>
                     <p className="text-xs text-[color:var(--site-muted)]">
-                      Vous payez <strong>{formatPrice(total)}</strong> au livreur à la réception
-                      {isFreeDelivery && ' (livraison offerte)'}.
+                      Vous payez à la réception. Les frais de livraison seront confirmés par le
+                      restaurant et ajoutés au total.
                     </p>
                   </div>
                 </div>
@@ -398,13 +395,6 @@ export function CheckoutClient({
                     </div>
                   )}
 
-                  {remainingForFree > 0 && (
-                    <div className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
-                      🎁 Encore <strong>{formatPrice(remainingForFree)}</strong> et la livraison
-                      vous est offerte !
-                    </div>
-                  )}
-
                   <div className="space-y-1.5 border-t border-[var(--site-border)] pt-3">
                     <div className="flex justify-between text-[color:var(--site-muted)]">
                       <span>Sous-total</span>
@@ -418,22 +408,17 @@ export function CheckoutClient({
                     )}
                     <div className="flex justify-between text-[color:var(--site-muted)]">
                       <span>Frais de livraison</span>
-                      {isFreeDelivery ? (
-                        <span className="font-semibold text-success">
-                          <span className="line-through opacity-50">
-                            {formatPrice(baseDeliveryFee)}
-                          </span>{' '}
-                          Offerte
-                        </span>
-                      ) : (
-                        <span className="tabular-nums">{formatPrice(deliveryFee)}</span>
-                      )}
+                      <span className="font-medium text-[color:var(--site-accent)]">À confirmer</span>
                     </div>
                   </div>
                   <div className="flex justify-between border-t border-[var(--site-border)] pt-3 font-[family-name:var(--font-site-heading)] text-base font-bold">
                     <span>Total</span>
                     <span className="tabular-nums">{formatPrice(total)}</span>
                   </div>
+                  <p className="text-[11px] text-[color:var(--site-muted)]">
+                    Les frais de livraison seront confirmés par le restaurant selon votre adresse,
+                    puis ajoutés à ce total sur votre page de suivi.
+                  </p>
                   {!canOrder && (
                     <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                       Ce restaurant est actuellement fermé et n’accepte pas de commande pour le

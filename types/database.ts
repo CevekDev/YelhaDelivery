@@ -196,9 +196,13 @@ export interface Order {
   payment_method: 'cash';
   subtotal: number;
   delivery_fee: number;
+  /** Horodatage où le restaurateur a fixé le prix de livraison. null = « à confirmer ». */
+  delivery_fee_set_at: string | null;
   total: number;
   notes: string | null;
   cancellation_reason: string | null;
+  /** Qui a annulé la commande (le cas échéant). */
+  cancelled_by: 'customer' | 'restaurant' | 'admin' | null;
   estimated_delivery_time: number;
   created_at: string;
   updated_at: string;

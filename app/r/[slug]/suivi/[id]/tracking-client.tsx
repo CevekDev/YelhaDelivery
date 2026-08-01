@@ -16,7 +16,7 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
-import { submitReviewAction } from './actions';
+import { cancelPublicOrderAction, submitReviewAction } from './actions';
 import type { OrderStatus } from '@/types/database';
 
 interface PublicOrder {
@@ -27,10 +27,14 @@ interface PublicOrder {
   status: OrderStatus;
   customer_name: string;
   customer_address: string;
+  subtotal: number;
+  delivery_fee: number;
+  discount_amount: number;
   total: number;
   created_at: string;
   estimated_delivery_time: number;
   cancellation_reason: string | null;
+  delivery_fee_set_at: string | null;
 }
 
 const STEPS: { key: OrderStatus; label: string; icon: typeof Check }[] = [
@@ -123,6 +127,9 @@ function ReviewForm({ orderId }: { orderId: string }) {
 export function TrackingClient({ slug, initial }: { slug: string; initial: PublicOrder }) {
   const [order, setOrder] = useState<PublicOrder>(initial);
   const [now, setNow] = useState(Date.now());
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCancelling, startCancel] = useTransition();
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
@@ -143,6 +150,23 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
   const stepIndex = STEPS.findIndex((s) => s.key === order.status);
   const isCancelled = order.status === 'cancelled';
   const isDelivered = order.status === 'delivered';
+
+  // Le client peut annuler tant que la commande n'est pas en préparation.
+  const canCancel = order.status === 'pending' || order.status === 'confirmed';
+  const feeSet = order.delivery_fee_set_at != null;
+
+  const handleCancel = () => {
+    startCancel(async () => {
+      setCancelError(null);
+      const res = await cancelPublicOrderAction(order.id);
+      if (res.ok) {
+        setOrder((o) => ({ ...o, status: 'cancelled', cancellation_reason: 'Annulée par le client' }));
+        setCancelOpen(false);
+      } else {
+        setCancelError(res.reason ?? "Impossible d'annuler la commande.");
+      }
+    });
+  };
 
   const createdMs = new Date(order.created_at).getTime();
   const etaMs = createdMs + order.estimated_delivery_time * 60_000;
@@ -281,6 +305,39 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
           </div>
         )}
 
+        {/* Frais de livraison fixés → le client valide (en ne faisant rien) ou annule */}
+        {canCancel && feeSet && (
+          <div className="rounded-2xl border border-[var(--site-accent)]/40 bg-[var(--site-accent)]/10 p-5">
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4 text-[color:var(--site-accent)]" />
+              <p className="font-[family-name:var(--font-site-heading)] text-base font-bold text-[color:var(--site-text)]">
+                Frais de livraison confirmés
+              </p>
+            </div>
+            <p className="mt-2 text-sm text-[color:var(--site-muted)]">
+              Le restaurant a fixé la livraison à{' '}
+              <span className="font-semibold text-[color:var(--site-text)]">
+                {formatPrice(order.delivery_fee)}
+              </span>
+              , soit un total de{' '}
+              <span className="font-semibold text-[color:var(--site-text)]">
+                {formatPrice(order.total)}
+              </span>
+              . Si cela vous convient, vous n&apos;avez rien à faire — votre commande suit son cours.
+            </p>
+          </div>
+        )}
+
+        {/* En attente du prix de livraison */}
+        {canCancel && !feeSet && (
+          <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5">
+            <p className="flex items-center gap-1.5 text-sm text-[color:var(--site-muted)]">
+              <Clock className="h-4 w-4" />
+              Le restaurant va confirmer les frais de livraison. Le total final s&apos;affichera ici.
+            </p>
+          </div>
+        )}
+
         {/* Détails */}
         <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 ">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--site-muted)]">
@@ -292,6 +349,24 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
               <span className="text-right font-medium">{order.customer_address}</span>
             </p>
             <p className="flex items-center justify-between">
+              <span className="text-[color:var(--site-muted)]">Sous-total</span>
+              <span className="tabular-nums">{formatPrice(order.subtotal)}</span>
+            </p>
+            {order.discount_amount > 0 && (
+              <p className="flex items-center justify-between text-success">
+                <span>Réduction</span>
+                <span className="tabular-nums">−{formatPrice(order.discount_amount)}</span>
+              </p>
+            )}
+            <p className="flex items-center justify-between">
+              <span className="text-[color:var(--site-muted)]">Frais de livraison</span>
+              {feeSet ? (
+                <span className="tabular-nums">{formatPrice(order.delivery_fee)}</span>
+              ) : (
+                <span className="font-medium text-[color:var(--site-accent)]">À confirmer</span>
+              )}
+            </p>
+            <p className="flex items-center justify-between border-t border-[var(--site-border)] pt-2">
               <span className="text-[color:var(--site-muted)]">Total à payer</span>
               <span className="font-[family-name:var(--font-site-heading)] text-base font-bold tabular-nums">
                 {formatPrice(order.total)}
@@ -305,6 +380,47 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
             )}
           </div>
         </div>
+
+        {/* Annulation par le client */}
+        {canCancel && (
+          <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5">
+            {cancelError && <p className="mb-3 text-xs text-destructive">{cancelError}</p>}
+            {!cancelOpen ? (
+              <button
+                type="button"
+                onClick={() => setCancelOpen(true)}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--site-radius)] border border-destructive/40 px-4 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <XCircle className="h-4 w-4" />
+                Annuler ma commande
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-[color:var(--site-text)]">
+                  Êtes-vous sûr de vouloir annuler cette commande ?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={isCancelling}
+                    onClick={handleCancel}
+                    className="flex h-11 flex-1 items-center justify-center rounded-[var(--site-radius)] bg-destructive px-4 text-sm font-bold text-destructive-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isCancelling ? 'Annulation…' : "Oui, annuler"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isCancelling}
+                    onClick={() => setCancelOpen(false)}
+                    className="flex h-11 flex-1 items-center justify-center rounded-[var(--site-radius)] border border-[var(--site-border)] px-4 text-sm font-semibold text-[color:var(--site-text)] transition-opacity hover:opacity-80"
+                  >
+                    Retour
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <Link
           href={`/r/${slug}/menu`}
