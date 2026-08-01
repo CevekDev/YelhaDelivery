@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { BottomNav, Sidebar } from '@/components/dashboard/sidebar';
 import { OpenToggle } from '@/components/dashboard/open-toggle';
+import { DeliveryToggle } from '@/components/dashboard/delivery-toggle';
 import { SubscriptionCenter } from '@/components/dashboard/subscription-center';
 import {
   computeSubscriptionState,
@@ -128,6 +129,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </span>
                 <OpenToggle isOpen={restaurant.is_open} />
               </div>
+              <div className="flex items-center gap-2">
+                <span className="hidden text-xs font-medium sm:inline">Livraison</span>
+                <DeliveryToggle accept={restaurant.accept_orders} />
+              </div>
             </div>
           )}
         </header>
@@ -169,7 +174,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         )}
         {restaurant && !restaurant.accept_orders && restaurant.is_open && (
           <div className="border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning md:px-6">
-            ⚠ Les commandes sont temporairement désactivées dans vos paramètres.
+            ⚠ Livraison en pause — votre menu reste visible mais les clients ne peuvent pas
+            commander. Réactivez-la avec l’interrupteur « Livraison » en haut à droite.
           </div>
         )}
 

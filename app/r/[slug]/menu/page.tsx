@@ -118,7 +118,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   const statusLabel = !restaurant.is_open
     ? 'Fermé'
     : !restaurant.accept_orders
-      ? 'Commandes désactivées'
+      ? 'Livraison en pause'
       : !openNow && (hours ?? []).length > 0
         ? 'Ouvert · Hors horaires habituels'
         : 'Ouvert';

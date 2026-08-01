@@ -136,3 +136,26 @@ export async function toggleOpenAction(formData: FormData): Promise<SettingsResu
   revalidatePath('/dashboard/parametres');
   return { ok: true };
 }
+
+/**
+ * Active / met en pause la prise de commandes (livraison) instantanément,
+ * sans fermer le restaurant : le site et le menu restent en ligne, mais le
+ * checkout est bloqué tant que la livraison est en pause.
+ */
+export async function toggleAcceptOrdersAction(formData: FormData): Promise<SettingsResult> {
+  const { profile } = await requireRole('restaurateur');
+  const accept = formData.get('accept_orders') === 'true';
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ accept_orders: !accept })
+    .eq('owner_id', profile.id)
+    .select('id, slug')
+    .maybeSingle<{ id: string; slug: string }>();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: 'Restaurant introuvable' };
+  revalidatePublicRestaurant(data.slug);
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/parametres');
+  return { ok: true };
+}
