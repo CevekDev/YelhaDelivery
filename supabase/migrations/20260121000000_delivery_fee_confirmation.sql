@@ -226,6 +226,9 @@ END;
 $function$;
 
 -- 3. get_public_order : expose delivery_fee_set_at ------------------------
+--    Nouvelle colonne dans le TABLE de retour → DROP requis (CREATE OR REPLACE
+--    ne peut pas changer le type de retour d'une fonction existante).
+DROP FUNCTION IF EXISTS public.get_public_order(uuid);
 CREATE OR REPLACE FUNCTION public.get_public_order(p_id uuid)
 RETURNS TABLE(
   id uuid, order_number text, restaurant_slug text, restaurant_name text,
