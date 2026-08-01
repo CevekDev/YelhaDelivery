@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getTemplate } from '@/lib/templates';
+import { getTemplate, templateSeoDefaults } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
 import { HomeView } from '@/components/site/home-view';
 import { restaurantMetadata, restaurantJsonLd, serializeJsonLd } from '@/lib/seo';
@@ -28,6 +28,7 @@ export default async function RestaurantHomePage({
 
   const template = getTemplate(restaurant.template_id);
 
+  const seoDefaults = templateSeoDefaults(restaurant.template_id);
   const jsonLd = restaurantJsonLd(
     {
       name: restaurant.name,
@@ -37,6 +38,8 @@ export default async function RestaurantHomePage({
       address: restaurant.address,
       phone: restaurant.phone,
       coverUrl: restaurant.cover_url,
+      cuisineType: restaurant.cuisine_type || seoDefaults.cuisine,
+      priceRange: restaurant.price_range || seoDefaults.priceRange,
     },
     { ratingValue: avgRating, reviewCount },
   );

@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "gen:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > types/database.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1057.0",

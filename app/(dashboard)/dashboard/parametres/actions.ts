@@ -32,6 +32,8 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     estimated_delivery_time: Number(formData.get('estimated_delivery_time')),
     is_open: formData.get('is_open') === 'true',
     accept_orders: formData.get('accept_orders') === 'true',
+    cuisine_type: formData.get('cuisine_type') ?? '',
+    price_range: formData.get('price_range') ?? '',
     banner_text: formData.get('banner_text') ?? '',
     free_delivery_above: freeDelivery && freeDelivery > 0 ? freeDelivery : undefined,
   });
@@ -82,6 +84,8 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     address: parsed.data.address || null,
     city: parsed.data.city || null,
     phone: parsed.data.phone || null,
+    cuisine_type: parsed.data.cuisine_type || null,
+    price_range: parsed.data.price_range || null,
     banner_text: parsed.data.banner_text || null,
     free_delivery_above: parsed.data.free_delivery_above ?? null,
   };

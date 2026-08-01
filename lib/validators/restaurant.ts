@@ -14,6 +14,8 @@ export const restaurantUpdateSchema = z
     estimated_delivery_time: z.number().int().min(5).max(240),
     is_open: z.boolean(),
     accept_orders: z.boolean(),
+    cuisine_type: z.string().trim().max(60).optional().or(z.literal('')),
+    price_range: z.enum(['$', '$$', '$$$', '$$$$']).optional().or(z.literal('')),
     banner_text: z.string().trim().max(200).optional().or(z.literal('')),
     // 0 = pas de seuil (livraison toujours payante)
     free_delivery_above: z

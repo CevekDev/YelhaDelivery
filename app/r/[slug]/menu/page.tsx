@@ -9,7 +9,7 @@ import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
 import type { MenuItem, MenuItemVariant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
 import { restaurantMetadata, restaurantJsonLd, serializeJsonLd } from '@/lib/seo';
-import { getTemplate } from '@/lib/templates';
+import { getTemplate, templateSeoDefaults } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
 import { getMenuData } from '@/lib/public-data';
 
@@ -125,6 +125,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
 
   const template = getTemplate(restaurant.template_id);
 
+  const seoDefaults = templateSeoDefaults(restaurant.template_id);
   const jsonLd = restaurantJsonLd(
     {
       name: restaurant.name,
@@ -134,6 +135,8 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       address: restaurant.address,
       phone: restaurant.phone,
       coverUrl: restaurant.cover_url,
+      cuisineType: restaurant.cuisine_type || seoDefaults.cuisine,
+      priceRange: restaurant.price_range || seoDefaults.priceRange,
     },
     { openingHours: hours ?? [], ratingValue: avgRating, reviewCount },
   );

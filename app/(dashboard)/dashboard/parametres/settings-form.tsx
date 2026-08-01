@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { generateSlug } from '@/lib/utils';
+import { templateSeoDefaults } from '@/lib/templates';
 import { updateRestaurantAction } from './actions';
 import { toast } from '@/stores/toast';
 import type { Restaurant } from '@/types/database';
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) {
+  const seoDefaults = templateSeoDefaults(restaurant?.template_id);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +95,37 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant | null }) 
             defaultValue={restaurant?.description ?? ''}
             placeholder="Présentez votre cuisine en quelques mots…"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cuisine_type">Type de cuisine</Label>
+            <Input
+              id="cuisine_type"
+              name="cuisine_type"
+              maxLength={60}
+              defaultValue={restaurant?.cuisine_type ?? ''}
+              placeholder={seoDefaults.cuisine}
+            />
+            <p className="text-xs text-muted-foreground">
+              Améliore le référencement. Vide = « {seoDefaults.cuisine} » (selon votre template).
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="price_range">Gamme de prix</Label>
+            <select
+              id="price_range"
+              name="price_range"
+              defaultValue={restaurant?.price_range ?? ''}
+              className="h-10 w-full rounded-md border border-border bg-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="">Auto ({seoDefaults.priceRange})</option>
+              <option value="$">$ — économique</option>
+              <option value="$$">$$ — modéré</option>
+              <option value="$$$">$$$ — élevé</option>
+              <option value="$$$$">$$$$ — premium</option>
+            </select>
+          </div>
         </div>
       </Section>
 

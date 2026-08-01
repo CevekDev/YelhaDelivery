@@ -1,4 +1,5 @@
 import 'server-only';
+import { formatPrice } from '@/lib/utils';
 
 const baseStyles = `
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f4; margin: 0; padding: 0; color: #1a1916; }
@@ -34,13 +35,6 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-const formatDZD = (n: number) =>
-  new Intl.NumberFormat('fr-DZ', {
-    style: 'currency',
-    currency: 'DZD',
-    minimumFractionDigits: 0,
-  }).format(n);
-
 export interface NewOrderEmailData {
   orderNumber: string;
   restaurantName: string;
@@ -61,7 +55,7 @@ export function newOrderEmail(data: NewOrderEmailData): { subject: string; html:
           i.note
             ? `<br/><em style="color:#666;font-size:12px">« ${escapeHtml(i.note)} »</em>`
             : ''
-        }</td><td>${formatDZD(i.subtotal)}</td></tr>`,
+        }</td><td>${formatPrice(i.subtotal)}</td></tr>`,
     )
     .join('');
   const subject = `Nouvelle commande ${data.orderNumber} — ${data.restaurantName}`;
@@ -79,9 +73,9 @@ export function newOrderEmail(data: NewOrderEmailData): { subject: string; html:
       <thead><tr><th>Article</th><th>Total</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div class="row"><span class="muted">Sous-total</span><span>${formatDZD(data.subtotal)}</span></div>
-    <div class="row"><span class="muted">Livraison</span><span>${formatDZD(data.deliveryFee)}</span></div>
-    <div class="row" style="font-weight: 700; font-size: 18px;"><span>Total</span><span>${formatDZD(data.total)}</span></div>
+    <div class="row"><span class="muted">Sous-total</span><span>${formatPrice(data.subtotal)}</span></div>
+    <div class="row"><span class="muted">Livraison</span><span>${formatPrice(data.deliveryFee)}</span></div>
+    <div class="row" style="font-weight: 700; font-size: 18px;"><span>Total</span><span>${formatPrice(data.total)}</span></div>
     ${data.notes ? `<p class="muted" style="margin-top:14px"><em>« ${escapeHtml(data.notes)} »</em></p>` : ''}
     <p style="margin-top: 22px;"><a class="btn" href="${escapeHtml(data.dashboardUrl)}">Voir dans le dashboard</a></p>
     <p class="muted">💵 Paiement cash à la livraison.</p>
@@ -93,11 +87,11 @@ export function newOrderEmail(data: NewOrderEmailData): { subject: string; html:
     `Adresse : ${data.customer.address}\n` +
     data.items
       .map((i) =>
-        `- ${i.quantity}× ${i.item_name} = ${formatDZD(i.subtotal)}` +
+        `- ${i.quantity}× ${i.item_name} = ${formatPrice(i.subtotal)}` +
         (i.note ? `\n    note: ${i.note}` : ''),
       )
       .join('\n') +
-    `\nTotal : ${formatDZD(data.total)}\n${data.dashboardUrl}`;
+    `\nTotal : ${formatPrice(data.total)}\n${data.dashboardUrl}`;
   return { subject, html, text };
 }
 

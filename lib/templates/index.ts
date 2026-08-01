@@ -246,6 +246,27 @@ export function getTemplate(id: number | null | undefined): Template {
   return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0]!;
 }
 
+/**
+ * Valeurs SEO par défaut (servesCuisine + priceRange schema.org) dérivées du
+ * template choisi, utilisées dans le JSON-LD quand le restaurateur n'a pas
+ * renseigné restaurants.cuisine_type / price_range.
+ */
+export function templateSeoDefaults(
+  id: number | null | undefined,
+): { cuisine: string; priceRange: string } {
+  const map: Record<number, { cuisine: string; priceRange: string }> = {
+    1: { cuisine: 'Fast-food', priceRange: '$$' },
+    2: { cuisine: 'Italienne', priceRange: '$$' },
+    3: { cuisine: 'Gastronomique', priceRange: '$$$' },
+    4: { cuisine: 'Street food', priceRange: '$$' },
+    5: { cuisine: 'Healthy', priceRange: '$$' },
+    6: { cuisine: 'Algérienne', priceRange: '$$' },
+    7: { cuisine: 'Pâtisserie & café', priceRange: '$$' },
+    8: { cuisine: 'Fast-food', priceRange: '$$' },
+  };
+  return map[id ?? 1] ?? { cuisine: 'Algérienne', priceRange: '$$' };
+}
+
 /** Variables CSS à appliquer sur le conteneur racine du site. */
 export function templateCssVars(t: Template): Record<string, string> {
   return {

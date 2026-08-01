@@ -14,6 +14,10 @@ export interface RestaurantSeo {
   address?: string | null;
   phone?: string | null;
   coverUrl?: string | null;
+  /** Type de cuisine (servesCuisine). Défaut dérivé du template si absent. */
+  cuisineType?: string | null;
+  /** Gamme de prix schema.org ($ à $$$$). Défaut dérivé du template si absent. */
+  priceRange?: string | null;
 }
 
 /** Métadonnées riches (titre, description, Open Graph, Twitter) pour une page resto. */
@@ -36,7 +40,7 @@ export function restaurantMetadata(r: RestaurantSeo, page: 'home' | 'menu' = 'ho
       description,
       url,
       siteName: r.name,
-      locale: 'fr_FR',
+      locale: 'fr_DZ',
       type: 'website',
       ...(images ? { images } : {}),
     },
@@ -109,8 +113,8 @@ export function restaurantJsonLd(
     name: r.name,
     url: `${APP_URL}${path}`,
     hasMenu: `${APP_URL}${path}/menu`,
-    servesCuisine: 'Algérienne',
-    priceRange: '$$',
+    servesCuisine: r.cuisineType || 'Algérienne',
+    priceRange: r.priceRange || '$$',
     ...(r.description ? { description: r.description } : {}),
     ...(r.phone ? { telephone: r.phone } : {}),
     ...(r.coverUrl ? { image: r.coverUrl } : {}),

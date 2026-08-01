@@ -73,7 +73,7 @@ export const useCart = create<CartState>()(
         const idx = state.lines.findIndex((l) => l.cart_key === key);
         if (idx >= 0) {
           const next = [...state.lines];
-          next[idx] = { ...next[idx]!, quantity: Math.min(99, next[idx]!.quantity + 1) };
+          next[idx] = { ...next[idx]!, quantity: Math.min(100, next[idx]!.quantity + 1) };
           set({ restaurantSlug: slug, lines: next });
         } else {
           set({ restaurantSlug: slug, lines: [...state.lines, newLine] });
@@ -85,7 +85,7 @@ export const useCart = create<CartState>()(
           qty <= 0
             ? get().lines.filter((l) => l.cart_key !== cart_key)
             : get().lines.map((l) =>
-                l.cart_key === cart_key ? { ...l, quantity: Math.min(99, qty) } : l,
+                l.cart_key === cart_key ? { ...l, quantity: Math.min(100, qty) } : l,
               );
         set({ lines: next });
       },

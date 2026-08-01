@@ -135,15 +135,13 @@ yelha-dms/
 - **Service role key** jamais exposée côté client (utilisée uniquement dans des Server Actions/Route Handlers)
 - **Server Actions Next.js** uniquement → protection CSRF native
 - **Validation Zod** sur tous les inputs (client ET serveur)
-- **Rate limiting** sur login (5 tentatives / 15 min)
-- **Headers de sécurité** : `X-Frame-Options`, `CSP-équivalents`, `HSTS`, `Referrer-Policy`
+- **Rate limiting distribué** via Upstash Redis (repli en mémoire) — login, inscription, création de commande
+- **CSP stricte** + **headers de sécurité** : `Content-Security-Policy`, `X-Frame-Options`, `HSTS`, `Referrer-Policy`, `Permissions-Policy` (voir `next.config.js`)
 - **Téléphones algériens** validés au format `05/06/07` + 8 chiffres
 - **Slugs** restreints à `[a-z0-9-]`
 - Aucun secret hardcodé — tout passe par `.env.local`
 
 ### Roadmap sécurité (phases suivantes)
-- Migrer le rate limiter vers Upstash Redis (multi-instance Vercel)
-- Ajouter une CSP stricte (en fonction des assets externes finaux)
 - Audit `pnpm audit` automatisé via GitHub Action
 - Tests d'intrusion RLS automatisés
 

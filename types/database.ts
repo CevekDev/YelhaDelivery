@@ -46,9 +46,13 @@ export interface Restaurant {
   delivery_fee: number;
   min_order: number;
   estimated_delivery_time: number;
+  /** Type de cuisine pour le SEO (servesCuisine). null = défaut du template. */
+  cuisine_type: string | null;
+  /** Gamme de prix schema.org ($..$$$$). null = défaut du template. */
+  price_range: string | null;
   status: RestaurantStatus;
   // ── Constructeur de site web ──
-  template_id: number; // 1..7
+  template_id: number; // 1..8 (cf. contrainte SQL restaurants_template_id_check + lib/templates)
   site_config: SiteConfig;
   home_enabled: boolean;
   blog_enabled: boolean;
