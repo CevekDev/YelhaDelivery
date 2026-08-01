@@ -415,9 +415,13 @@ export function CheckoutClient({
                     <span>Total</span>
                     <span className="tabular-nums">{formatPrice(total)}</span>
                   </div>
-                  <p className="text-[11px] text-[color:var(--site-muted)]">
-                    Les frais de livraison seront confirmés par le restaurant selon votre adresse,
-                    puis ajoutés à ce total sur votre page de suivi.
+                  <p className="flex items-start gap-2 rounded-md border border-[var(--site-accent)]/30 bg-[var(--site-accent)]/5 px-3 py-2 text-xs text-[color:var(--site-text)]">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--site-accent)]" />
+                    <span>
+                      Les frais de livraison dépendent de votre quartier : ils seront{' '}
+                      <strong>confirmés par le restaurant</strong> puis ajoutés à ce total, visibles
+                      sur votre <strong>page de suivi</strong>.
+                    </span>
                   </p>
                   {!canOrder && (
                     <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">

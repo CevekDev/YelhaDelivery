@@ -56,6 +56,7 @@ export default async function SiteWebPage() {
             initialTemplateId={restaurant.template_id}
             initialHome={restaurant.home_enabled}
             initialBlog={restaurant.blog_enabled}
+            cuisineHint={restaurant.cuisine_type || restaurant.description || ''}
           />
         </div>
       </PanelCard>

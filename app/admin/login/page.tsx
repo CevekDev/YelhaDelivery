@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,13 @@ export default function AdminLoginPage() {
         )}
 
         <SubmitButton />
+
+        <Link
+          href="/admin/login/mot-de-passe-oublie"
+          className="block text-center text-sm text-muted-foreground hover:text-foreground"
+        >
+          Mot de passe oublié ?
+        </Link>
       </form>
     </AuthShell>
   );

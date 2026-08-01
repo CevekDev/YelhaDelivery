@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { sendPushToUser } from '@/lib/push';
 
 export async function submitReviewAction(
@@ -67,4 +67,40 @@ export async function cancelPublicOrderAction(
   }
 
   return { ok: true };
+}
+
+const orderSubSchema = z.object({
+  endpoint: z.string().url().max(1000),
+  p256dh: z.string().min(1).max(500),
+  auth: z.string().min(1).max(500),
+});
+
+/**
+ * Enregistre l'abonnement push du CLIENT pour SA commande (opt-in depuis la
+ * page de suivi). Lié à l'order_id, pas à un utilisateur. Écriture via
+ * service_role (la table n'a aucune policy publique).
+ */
+export async function saveOrderPushSubscription(
+  orderId: string,
+  input: unknown,
+): Promise<{ ok: boolean }> {
+  if (!z.string().uuid().safeParse(orderId).success) return { ok: false };
+  const parsed = orderSubSchema.safeParse(input);
+  if (!parsed.success) return { ok: false };
+
+  const admin = await createAdminClient();
+  // La commande doit exister (évite les abonnements orphelins).
+  const { data: order } = await admin.from('orders').select('id').eq('id', orderId).maybeSingle();
+  if (!order) return { ok: false };
+
+  const { error } = await admin.from('order_push_subscriptions').upsert(
+    {
+      order_id: orderId,
+      endpoint: parsed.data.endpoint,
+      p256dh: parsed.data.p256dh,
+      auth: parsed.data.auth,
+    },
+    { onConflict: 'order_id,endpoint' },
+  );
+  return { ok: !error };
 }

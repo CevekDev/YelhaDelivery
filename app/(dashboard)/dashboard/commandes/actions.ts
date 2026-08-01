@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
-import { canRestaurateurTransition } from '@/lib/order-status';
-import { sendPushToUser } from '@/lib/push';
+import { canRestaurateurTransition, CUSTOMER_STATUS_PUSH } from '@/lib/order-status';
+import { sendPushToOrder, sendPushToUser } from '@/lib/push';
 import type { OrderStatus } from '@/types/database';
 
 const updateSchema = z.object({
@@ -80,6 +80,16 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
     .eq('restaurant_id', restaurant.id);
 
   if (error) return { ok: false, error: error.message };
+
+  // Notification push au client (opt-in) sur les statuts clés.
+  const push = CUSTOMER_STATUS_PUSH[parsed.data.next_status];
+  if (push) {
+    void sendPushToOrder(parsed.data.order_id, {
+      ...push,
+      url: `/r/${restaurant.slug}/suivi/${parsed.data.order_id}`,
+      tag: `order-status-${parsed.data.order_id}`,
+    });
+  }
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/commandes');

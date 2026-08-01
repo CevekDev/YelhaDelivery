@@ -2,20 +2,43 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Globe, Newspaper } from 'lucide-react';
+import { Check, Globe, Newspaper, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TEMPLATES } from '@/lib/templates';
 import { updateSiteSettingsAction } from './actions';
+
+const deburr = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/**
+ * Suggère les templates dont le `bestFor` recoupe le type de cuisine du resto
+ * (ex. « Pizzeria » → template Trattoria). Renvoie un Set d'ids.
+ */
+function suggestTemplateIds(hint: string): Set<number> {
+  const words = deburr(hint)
+    .split(/[^a-z]+/)
+    .filter((w) => w.length >= 4);
+  const ids = new Set<number>();
+  if (words.length === 0) return ids;
+  for (const t of TEMPLATES) {
+    const bf = deburr(t.bestFor);
+    if (words.some((w) => bf.includes(w))) ids.add(t.id);
+  }
+  return ids;
+}
 
 export function SiteSettingsForm({
   initialTemplateId,
   initialHome,
   initialBlog,
+  cuisineHint = '',
 }: {
   initialTemplateId: number;
   initialHome: boolean;
   initialBlog: boolean;
+  cuisineHint?: string;
 }) {
+  const suggestedIds = suggestTemplateIds(cuisineHint);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [templateId, setTemplateId] = useState(initialTemplateId);
@@ -43,6 +66,15 @@ export function SiteSettingsForm({
 
   return (
     <div className="space-y-6">
+      {suggestedIds.size > 0 && (
+        <p className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <span>
+            D’après votre type de cuisine, les modèles marqués{' '}
+            <span className="font-semibold text-primary">Suggéré</span> sont les plus adaptés.
+          </span>
+        </p>
+      )}
       {/* Galerie de templates */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {TEMPLATES.map((t) => {
@@ -62,6 +94,11 @@ export function SiteSettingsForm({
               {selected && (
                 <span className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
                   <Check className="h-3.5 w-3.5" />
+                </span>
+              )}
+              {suggestedIds.has(t.id) && (
+                <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                  <Sparkles className="h-3 w-3" /> Suggéré
                 </span>
               )}
               {/* Mini-aperçu */}

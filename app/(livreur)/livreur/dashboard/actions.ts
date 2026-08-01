@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
-import { canLivreurTransition } from '@/lib/order-status';
+import { canLivreurTransition, CUSTOMER_STATUS_PUSH } from '@/lib/order-status';
+import { sendPushToOrder } from '@/lib/push';
 import type { OrderStatus } from '@/types/database';
 
 const updateSchema = z.object({
@@ -50,6 +51,25 @@ export async function livreurUpdateOrderAction(formData: FormData): Promise<Livr
     .eq('driver_id', userId);
 
   if (error) return { ok: false, error: error.message };
+
+  // Notification push au client (opt-in) : en route / livrée.
+  const push = CUSTOMER_STATUS_PUSH[parsed.data.next_status];
+  if (push) {
+    const admin = await createAdminClient();
+    const { data: r } = await admin
+      .from('orders')
+      .select('restaurant:restaurants(slug)')
+      .eq('id', parsed.data.order_id)
+      .maybeSingle<{ restaurant: { slug: string } | { slug: string }[] | null }>();
+    const slug = Array.isArray(r?.restaurant) ? r?.restaurant[0]?.slug : r?.restaurant?.slug;
+    if (slug) {
+      void sendPushToOrder(parsed.data.order_id, {
+        ...push,
+        url: `/r/${slug}/suivi/${parsed.data.order_id}`,
+        tag: `order-status-${parsed.data.order_id}`,
+      });
+    }
+  }
 
   revalidatePath('/livreur/dashboard');
   revalidatePath('/livreur/historique');

@@ -17,6 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cancelPublicOrderAction, submitReviewAction } from './actions';
+import { OrderPushSubscribe } from '@/components/order-push-subscribe';
 import type { OrderStatus } from '@/types/database';
 
 interface PublicOrder {
@@ -214,6 +215,9 @@ export function TrackingClient({ slug, initial }: { slug: string; initial: Publi
             </p>
           </div>
         )}
+
+        {/* Opt-in notifications push (proposé, jamais imposé) */}
+        {!isCancelled && !isDelivered && <OrderPushSubscribe orderId={order.id} />}
 
         {isDelivered && (
           <>

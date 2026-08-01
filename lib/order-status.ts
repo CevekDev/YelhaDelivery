@@ -39,6 +39,21 @@ export const LIVREUR_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = 
   on_the_way: ['delivered'],
 };
 
+/**
+ * Messages de notification push destinés au CLIENT lors des changements de
+ * statut clés de sa commande (opt-in depuis la page de suivi).
+ */
+export const CUSTOMER_STATUS_PUSH: Partial<
+  Record<OrderStatus, { title: string; body: string }>
+> = {
+  confirmed: { title: 'Commande confirmée', body: 'Le restaurant prépare votre commande 👨‍🍳' },
+  on_the_way: { title: 'Commande en route', body: 'Votre commande arrive bientôt ! 🛵' },
+  delivered: {
+    title: 'Commande livrée',
+    body: 'Bon appétit ! 🎉 Vous pouvez laisser un avis depuis votre suivi.',
+  },
+};
+
 export function canRestaurateurTransition(from: OrderStatus, to: OrderStatus): boolean {
   return RESTAURATEUR_TRANSITIONS[from]?.includes(to) ?? false;
 }

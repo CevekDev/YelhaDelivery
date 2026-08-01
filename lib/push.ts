@@ -61,3 +61,40 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     console.error('[push] sendPushToUser failed', e);
   }
 }
+
+/**
+ * Envoie une notification push à tous les abonnements CLIENT d'une commande
+ * (table order_push_subscriptions). Best-effort : ne lève jamais, no-op si
+ * VAPID non configuré. Nettoie les abonnements expirés (404/410).
+ */
+export async function sendPushToOrder(orderId: string, payload: PushPayload): Promise<void> {
+  if (!pushConfigured || !orderId) return;
+  try {
+    const admin = await createAdminClient();
+    const { data: subs } = await admin
+      .from('order_push_subscriptions')
+      .select('id, endpoint, p256dh, auth')
+      .eq('order_id', orderId)
+      .returns<SubRow[]>();
+    if (!subs || subs.length === 0) return;
+
+    const body = JSON.stringify(payload);
+    await Promise.all(
+      subs.map(async (s) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            body,
+          );
+        } catch (e: unknown) {
+          const code = (e as { statusCode?: number }).statusCode;
+          if (code === 404 || code === 410) {
+            await admin.from('order_push_subscriptions').delete().eq('id', s.id);
+          }
+        }
+      }),
+    );
+  } catch (e) {
+    console.error('[push] sendPushToOrder failed', e);
+  }
+}
