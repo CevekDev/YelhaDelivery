@@ -13,6 +13,20 @@ const UP_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UP_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const upstashEnabled = Boolean(UP_URL && UP_TOKEN);
 
+// En production sans Upstash, le repli en mémoire n'est PAS fiable : chaque
+// instance serverless a son propre compteur → le rate-limit est facilement
+// contourné. On l'annonce clairement au démarrage.
+if (
+  !upstashEnabled &&
+  (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production')
+) {
+  console.warn(
+    '[rate-limit] ⚠ Upstash Redis NON configuré en PRODUCTION : repli sur un compteur ' +
+      'EN MÉMOIRE (par instance), non fiable en multi-instance serverless. ' +
+      'Configurez UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN.',
+  );
+}
+
 async function upstashCmd<T>(...args: (string | number)[]): Promise<T | null> {
   try {
     const path = args.map((a) => encodeURIComponent(String(a))).join('/');
@@ -65,6 +79,7 @@ export interface RateLimitConfig {
 
 const LOGIN: RateLimitConfig = { max: 5, windowMs: 15 * 60 * 1000 };
 const SIGNUP: RateLimitConfig = { max: 3, windowMs: 60 * 60 * 1000 };
+const ORDER: RateLimitConfig = { max: 10, windowMs: 10 * 60 * 1000 };
 
 function check(key: string, cfg: RateLimitConfig): RateLimitResult {
   const now = Date.now();
@@ -105,6 +120,15 @@ export async function checkSignupRateLimit(key: string): Promise<RateLimitResult
     if (r) return r;
   }
   return check(key, SIGNUP);
+}
+
+/** Limite anti-spam sur la création de commande : 10 / 10 min / clé (IP). */
+export async function checkOrderRateLimit(key: string): Promise<RateLimitResult> {
+  if (upstashEnabled) {
+    const r = await checkUpstash(key, ORDER);
+    if (r) return r;
+  }
+  return check(key, ORDER);
 }
 
 /** Réinitialise un compteur (à appeler après une opération réussie). */

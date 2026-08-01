@@ -12,6 +12,39 @@ export interface ImageUploadResult {
 export type ImageUploadError = { error: string };
 
 /**
+ * Détecte le vrai type d'une image à partir de ses « magic bytes » (signature
+ * binaire), indépendamment du `file.type` déclaré par le navigateur (falsifiable).
+ * Retourne le type MIME réel, ou null si non reconnu.
+ */
+function detectImageType(buf: Buffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (
+    buf.length >= 8 &&
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47 &&
+    buf[4] === 0x0d &&
+    buf[5] === 0x0a &&
+    buf[6] === 0x1a &&
+    buf[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  // WebP : "RIFF"...."WEBP"
+  if (
+    buf.length >= 12 &&
+    buf.toString('ascii', 0, 4) === 'RIFF' &&
+    buf.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+/**
  * Upload une image d'un plat. Utilise Cloudflare R2 si configuré, sinon Supabase Storage.
  * Valide la taille + le type avant upload.
  */
@@ -24,9 +57,17 @@ export async function uploadMenuImage(
     return { error: 'Type d’image non autorisé (jpg, png, webp uniquement)' };
   }
 
-  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
-  const key = `${restaurantId}/menu/${crypto.randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Validation du CONTENU réel (magic bytes), pas seulement du type déclaré :
+  // empêche l'upload d'un fichier malveillant déguisé en image.
+  const realType = detectImageType(buffer);
+  if (!realType || realType !== file.type) {
+    return { error: 'Fichier image invalide ou corrompu (jpg, png, webp uniquement)' };
+  }
+
+  const ext = realType === 'image/jpeg' ? 'jpg' : realType === 'image/png' ? 'png' : 'webp';
+  const key = `${restaurantId}/menu/${crypto.randomUUID()}.${ext}`;
 
   if (isR2Configured()) {
     try {

@@ -1,10 +1,12 @@
 'use server';
 
 import { z } from 'zod';
+import { headers } from 'next/headers';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { checkoutSchema } from '@/lib/validators/order';
 import { sendNewOrderToRestaurateur } from '@/lib/emails/send';
 import { sendPushToUser } from '@/lib/push';
+import { checkOrderRateLimit } from '@/lib/rate-limit';
 
 export interface CheckoutResult {
   ok: boolean;
@@ -30,6 +32,18 @@ export async function placeOrderAction(slug: string, formData: FormData): Promis
   // Slug provient du .bind() serveur — validation défensive quand même
   if (!slug || typeof slug !== 'string' || slug.length < 2 || slug.length > 80) {
     return { ok: false, error: 'Restaurant invalide' };
+  }
+
+  // Rate limit anti-spam : 10 commandes / 10 min / IP.
+  const hdrs = await headers();
+  const ip =
+    hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip') || 'unknown';
+  const rl = await checkOrderRateLimit(`order:${ip}`);
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: `Trop de commandes depuis cette adresse. Réessayez dans ${Math.ceil(rl.resetInSeconds / 60)} minutes.`,
+    };
   }
 
   let items: unknown;

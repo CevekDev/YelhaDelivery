@@ -10,8 +10,9 @@
 //
 // Pré-requis dans .env.local :
 //   PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE  (déjà présents)
-//   NEXT_PUBLIC_SUPABASE_URL=https://bzukffivwdgnvozhsgso.supabase.co
+//   NEXT_PUBLIC_SUPABASE_URL=https://<votre-project-ref>.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+//   DEMO_OWNER_PASSWORD=<mot de passe du compte démo>  (optionnel : sinon généré)
 //
 // Lance :
 //   node scripts/seed-demo-burger.mjs
@@ -47,9 +48,9 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error(`
 ✗ Variables manquantes dans .env.local.
 
-Ajoute ces 2 lignes (récupère-les sur https://supabase.com/dashboard/project/bzukffivwdgnvozhsgso/settings/api-keys) :
+Ajoute ces 2 lignes (récupère-les sur https://supabase.com/dashboard/project/<votre-project-ref>/settings/api-keys) :
 
-NEXT_PUBLIC_SUPABASE_URL=https://bzukffivwdgnvozhsgso.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://<votre-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<colle ta clé service_role ici>
 `);
   process.exit(1);
@@ -58,8 +59,10 @@ SUPABASE_SERVICE_ROLE_KEY=<colle ta clé service_role ici>
 // ── 2. Configuration du seed ──────────────────────────────────────────
 const SLUG = 'burger-paradise';
 const RESTAURANT_NAME = 'Burger Paradise';
-const OWNER_EMAIL = 'demo-burger@yelha.local';
-const OWNER_PASSWORD = 'BurgerDemo2026!';
+const OWNER_EMAIL = process.env.DEMO_OWNER_EMAIL || 'demo-burger@yelha.local';
+// Jamais de secret en dur : pris dans l'env, sinon généré aléatoirement et
+// imprimé en fin de script (compte de démo uniquement).
+const OWNER_PASSWORD = process.env.DEMO_OWNER_PASSWORD || `demo-${randomBytes(9).toString('base64url')}`;
 const OWNER_FULL_NAME = 'Sami Boudjellal';
 
 // Photos Unsplash (sans clé API, format direct CDN)
