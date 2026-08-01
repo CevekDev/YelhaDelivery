@@ -14,7 +14,6 @@ import {
   ShoppingBag,
   Star,
   Store,
-  Ticket,
   Users,
   X,
 } from 'lucide-react';
@@ -31,7 +30,6 @@ const NAV = [
   { href: '/admin/abonnements', label: 'Abonnements', icon: CreditCard },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
   { href: '/admin/avis', label: 'Avis clients', icon: Star },
-  { href: '/admin/promos', label: 'Codes promo', icon: Ticket },
   { href: '/admin/parametres', label: 'Paramètres', icon: Settings },
 ] as const;
 

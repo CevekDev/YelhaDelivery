@@ -18,7 +18,11 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
+import {
+  computeSubscriptionState,
+  fetchPlatformSettings,
+  fetchSubscriptionPlans,
+} from '@/lib/subscription';
 import type { Order, OrderStatus, Restaurant, SubscriptionRequest } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +63,8 @@ export default async function AdminDashboard() {
     { data: allRestaurants },
     { data: pendingSubRequests },
     settings,
+    plans,
+    { data: approvedSubs },
   ] = await Promise.all([
     admin.from('restaurants').select('*', { count: 'exact', head: true }),
     admin.from('restaurants').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -126,6 +132,12 @@ export default async function AdminDashboard() {
         })[]
       >(),
     fetchPlatformSettings(admin),
+    fetchSubscriptionPlans(admin, true),
+    admin
+      .from('subscription_requests')
+      .select('total_price, reviewed_at, created_at')
+      .eq('status', 'approved')
+      .returns<{ total_price: number; reviewed_at: string | null; created_at: string }[]>(),
   ]);
 
   // Statistiques d'abonnement (calculées à la volée).
@@ -140,6 +152,23 @@ export default async function AdminDashboard() {
       subStats.trialing++;
       if (st.daysLeft <= 2) subStats.expiringSoon++;
     } else if (st.phase === 'expired') subStats.expired++;
+  }
+
+  // ── Chiffre d'affaires : CA restaurateurs (ventes livrées = GMV) vs
+  //    CA du site (revenus d'abonnements encaissés par YelhaDelivery) ──
+  const gmv30d = (last30dOrders ?? []).reduce((s, o) => s + Number(o.total), 0);
+  const approved = approvedSubs ?? [];
+  const subRevenueTotal = approved.reduce((s, x) => s + Number(x.total_price), 0);
+  const subRevenue30d = approved
+    .filter((x) => new Date(x.reviewed_at ?? x.created_at) >= last30d)
+    .reduce((s, x) => s + Number(x.total_price), 0);
+  const planById = new Map((plans ?? []).map((p) => [p.id, p]));
+  let mrr = 0;
+  for (const r of allRestaurants ?? []) {
+    const st = computeSubscriptionState(r, settings);
+    if (!st.isLifetime && st.phase === 'active' && st.planId) {
+      mrr += Number(planById.get(st.planId)?.monthly_price ?? 0);
+    }
   }
 
   const orders14d = last14dOrders ?? [];
@@ -309,7 +338,7 @@ export default async function AdminDashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <StatCard
           icon={TrendingUp}
-          label="CA sur 7 jours"
+          label="CA restaurateurs (7j)"
           value={formatPrice(rev7d)}
           subtitle={`Aujourd’hui : ${formatPrice(revenueToday)}`}
           trend={revTrend}
@@ -333,6 +362,28 @@ export default async function AdminDashboard() {
           value={(usersCount ?? 0).toString()}
           subtitle="Restaurateurs · livreurs · admins"
         />
+      </div>
+
+      {/* Chiffre d'affaires — CA restaurateurs (ventes) vs CA du site (abonnements) */}
+      <div>
+        <h2 className="mb-3 font-display text-sm font-bold">
+          Chiffre d’affaires{' '}
+          <span className="font-normal text-muted-foreground">— 30 derniers jours</span>
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
+          <StatCard
+            icon={ShoppingBag}
+            label="CA des restaurateurs"
+            value={formatPrice(gmv30d)}
+            subtitle={`Ventes livrées · 7j : ${formatPrice(rev7d)}`}
+          />
+          <StatCard
+            icon={CreditCard}
+            label="CA du site (abonnements)"
+            value={formatPrice(subRevenue30d)}
+            subtitle={`Total encaissé : ${formatPrice(subRevenueTotal)} · MRR : ${formatPrice(mrr)}`}
+          />
+        </div>
       </div>
 
       {/* Abonnements — synthèse */}
