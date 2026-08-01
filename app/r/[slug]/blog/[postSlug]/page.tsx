@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
-import { APP_URL } from '@/lib/seo';
+import { APP_URL, breadcrumbJsonLd, serializeJsonLd } from '@/lib/seo';
 import type { BlogPost, Restaurant } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -96,8 +96,18 @@ export default async function BlogPostPage({
 
   const template = getTemplate(restaurant.template_id);
 
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Accueil', url: `${APP_URL}/r/${slug}` },
+    { name: 'Blog', url: `${APP_URL}/r/${slug}/blog` },
+    { name: post.title, url: `${APP_URL}/r/${slug}/blog/${post.slug}` },
+  ]);
+
   return (
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
+      />
       <article className="mx-auto max-w-3xl px-4 py-12 md:px-6 md:py-16">
         <Link
           href={`/r/${slug}/blog`}

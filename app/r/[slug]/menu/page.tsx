@@ -8,7 +8,14 @@ import { formatPrice } from '@/lib/utils';
 import { Clock, MapPin, Phone, Sparkles, Star, Truck } from 'lucide-react';
 import type { MenuItem, MenuItemVariant } from '@/types/database';
 import { HoursInfo, isOpenNow } from '@/components/hours-info';
-import { restaurantMetadata, restaurantJsonLd, serializeJsonLd } from '@/lib/seo';
+import {
+  restaurantMetadata,
+  restaurantJsonLd,
+  menuJsonLd,
+  breadcrumbJsonLd,
+  serializeJsonLd,
+  APP_URL,
+} from '@/lib/seo';
 import { getTemplate, templateSeoDefaults } from '@/lib/templates';
 import { SiteShell } from '@/components/site/site-shell';
 import { getMenuData } from '@/lib/public-data';
@@ -17,7 +24,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const { restaurant } = await getMenuData(slug);
   if (!restaurant) return { title: 'Restaurant introuvable' };
-  return restaurantMetadata({ ...restaurant, slug, coverUrl: restaurant.cover_url }, 'menu');
+  return restaurantMetadata(
+    { ...restaurant, slug, coverUrl: restaurant.cover_url, logoUrl: restaurant.logo_url },
+    'menu',
+  );
 }
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -141,11 +151,41 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
     { openingHours: hours ?? [], ratingValue: avgRating, reviewCount },
   );
 
+  // Menu structuré (schema.org Menu → MenuSection → MenuItem) : plats + prix par catégorie.
+  const menuLd = menuJsonLd(
+    { name: restaurant.name, slug },
+    (categories ?? [])
+      .map((c) => ({
+        name: c.name,
+        items: regularItems
+          .filter((i) => i.category_id === c.id && i.is_available)
+          .map((i) => ({
+            name: i.name,
+            description: i.description,
+            price: Number(i.promo_price ?? i.price),
+          })),
+      }))
+      .filter((s) => s.items.length > 0),
+  );
+
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Accueil', url: `${APP_URL}/r/${slug}` },
+    { name: 'Menu', url: `${APP_URL}/r/${slug}/menu` },
+  ]);
+
   return (
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(menuLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
       />
       <main className="pb-32">
 

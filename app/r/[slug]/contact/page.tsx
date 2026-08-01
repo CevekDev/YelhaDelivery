@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Clock, Facebook, Instagram, Mail, MapPin, Phone, ShoppingBag } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/templates';
+import { breadcrumbJsonLd, serializeJsonLd, APP_URL } from '@/lib/seo';
 import { SiteShell } from '@/components/site/site-shell';
 import { HoursInfo } from '@/components/hours-info';
 import type { OpeningHour, Restaurant } from '@/types/database';
@@ -82,8 +83,17 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
     ? `https://www.google.com/maps?q=${encodeURIComponent(embedQuery)}&z=16&output=embed`
     : null;
 
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Accueil', url: `${APP_URL}/r/${slug}` },
+    { name: 'Contact', url: `${APP_URL}/r/${slug}/contact` },
+  ]);
+
   return (
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
+      />
       <main className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
         <header className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-widest text-[color:var(--site-accent)]">

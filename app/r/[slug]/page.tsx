@@ -9,7 +9,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const { restaurant } = await getHomeData(slug);
   if (!restaurant) return { title: 'Restaurant introuvable' };
-  return restaurantMetadata({ ...restaurant, slug, coverUrl: restaurant.cover_url }, 'home');
+  return restaurantMetadata(
+    { ...restaurant, slug, coverUrl: restaurant.cover_url, logoUrl: restaurant.logo_url },
+    'home',
+  );
 }
 
 export default async function RestaurantHomePage({

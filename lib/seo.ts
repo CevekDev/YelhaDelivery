@@ -14,11 +14,16 @@ export interface RestaurantSeo {
   address?: string | null;
   phone?: string | null;
   coverUrl?: string | null;
+  /** Logo du restaurant — utilisé comme image OG de secours si pas de cover. */
+  logoUrl?: string | null;
   /** Type de cuisine (servesCuisine). Défaut dérivé du template si absent. */
   cuisineType?: string | null;
   /** Gamme de prix schema.org ($ à $$$$). Défaut dérivé du template si absent. */
   priceRange?: string | null;
 }
+
+/** Image Open Graph de secours (branding YelhaDelivery) si ni cover ni logo. */
+export const OG_FALLBACK_IMAGE = `${APP_URL}/og-default.svg`;
 
 /** Métadonnées riches (titre, description, Open Graph, Twitter) pour une page resto. */
 export function restaurantMetadata(r: RestaurantSeo, page: 'home' | 'menu' = 'home'): Metadata {
@@ -28,7 +33,10 @@ export function restaurantMetadata(r: RestaurantSeo, page: 'home' | 'menu' = 'ho
   const description =
     r.description ||
     `Commandez en ligne chez ${r.name}${r.city ? ` à ${r.city}` : ''}. Livraison à domicile, paiement à la livraison.`;
-  const images = r.coverUrl ? [{ url: r.coverUrl }] : undefined;
+  // Image OG : cover du resto → logo → visuel de secours YelhaDelivery.
+  // On garantit toujours une image (meilleur partage social).
+  const imageUrl = r.coverUrl || r.logoUrl || OG_FALLBACK_IMAGE;
+  const images = [{ url: imageUrl }];
 
   return {
     title,
@@ -42,13 +50,13 @@ export function restaurantMetadata(r: RestaurantSeo, page: 'home' | 'menu' = 'ho
       siteName: r.name,
       locale: 'fr_DZ',
       type: 'website',
-      ...(images ? { images } : {}),
+      images,
     },
     twitter: {
-      card: images ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title,
       description,
-      ...(images ? { images: images.map((i) => i.url) } : {}),
+      images: images.map((i) => i.url),
     },
   };
 }
@@ -138,5 +146,65 @@ export function restaurantJsonLd(
           },
         }
       : {}),
+  };
+}
+
+/** Un plat pour le JSON-LD Menu. */
+export interface SeoMenuItem {
+  name: string;
+  description?: string | null;
+  price: number;
+}
+
+/** Une section (catégorie) de menu. */
+export interface SeoMenuSection {
+  name: string;
+  items: SeoMenuItem[];
+}
+
+/**
+ * Données structurées schema.org Menu (plats par catégorie), à ajouter en plus
+ * du Restaurant sur la page menu — améliore l'affichage des plats/prix en SERP.
+ */
+export function menuJsonLd(
+  r: { name: string; slug: string },
+  sections: SeoMenuSection[],
+): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Menu',
+    name: `Menu — ${r.name}`,
+    url: `${APP_URL}/r/${r.slug}/menu`,
+    hasMenuSection: sections.map((s) => ({
+      '@type': 'MenuSection',
+      name: s.name,
+      hasMenuItem: s.items.map((i) => ({
+        '@type': 'MenuItem',
+        name: i.name,
+        ...(i.description ? { description: i.description } : {}),
+        offers: {
+          '@type': 'Offer',
+          price: i.price,
+          priceCurrency: 'DZD',
+        },
+      })),
+    })),
+  };
+}
+
+/**
+ * BreadcrumbList schema.org (fil d'Ariane) pour une page. `items` du plus
+ * général au plus précis (ex. Accueil → Menu).
+ */
+export function breadcrumbJsonLd(items: { name: string; url: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: it.url,
+    })),
   };
 }

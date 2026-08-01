@@ -25,13 +25,21 @@ describe('restaurantMetadata', () => {
     expect(m.description).toBe('Cuisine maison');
   });
 
-  it('picks the twitter card type based on cover image', () => {
+  it('always uses a large summary card and provides an OG image (with fallback)', () => {
     const card = (m: ReturnType<typeof restaurantMetadata>) =>
       (m.twitter as { card?: string } | undefined)?.card;
-    expect(card(restaurantMetadata(base, 'home'))).toBe('summary');
-    expect(card(restaurantMetadata({ ...base, coverUrl: 'https://x/y.jpg' }, 'home'))).toBe(
-      'summary_large_image',
-    );
+    const ogImage = (m: ReturnType<typeof restaurantMetadata>) =>
+      ((m.openGraph as { images?: { url: string }[] } | undefined)?.images ?? [])[0]?.url;
+
+    // Sans cover ni logo → image de secours brandée + carte large.
+    const noCover = restaurantMetadata(base, 'home');
+    expect(card(noCover)).toBe('summary_large_image');
+    expect(ogImage(noCover)).toContain('/og-default.svg');
+
+    // Avec cover → la cover est utilisée.
+    const withCover = restaurantMetadata({ ...base, coverUrl: 'https://x/y.jpg' }, 'home');
+    expect(card(withCover)).toBe('summary_large_image');
+    expect(ogImage(withCover)).toBe('https://x/y.jpg');
   });
 
   it('fills openGraph url and siteName', () => {

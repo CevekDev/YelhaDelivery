@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/templates';
+import { breadcrumbJsonLd, serializeJsonLd, APP_URL } from '@/lib/seo';
 import { SiteShell } from '@/components/site/site-shell';
 import type { BlogPost, Restaurant } from '@/types/database';
 
@@ -50,8 +51,17 @@ export default async function BlogListPage({ params }: { params: Promise<{ slug:
   const template = getTemplate(restaurant.template_id);
   const list = posts ?? [];
 
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Accueil', url: `${APP_URL}/r/${slug}` },
+    { name: 'Blog', url: `${APP_URL}/r/${slug}/blog` },
+  ]);
+
   return (
     <SiteShell template={template} restaurant={restaurant} slug={slug}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
+      />
       <main className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
         <header className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-widest text-[color:var(--site-accent)]">
