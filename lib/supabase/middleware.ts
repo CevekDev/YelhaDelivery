@@ -68,7 +68,9 @@ export async function updateSession(request: NextRequest) {
     pathname === '/login' || pathname === '/livreur/login' || pathname === '/admin/login';
   const requiresRestaurateur = pathname.startsWith('/dashboard');
   const requiresLivreur = pathname.startsWith('/livreur') && pathname !== '/livreur/login';
-  const requiresAdmin = pathname.startsWith('/admin') && pathname !== '/admin/login';
+  // /admin/login ET ses sous-pages (mot-de-passe-oublie, nouveau-mot-de-passe)
+  // sont publiques : le flux de réinitialisation doit être accessible sans session.
+  const requiresAdmin = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
 
   // 1. Pas connecté + tente une route protégée → vers la page de login appropriée
   if (!user && (requiresRestaurateur || requiresLivreur || requiresAdmin)) {
