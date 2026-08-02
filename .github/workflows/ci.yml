@@ -35,6 +35,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Audit sécurité des dépendances. Ne fait échouer la CI que sur les
+      # vulnérabilités HIGH/CRITICAL (les low/moderate sont tolérées pour ne pas
+      # bloquer inutilement sur des transitives non corrigeables).
+      - name: Security audit
+        run: pnpm audit --audit-level=high --prod
+
       - name: Lint
         run: pnpm lint
 
