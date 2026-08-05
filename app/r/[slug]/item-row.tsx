@@ -368,31 +368,19 @@ function ItemModal({
     onClose();
   };
 
-  const handlePrimary = () => {
-    if (step === 1) {
-      const next = nextStep(1);
-      if (next) setStep(next);
-      else commit();
-      return;
-    }
-    if (step === 2) {
-      const next = nextStep(2);
-      if (next) setStep(next);
-      else commit();
-      return;
-    }
-    commit();
-  };
+  // Étape optionnelle suivante (boisson/dessert) à proposer depuis l'étape courante.
+  // On ne redirige plus automatiquement : le client choisit explicitement.
+  const upsellStep = nextStep(step);
+  const upsellLabel = upsellStep === 2 ? '🥤 Ajouter une boisson' : '🍰 Ajouter un dessert';
 
-  const primaryLabel = (() => {
-    if (step === 1) {
-      if (!wizard) return hasVariants && !selectedVariant ? 'Choisir une taille' : 'Ajouter au panier';
-      return hasVariants && !selectedVariant ? 'Choisir une taille' : 'Suivant';
-    }
-    const next = nextStep(step);
-    return next ? 'Suivant' : 'Ajouter tout au panier';
-  })();
-  const primaryDisabled = step === 1 && !canConfirmStep1;
+  // Le bouton principal FINALISE toujours (ajoute au panier + ferme).
+  const finishDisabled = step === 1 && !canConfirmStep1;
+  const finishLabel =
+    step === 1 && hasVariants && !selectedVariant
+      ? 'Choisir une taille'
+      : upsellStep
+        ? "C'est tout"
+        : 'Ajouter au panier';
 
   // Compte des étapes actives pour le stepper visuel.
   const activeSteps: (1 | 2 | 3)[] = [1];
@@ -696,7 +684,22 @@ function ItemModal({
         </div>
 
         {/* ═══════════ Footer sticky : navigation + CTA ═══════════ */}
+        {/* On ne force plus le tunnel boisson/dessert : le bouton principal
+            ajoute directement au panier. Les suggestions sont un choix optionnel
+            proposé par un bouton secondaire « Ajouter une boisson/dessert ». */}
         <div className="shrink-0 border-t border-[var(--site-border)] bg-[var(--site-surface)] p-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom))]">
+          {/* Ligne optionnelle : proposer boisson/dessert sans y rediriger */}
+          {upsellStep && (
+            <button
+              type="button"
+              onClick={() => setStep(upsellStep)}
+              disabled={finishDisabled}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--site-accent)] bg-[var(--site-accent)]/5 px-4 py-2.5 text-sm font-semibold text-[color:var(--site-accent)] transition-opacity hover:opacity-80 disabled:opacity-40"
+            >
+              {upsellLabel}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
           <div className="flex items-center gap-2">
             {step > 1 && (
               <button
@@ -707,27 +710,15 @@ function ItemModal({
                 Retour
               </button>
             )}
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={handlePrimary}
-                className="rounded-xl bg-transparent px-2 text-sm font-semibold text-[color:var(--site-muted)] underline underline-offset-2 hover:text-[color:var(--site-text)]"
-              >
-                Passer
-              </button>
-            )}
             <button
               type="button"
-              onClick={handlePrimary}
-              disabled={primaryDisabled}
+              onClick={commit}
+              disabled={finishDisabled}
               className="ml-auto flex flex-1 items-center justify-between gap-2 rounded-2xl bg-[var(--site-accent)] px-5 py-3.5 text-[color:var(--site-accent-fg)] shadow-lg transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
             >
               <span className="flex items-center gap-2 font-bold">
-                {step === 1 && !wizard ? <ShoppingBag className="h-4 w-4" /> : null}
-                {primaryLabel}
-                {(step === 1 && wizard) || (step > 1 && nextStep(step) !== null) ? (
-                  <ArrowRight className="h-4 w-4" />
-                ) : null}
+                {!finishDisabled ? <ShoppingBag className="h-4 w-4" /> : null}
+                {finishLabel}
               </span>
               {step === 1 && (selectedVariant || !hasVariants) && basePrice != null && (
                 <span className="font-[family-name:var(--font-site-heading)] text-base font-black tabular-nums">
