@@ -91,22 +91,74 @@ export interface ShowcaseRestaurant {
 }
 
 /**
- * Restaurants actifs mis en avant sur la landing (« exemples de sites »).
- * Preuve concrète : de vrais sites créés avec la plateforme.
+ * Les meilleurs restaurants actifs, mis en avant sur la landing.
+ * Classement : présence d'un visuel de couverture → meilleure note moyenne →
+ * nombre d'avis → commandes livrées → ancienneté. On ne remonte donc que des
+ * restaurants « présentables » et les plus appréciés.
  */
-export function getShowcaseRestaurants(limit = 6): Promise<ShowcaseRestaurant[]> {
+export function getShowcaseRestaurants(limit = 3): Promise<ShowcaseRestaurant[]> {
   return unstable_cache(
     async (): Promise<ShowcaseRestaurant[]> => {
       try {
         const supabase = publicClient();
-        const { data } = await supabase
+        const { data: rows } = await supabase
           .from('restaurants')
-          .select('name, slug, city, description, cover_url')
+          .select('id, name, slug, city, description, cover_url, created_at')
           .eq('status', 'active')
-          .order('created_at', { ascending: true })
-          .limit(limit)
-          .returns<ShowcaseRestaurant[]>();
-        return data ?? [];
+          .returns<(ShowcaseRestaurant & { id: string; created_at: string })[]>();
+        const restaurants = rows ?? [];
+        if (restaurants.length === 0) return [];
+
+        const ids = restaurants.map((r) => r.id);
+        const [{ data: reviews }, { data: delivered }] = await Promise.all([
+          supabase.from('order_reviews').select('restaurant_id, rating').in('restaurant_id', ids),
+          supabase
+            .from('orders')
+            .select('restaurant_id')
+            .eq('status', 'delivered')
+            .in('restaurant_id', ids),
+        ]);
+
+        const stats = new Map<string, { sum: number; count: number; orders: number }>();
+        for (const id of ids) stats.set(id, { sum: 0, count: 0, orders: 0 });
+        for (const rv of (reviews ?? []) as { restaurant_id: string; rating: number }[]) {
+          const s = stats.get(rv.restaurant_id);
+          if (s) {
+            s.sum += Number(rv.rating) || 0;
+            s.count += 1;
+          }
+        }
+        for (const o of (delivered ?? []) as { restaurant_id: string }[]) {
+          const s = stats.get(o.restaurant_id);
+          if (s) s.orders += 1;
+        }
+
+        const scored = restaurants.map((r) => {
+          const s = stats.get(r.id)!;
+          return {
+            r,
+            hasCover: r.cover_url ? 1 : 0,
+            avg: s.count > 0 ? s.sum / s.count : 0,
+            count: s.count,
+            orders: s.orders,
+            created: new Date(r.created_at).getTime(),
+          };
+        });
+        scored.sort(
+          (a, b) =>
+            b.hasCover - a.hasCover ||
+            b.avg - a.avg ||
+            b.count - a.count ||
+            b.orders - a.orders ||
+            a.created - b.created,
+        );
+        return scored.slice(0, limit).map(({ r }) => ({
+          name: r.name,
+          slug: r.slug,
+          city: r.city,
+          description: r.description,
+          cover_url: r.cover_url,
+        }));
       } catch {
         return [];
       }

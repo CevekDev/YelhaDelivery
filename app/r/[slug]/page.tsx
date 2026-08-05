@@ -7,10 +7,20 @@ import { getHomeData } from '@/lib/public-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { restaurant } = await getHomeData(slug);
+  const { restaurant, featured } = await getHomeData(slug);
   if (!restaurant) return { title: 'Restaurant introuvable' };
+  const heroUrl = (restaurant.site_config as Record<string, unknown> | null)?.hero_image_url as
+    | string
+    | undefined;
   return restaurantMetadata(
-    { ...restaurant, slug, coverUrl: restaurant.cover_url, logoUrl: restaurant.logo_url },
+    {
+      ...restaurant,
+      slug,
+      coverUrl: restaurant.cover_url,
+      logoUrl: restaurant.logo_url,
+      heroUrl: heroUrl ?? null,
+      itemImageUrl: featured?.find((i) => i.image_url)?.image_url ?? null,
+    },
     'home',
   );
 }
@@ -41,6 +51,11 @@ export default async function RestaurantHomePage({
       address: restaurant.address,
       phone: restaurant.phone,
       coverUrl: restaurant.cover_url,
+      heroUrl:
+        ((restaurant.site_config as Record<string, unknown> | null)?.hero_image_url as
+          | string
+          | undefined) ?? null,
+      itemImageUrl: featured?.find((i) => i.image_url)?.image_url ?? null,
       cuisineType: restaurant.cuisine_type || seoDefaults.cuisine,
       priceRange: restaurant.price_range || seoDefaults.priceRange,
     },

@@ -16,10 +16,24 @@ export interface RestaurantSeo {
   coverUrl?: string | null;
   /** Logo du restaurant — utilisé comme image OG de secours si pas de cover. */
   logoUrl?: string | null;
+  /** Image « hero » (site_config) — secours d'image de partage avant le fallback. */
+  heroUrl?: string | null;
+  /** Photo d'un plat — dernier secours avant le visuel générique YelhaDelivery. */
+  itemImageUrl?: string | null;
   /** Type de cuisine (servesCuisine). Défaut dérivé du template si absent. */
   cuisineType?: string | null;
   /** Gamme de prix schema.org ($ à $$$$). Défaut dérivé du template si absent. */
   priceRange?: string | null;
+}
+
+/**
+ * Image de partage (Open Graph) d'un restaurant. Priorité : cover → logo →
+ * hero → photo d'un plat → visuel générique YelhaDelivery. Garantit qu'un lien
+ * partagé montre toujours un vrai visuel du restaurant plutôt que le logo de la
+ * plateforme dès que le restaurant a la moindre image.
+ */
+export function resolveRestaurantOgImage(r: RestaurantSeo): string {
+  return r.coverUrl || r.logoUrl || r.heroUrl || r.itemImageUrl || OG_FALLBACK_IMAGE;
 }
 
 /** Image Open Graph de secours (branding YelhaDelivery) si ni cover ni logo. */
@@ -32,15 +46,20 @@ export function restaurantMetadata(r: RestaurantSeo, page: 'home' | 'menu' = 'ho
   const title = page === 'menu' ? `Menu — ${r.name}` : r.name;
   const description =
     r.description ||
-    `Commandez en ligne chez ${r.name}${r.city ? ` à ${r.city}` : ''}. Livraison à domicile, paiement à la livraison.`;
-  // Image OG : cover du resto → logo → visuel de secours YelhaDelivery.
+    `Commandez en ligne chez ${r.name}${r.cuisineType ? ` — ${r.cuisineType}` : ''}${r.city ? ` à ${r.city}` : ''}. Livraison à domicile, paiement à la livraison.`;
+  // Image OG : cover → logo → hero → photo de plat → visuel de secours.
   // On garantit toujours une image (meilleur partage social).
-  const imageUrl = r.coverUrl || r.logoUrl || OG_FALLBACK_IMAGE;
+  const imageUrl = resolveRestaurantOgImage(r);
   const images = [{ url: imageUrl }];
+  // Mots-clés pour aider la découverte par nom / cuisine / ville.
+  const keywords = [r.name, r.cuisineType, r.city, 'livraison', 'commander en ligne'].filter(
+    (k): k is string => Boolean(k),
+  );
 
   return {
     title,
     description,
+    keywords,
     metadataBase: new URL(APP_URL),
     alternates: { canonical: path },
     openGraph: {
@@ -125,7 +144,9 @@ export function restaurantJsonLd(
     priceRange: r.priceRange || '$$',
     ...(r.description ? { description: r.description } : {}),
     ...(r.phone ? { telephone: r.phone } : {}),
-    ...(r.coverUrl ? { image: r.coverUrl } : {}),
+    ...(r.coverUrl || r.heroUrl || r.itemImageUrl
+      ? { image: r.coverUrl || r.heroUrl || r.itemImageUrl }
+      : {}),
     ...(openingHoursSpecification.length > 0 ? { openingHoursSpecification } : {}),
     ...(opts?.ratingValue != null && (opts.reviewCount ?? 0) > 0
       ? {

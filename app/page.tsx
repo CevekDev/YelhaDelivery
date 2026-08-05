@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export default async function LandingPage() {
   const [demoSlug, showcase, pricing] = await Promise.all([
     getDemoRestaurantSlug(),
-    getShowcaseRestaurants(6),
+    getShowcaseRestaurants(3),
     getLandingPricing(),
   ]);
 

@@ -22,10 +22,20 @@ import { getMenuData } from '@/lib/public-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { restaurant } = await getMenuData(slug);
+  const { restaurant, items } = await getMenuData(slug);
   if (!restaurant) return { title: 'Restaurant introuvable' };
+  const heroUrl = (restaurant.site_config as Record<string, unknown> | null)?.hero_image_url as
+    | string
+    | undefined;
   return restaurantMetadata(
-    { ...restaurant, slug, coverUrl: restaurant.cover_url, logoUrl: restaurant.logo_url },
+    {
+      ...restaurant,
+      slug,
+      coverUrl: restaurant.cover_url,
+      logoUrl: restaurant.logo_url,
+      heroUrl: heroUrl ?? null,
+      itemImageUrl: items?.find((i) => i.image_url)?.image_url ?? null,
+    },
     'menu',
   );
 }
@@ -145,6 +155,11 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       address: restaurant.address,
       phone: restaurant.phone,
       coverUrl: restaurant.cover_url,
+      heroUrl:
+        ((restaurant.site_config as Record<string, unknown> | null)?.hero_image_url as
+          | string
+          | undefined) ?? null,
+      itemImageUrl: items?.find((i) => i.image_url)?.image_url ?? null,
       cuisineType: restaurant.cuisine_type || seoDefaults.cuisine,
       priceRange: restaurant.price_range || seoDefaults.priceRange,
     },
