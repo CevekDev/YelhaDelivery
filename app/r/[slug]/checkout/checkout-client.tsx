@@ -123,32 +123,45 @@ export function CheckoutClient({
 
                 <form
                   id="checkout-form"
-                  action={(fd) =>
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (isPending) return;
+                    // On passe par onSubmit (et non la prop `action`) : ainsi React NE
+                    // réinitialise PAS le formulaire. En cas d'erreur de validation, la
+                    // saisie du client est conservée et seul le champ fautif est signalé.
+                    // Le FormData est construit AVANT le startTransition car e.currentTarget
+                    // devient null de façon asynchrone.
+                    const fd = new FormData(e.currentTarget);
+                    if (appliedPromo) fd.set('promo_code', appliedPromo.code);
+                    fd.set(
+                      'items',
+                      JSON.stringify(
+                        relevant.map((l) => ({
+                          menu_item_id: l.menu_item_id,
+                          quantity: l.quantity,
+                          ...(l.variant_id ? { variant_id: l.variant_id } : {}),
+                          ...(l.note ? { note: l.note } : {}),
+                        })),
+                      ),
+                    );
                     startTransition(async () => {
                       setError(null);
                       setFieldErrors({});
-                      if (appliedPromo) fd.set('promo_code', appliedPromo.code);
-                      fd.set(
-                        'items',
-                        JSON.stringify(
-                          relevant.map((l) => ({
-                            menu_item_id: l.menu_item_id,
-                            quantity: l.quantity,
-                            ...(l.variant_id ? { variant_id: l.variant_id } : {}),
-                            ...(l.note ? { note: l.note } : {}),
-                          })),
-                        ),
-                      );
                       const res = await placeOrderAction(fd);
                       if (!res.ok) {
                         setError(res.error ?? null);
                         setFieldErrors(res.fieldErrors ?? {});
+                        // Met le focus sur le premier champ en erreur pour guider la correction.
+                        const first = res.fieldErrors
+                          ? Object.keys(res.fieldErrors).find((k) => res.fieldErrors![k])
+                          : undefined;
+                        if (first) document.getElementById(first)?.focus();
                       } else {
                         clear();
                         if (res.redirectTo) router.push(res.redirectTo);
                       }
-                    })
-                  }
+                    });
+                  }}
                   className="mt-5 space-y-4"
                 >
                   <div className="space-y-2">
