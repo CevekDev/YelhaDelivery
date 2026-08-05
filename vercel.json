@@ -4,5 +4,8 @@
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
-  "regions": ["cdg1"]
+  "regions": ["cdg1"],
+  "crons": [
+    { "path": "/api/cron/cleanup", "schedule": "0 3 * * *" }
+  ]
 }
