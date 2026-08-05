@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { priceSchema } from './common';
+import { LETTER_RE, priceSchema } from './common';
 
 export const menuCategorySchema = z.object({
-  name: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(80).regex(LETTER_RE, 'Le nom doit contenir des lettres'),
   sort_order: z.number().int().min(0).max(999).default(0),
   is_visible: z.boolean().default(true),
 });
@@ -11,7 +11,7 @@ export type MenuCategoryInput = z.infer<typeof menuCategorySchema>;
 export const menuItemSchema = z
   .object({
     category_id: z.string().uuid().nullable(),
-    name: z.string().trim().min(1).max(120),
+    name: z.string().trim().min(1).max(120).regex(LETTER_RE, 'Le nom doit contenir des lettres'),
     description: z.string().trim().max(500).optional().or(z.literal('')),
     price: priceSchema,
     promo_price: z

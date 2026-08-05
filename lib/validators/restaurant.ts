@@ -1,13 +1,30 @@
 import { z } from 'zod';
-import { algerianPhone, priceSchema, slugSchema } from './common';
+import { algerianPhone, LETTER_RE, priceSchema, slugSchema } from './common';
 
 export const restaurantUpdateSchema = z
   .object({
-    name: z.string().trim().min(1).max(120),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .regex(LETTER_RE, 'Le nom du restaurant doit contenir des lettres'),
     slug: slugSchema,
     description: z.string().trim().max(500).optional().or(z.literal('')),
-    address: z.string().trim().max(300).optional().or(z.literal('')),
-    city: z.string().trim().max(80).optional().or(z.literal('')),
+    address: z
+      .string()
+      .trim()
+      .max(300)
+      .regex(LETTER_RE, 'Adresse invalide — indiquez une vraie adresse')
+      .optional()
+      .or(z.literal('')),
+    city: z
+      .string()
+      .trim()
+      .max(80)
+      .regex(LETTER_RE, 'Ville invalide')
+      .optional()
+      .or(z.literal('')),
     phone: algerianPhone.optional().or(z.literal('')),
     delivery_fee: priceSchema,
     min_order: priceSchema,

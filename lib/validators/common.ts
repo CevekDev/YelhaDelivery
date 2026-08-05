@@ -15,6 +15,29 @@ export const slugSchema = z
   .min(3)
   .max(80);
 
+/**
+ * Contient au moins une lettre (tout alphabet : latin accentué, arabe, etc.).
+ * Sert à rejeter les saisies composées uniquement de chiffres ou de symboles
+ * là où l'on attend un vrai texte (nom, adresse, ville…).
+ */
+export const LETTER_RE = /\p{L}/u;
+
+/** Nom de personne : longueur minimale + doit contenir des lettres. */
+export const personNameSchema = z
+  .string()
+  .trim()
+  .min(2, 'Nom trop court')
+  .max(120)
+  .regex(LETTER_RE, 'Le nom doit contenir des lettres, pas seulement des chiffres');
+
+/** Adresse : longueur minimale + doit contenir des lettres (pas que des chiffres). */
+export const addressSchema = z
+  .string()
+  .trim()
+  .min(5, 'Adresse trop courte')
+  .max(500)
+  .regex(LETTER_RE, 'Adresse invalide — indiquez une vraie adresse (rue, quartier…)');
+
 /** Prix : entier ou décimal positif avec max 2 décimales. */
 export const priceSchema = z
   .number({ invalid_type_error: 'Prix invalide' })

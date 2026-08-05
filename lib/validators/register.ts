@@ -1,11 +1,16 @@
 import { z } from 'zod';
-import { algerianPhone, slugSchema } from './common';
+import { algerianPhone, LETTER_RE, personNameSchema, slugSchema } from './common';
 
 export const restaurateurRegisterSchema = z
   .object({
-    restaurant_name: z.string().trim().min(1, 'Nom du restaurant requis').max(120),
+    restaurant_name: z
+      .string()
+      .trim()
+      .min(1, 'Nom du restaurant requis')
+      .max(120)
+      .regex(LETTER_RE, 'Le nom du restaurant doit contenir des lettres'),
     slug: slugSchema,
-    owner_full_name: z.string().trim().min(2, 'Nom trop court').max(120),
+    owner_full_name: personNameSchema,
     owner_email: z.string().trim().toLowerCase().email('Email invalide').max(254),
     owner_phone: algerianPhone.optional().or(z.literal('')),
     password: z
