@@ -3,10 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { requireRole } from '@/lib/auth';
+import { getRestaurateurContext } from '@/lib/auth';
 import { uploadMenuImage } from '@/lib/storage/upload';
 import { blogPostSchema, slugify } from '@/lib/validators/site';
-import type { Restaurant } from '@/types/database';
 
 export interface BlogResult {
   ok: boolean;
@@ -15,13 +14,9 @@ export interface BlogResult {
 }
 
 async function loadOwnedRestaurant() {
-  const { profile } = await requireRole('restaurateur');
+  // Manage-aware : resto du restaurateur OU celui géré par l'admin.
+  const { profile, restaurant } = await getRestaurateurContext();
   const supabase = await createClient();
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('id, slug')
-    .eq('owner_id', profile.id)
-    .maybeSingle<Pick<Restaurant, 'id' | 'slug'>>();
   return { profile, supabase, restaurant };
 }
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { requireRole } from '@/lib/auth';
+import { getRestaurateurContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { stopManagingRestaurantAction } from '@/app/(admin)/admin/restaurants/manage-actions';
 import { BottomNav, Sidebar } from '@/components/dashboard/sidebar';
 import { OpenToggle } from '@/components/dashboard/open-toggle';
 import { DeliveryToggle } from '@/components/dashboard/delivery-toggle';
@@ -10,24 +11,41 @@ import {
   fetchPlatformSettings,
   fetchSubscriptionPlans,
 } from '@/lib/subscription';
-import { ExternalLink, LogOut } from 'lucide-react';
-import type { Restaurant, SubscriptionRequest } from '@/types/database';
+import { ExternalLink, LogOut, ShieldCheck } from 'lucide-react';
+import type { SubscriptionRequest } from '@/types/database';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await requireRole('restaurateur');
+  const { restaurant, managingAsAdmin } = await getRestaurateurContext();
   const supabase = await createClient();
-  const [{ data: restaurant }, settings] = await Promise.all([
-    supabase.from('restaurants').select('*').eq('owner_id', profile.id).maybeSingle<Restaurant>(),
-    fetchPlatformSettings(supabase),
-  ]);
+  const settings = await fetchPlatformSettings(supabase);
 
   const restaurantName = restaurant?.name ?? 'Configuration initiale';
   const state = restaurant ? computeSubscriptionState(restaurant, settings) : null;
 
+  // Bandeau « gestion admin » : rappelle que l'admin édite le site d'un tiers,
+  // avec un bouton pour quitter le contexte de gestion.
+  const adminBanner = managingAsAdmin ? (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/30 bg-primary/10 px-4 py-2.5 text-sm text-primary md:px-6">
+      <span className="inline-flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 shrink-0" />
+        Vous gérez <strong>{restaurantName}</strong> en tant qu’administrateur.
+      </span>
+      <form action={stopManagingRestaurantAction}>
+        <button
+          type="submit"
+          className="rounded-lg border border-primary/40 bg-background px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+        >
+          Quitter la gestion
+        </button>
+      </form>
+    </div>
+  ) : null;
+
   // Essai expiré sans abonnement → espace de gestion verrouillé.
+  // Un admin en gestion n'est jamais bloqué (il intervient justement pour gérer).
   // Seuls les restos ACTIFS sont concernés : un resto « pending » attend encore
   // l'activation admin (son essai ne démarre vraiment qu'à l'activation).
-  if (restaurant && restaurant.status === 'active' && state?.locked) {
+  if (!managingAsAdmin && restaurant && restaurant.status === 'active' && state?.locked) {
     const [plans, { data: requests }] = await Promise.all([
       fetchSubscriptionPlans(supabase),
       supabase
@@ -89,6 +107,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen bg-muted/30">
       <Sidebar restaurantName={restaurantName} />
       <div className="flex flex-1 flex-col">
+        {adminBanner}
         <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-background px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="min-w-0">

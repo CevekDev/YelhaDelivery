@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { ADMIN_MANAGE_COOKIE } from '@/lib/constants';
 import type { UserRole } from '@/types/database';
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
@@ -101,8 +102,13 @@ export async function updateSession(request: NextRequest) {
       return redirectWithCookies(response, url);
     }
 
+    // Un admin peut accéder au tableau de bord quand il « gère » un restaurant
+    // (cookie posé depuis le panel admin). La page valide le cookie côté serveur.
+    const adminManaging =
+      profile.role === 'admin' && Boolean(request.cookies.get(ADMIN_MANAGE_COOKIE)?.value);
+
     const roleAllowed =
-      (requiresRestaurateur && profile.role === 'restaurateur') ||
+      (requiresRestaurateur && (profile.role === 'restaurateur' || adminManaging)) ||
       (requiresLivreur && profile.role === 'livreur') ||
       (requiresAdmin && profile.role === 'admin');
 

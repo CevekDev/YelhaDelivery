@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
-import { requireRole } from '@/lib/auth';
+import { getRestaurateurContext, requireRestaurateur } from '@/lib/auth';
 import { restaurantUpdateSchema } from '@/lib/validators/restaurant';
 import { uploadMenuImage, deleteStoredImages } from '@/lib/storage/upload';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
@@ -14,7 +14,7 @@ export interface SettingsResult {
 }
 
 export async function updateRestaurantAction(formData: FormData): Promise<SettingsResult> {
-  const { profile } = await requireRole('restaurateur');
+  const { profile, restaurant } = await getRestaurateurContext();
 
   const freeDeliveryRaw = formData.get('free_delivery_above');
   const freeDelivery =
@@ -49,11 +49,15 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
   }
 
   const supabase = await createClient();
-  const { data: existing } = await supabase
-    .from('restaurants')
-    .select('id, slug, banner_image_url')
-    .eq('owner_id', profile.id)
-    .maybeSingle<{ id: string; slug: string; banner_image_url: string | null }>();
+  // Manage-aware : le resto existant vient du contexte (restaurateur OU admin
+  // en gestion). Il n'est null que pendant le tout premier setup restaurateur.
+  const existing = restaurant
+    ? {
+        id: restaurant.id,
+        slug: restaurant.slug,
+        banner_image_url: restaurant.banner_image_url,
+      }
+    : null;
 
   // Slug unicité (vérification explicite -> message clair)
   if (!existing || existing.slug !== parsed.data.slug) {
@@ -96,8 +100,7 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
     const { error } = await supabase
       .from('restaurants')
       .update(payload)
-      .eq('id', existing.id)
-      .eq('owner_id', profile.id);
+      .eq('id', existing.id);
     if (error) return { ok: false, error: error.message };
 
     // Supprime l'ancienne bannière si elle a été remplacée ou retirée.
@@ -124,13 +127,13 @@ export async function updateRestaurantAction(formData: FormData): Promise<Settin
 }
 
 export async function toggleOpenAction(formData: FormData): Promise<SettingsResult> {
-  const { profile } = await requireRole('restaurateur');
+  const { restaurant } = await requireRestaurateur();
   const isOpen = formData.get('is_open') === 'true';
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('restaurants')
     .update({ is_open: !isOpen })
-    .eq('owner_id', profile.id)
+    .eq('id', restaurant.id)
     .select('id, slug')
     .maybeSingle<{ id: string; slug: string }>();
   if (error) return { ok: false, error: error.message };
@@ -147,13 +150,13 @@ export async function toggleOpenAction(formData: FormData): Promise<SettingsResu
  * checkout est bloqué tant que la livraison est en pause.
  */
 export async function toggleAcceptOrdersAction(formData: FormData): Promise<SettingsResult> {
-  const { profile } = await requireRole('restaurateur');
+  const { restaurant } = await requireRestaurateur();
   const accept = formData.get('accept_orders') === 'true';
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('restaurants')
     .update({ accept_orders: !accept })
-    .eq('owner_id', profile.id)
+    .eq('id', restaurant.id)
     .select('id, slug')
     .maybeSingle<{ id: string; slug: string }>();
   if (error) return { ok: false, error: error.message };

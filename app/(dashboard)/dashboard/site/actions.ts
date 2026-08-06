@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireRole } from '@/lib/auth';
+import { getRestaurateurContext } from '@/lib/auth';
 import { uploadMenuImage, deleteStoredImages } from '@/lib/storage/upload';
 import {
   siteSettingsSchema,
@@ -11,7 +11,7 @@ import {
   siteAccentSchema,
 } from '@/lib/validators/site';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
-import type { Restaurant, SiteConfig, SiteSection } from '@/types/database';
+import type { SiteConfig, SiteSection } from '@/types/database';
 
 export interface SiteResult {
   ok: boolean;
@@ -20,19 +20,15 @@ export interface SiteResult {
 }
 
 async function loadOwnedRestaurant() {
-  const { profile } = await requireRole('restaurateur');
+  // Manage-aware : renvoie le resto du restaurateur OU celui géré par l'admin.
+  const { profile, restaurant } = await getRestaurateurContext();
   const supabase = await createClient();
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('owner_id', profile.id)
-    .maybeSingle<Restaurant>();
   return { profile, supabase, restaurant };
 }
 
 /** Choix du template + activation des pages (accueil / blog). */
 export async function updateSiteSettingsAction(formData: FormData): Promise<SiteResult> {
-  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  const { supabase, restaurant } = await loadOwnedRestaurant();
   if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
 
   const parsed = siteSettingsSchema.safeParse({
@@ -49,8 +45,7 @@ export async function updateSiteSettingsAction(formData: FormData): Promise<Site
       home_enabled: parsed.data.home_enabled,
       blog_enabled: parsed.data.blog_enabled,
     })
-    .eq('id', restaurant.id)
-    .eq('owner_id', profile.id);
+    .eq('id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
   revalidatePublicRestaurant(restaurant.slug);
@@ -60,7 +55,7 @@ export async function updateSiteSettingsAction(formData: FormData): Promise<Site
 
 /** Contenu éditable de l'accueil + contact + galerie + image "à propos". */
 export async function updateSiteContentAction(formData: FormData): Promise<SiteResult> {
-  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  const { supabase, restaurant } = await loadOwnedRestaurant();
   if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
 
   const parsed = siteContentSchema.safeParse({
@@ -137,8 +132,7 @@ export async function updateSiteContentAction(formData: FormData): Promise<SiteR
   const { error } = await supabase
     .from('restaurants')
     .update({ site_config: config })
-    .eq('id', restaurant.id)
-    .eq('owner_id', profile.id);
+    .eq('id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
   // Supprime du stockage l'ancienne image « à propos » remplacée/retirée + les
@@ -163,7 +157,7 @@ export async function updateSiteContentAction(formData: FormData): Promise<SiteR
  * uniques, nettoyage) pour garantir un rendu cohérent quoi qu'il arrive.
  */
 export async function updateSiteLayoutAction(formData: FormData): Promise<SiteResult> {
-  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  const { supabase, restaurant } = await loadOwnedRestaurant();
   if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
 
   let raw: unknown;
@@ -203,8 +197,7 @@ export async function updateSiteLayoutAction(formData: FormData): Promise<SiteRe
   const { error } = await supabase
     .from('restaurants')
     .update({ site_config: { ...prev, layout } })
-    .eq('id', restaurant.id)
-    .eq('owner_id', profile.id);
+    .eq('id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
   revalidatePublicRestaurant(restaurant.slug);
@@ -218,7 +211,7 @@ export async function updateSiteLayoutAction(formData: FormData): Promise<SiteRe
  * Vide = retour à la couleur par défaut du template.
  */
 export async function updateSiteAccentAction(formData: FormData): Promise<SiteResult> {
-  const { supabase, restaurant, profile } = await loadOwnedRestaurant();
+  const { supabase, restaurant } = await loadOwnedRestaurant();
   if (!restaurant) return { ok: false, error: 'Configurez d’abord votre restaurant.' };
 
   const parsed = siteAccentSchema.safeParse(formData.get('accent') ?? '');
@@ -228,8 +221,7 @@ export async function updateSiteAccentAction(formData: FormData): Promise<SiteRe
   const { error } = await supabase
     .from('restaurants')
     .update({ site_config: { ...prev, accent: parsed.data || undefined } })
-    .eq('id', restaurant.id)
-    .eq('owner_id', profile.id);
+    .eq('id', restaurant.id);
   if (error) return { ok: false, error: error.message };
 
   revalidatePublicRestaurant(restaurant.slug);

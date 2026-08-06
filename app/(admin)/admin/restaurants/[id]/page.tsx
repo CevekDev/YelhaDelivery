@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { StatusActions } from './status-actions';
+import { startManagingRestaurantAction } from '../manage-actions';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
 import {
@@ -16,6 +17,7 @@ import {
   ExternalLink,
   MapPin,
   Package,
+  Pencil,
   Phone,
   ShoppingBag,
   Star,
@@ -189,12 +191,19 @@ export default async function AdminRestaurantDetailPage({
                 Retour
               </Link>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild variant="outline" size="sm">
               <Link href={`/r/${restaurant.slug}`} target="_blank" rel="noreferrer">
                 Voir la page
                 <ExternalLink className="h-4 w-4" />
               </Link>
             </Button>
+            <form action={startManagingRestaurantAction}>
+              <input type="hidden" name="id" value={restaurant.id} />
+              <Button type="submit" size="sm">
+                <Pencil className="h-4 w-4" />
+                Modifier le site
+              </Button>
+            </form>
           </>
         }
       />
