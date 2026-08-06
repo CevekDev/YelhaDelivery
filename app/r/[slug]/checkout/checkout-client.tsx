@@ -110,7 +110,12 @@ export function CheckoutClient({
             <strong className="text-[color:var(--site-text)]">{restaurantName}</strong>
           </p>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
+          {/* grid-cols-1 (= minmax(0,1fr)) sur mobile : sans piste explicite, la
+              grille se dimensionnait au min-content et un nom d'article en
+              `truncate` (white-space:nowrap) imposait sa largeur totale → scroll
+              horizontal. minmax(0,…) plafonne la piste à la largeur du conteneur
+              et laisse le truncate rogner le texte. */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
             {/* Colonne gauche : formulaire */}
             <div className="space-y-5">
               <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-6 ">
