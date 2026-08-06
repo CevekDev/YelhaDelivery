@@ -23,8 +23,11 @@ const cspDirectives = [
   `connect-src 'self' https://${supabaseWsHost} wss://${supabaseWsHost}`,
   // Objets interdits
   "object-src 'none'",
-  // Iframes autorisées : carte Google Maps (embed) sur la page contact.
-  "frame-src https://www.google.com https://maps.google.com",
+  // Iframes autorisées : 'self' pour l'aperçu du site (dashboard → /site-preview)
+  // + carte Google Maps (embed) sur la page contact. Sans 'self', le navigateur
+  // refuse de charger l'iframe d'aperçu même-origine (frame-src ne retombe pas
+  // sur default-src dès qu'il est défini explicitement).
+  "frame-src 'self' https://www.google.com https://maps.google.com",
   // 'self' (et non 'none') : autorise l'aperçu du site en iframe MÊME ORIGINE
   // (dashboard → /site-preview) tout en bloquant tout framing cross-origin.
   "frame-ancestors 'self'",
