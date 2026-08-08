@@ -66,6 +66,14 @@ export default async function AdminCommandesPage({
     ordersQuery = ordersQuery.eq('restaurant_id', restoIdFilter);
   }
 
+  // On masque les commandes « en attente » (pending) de plus de 30 min : ce sont
+  // en pratique des paniers jamais confirmés/abandonnés qui polluent le panel.
+  // Condition : garder les lignes NON-pending OU dont la création remonte à < 30 min.
+  // Se combine en ET avec les filtres ci-dessus (y compris le filtre statut=pending,
+  // qui n'affichera alors que les pending récentes).
+  const stalePendingCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  ordersQuery = ordersQuery.or(`status.neq.pending,created_at.gte.${stalePendingCutoff}`);
+
   const [{ data: orders }, { data: restaurants }] = await Promise.all([
     ordersQuery.returns<
       Pick<
@@ -183,6 +191,9 @@ export default async function AdminCommandesPage({
             </FilterChip>
           ))}
         </FilterRow>
+        <p className="text-[11px] text-muted-foreground">
+          Les commandes « en attente » de plus de 30 min (paniers abandonnés) sont masquées.
+        </p>
         {(restaurants?.length ?? 0) > 1 && (
           <FilterRow label="Restaurant">
             <FilterChip
