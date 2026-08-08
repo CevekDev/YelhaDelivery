@@ -1,5 +1,4 @@
 import 'server-only';
-import { formatPrice } from '@/lib/utils';
 
 const baseStyles = `
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f4; margin: 0; padding: 0; color: #1a1916; }
@@ -10,10 +9,7 @@ const baseStyles = `
   .h1 { font-size: 22px; font-weight: 700; margin: 18px 0 8px; }
   .muted { color: #777; font-size: 14px; }
   .btn { display: inline-block; background: #FF5C1A; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; }
-  .row { display: flex; justify-content: space-between; padding: 6px 0; }
-  table { width: 100%; border-collapse: collapse; margin: 14px 0; }
-  th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-  th:last-child, td:last-child { text-align: right; }
+  .code { display: inline-block; font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #1a1916; background: #f5f5f4; border: 1px solid #eee; border-radius: 10px; padding: 16px 24px; margin: 8px 0; }
   .footer { color: #999; font-size: 12px; text-align: center; margin-top: 24px; }
 `;
 
@@ -35,129 +31,84 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export interface NewOrderEmailData {
-  orderNumber: string;
+// ─────────────────────────────────────────────────────────────────
+// 1) Code de vérification à l'inscription
+// ─────────────────────────────────────────────────────────────────
+export function verificationCodeEmail(data: { code: string }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const subject = `Votre code de vérification : ${data.code}`;
+  const html = shell(
+    'Code de vérification',
+    `
+    <h1 class="h1">Confirmez votre adresse email</h1>
+    <p class="muted">Saisissez ce code pour finaliser la création de votre compte restaurateur :</p>
+    <div style="text-align:center;margin:20px 0"><span class="code">${escapeHtml(data.code)}</span></div>
+    <p class="muted">Ce code expire dans <strong>15 minutes</strong>. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+    `,
+  );
+  const text = `Votre code de vérification YelhaDelivery : ${data.code}\nIl expire dans 15 minutes.`;
+  return { subject, html, text };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 2) Code de réinitialisation du mot de passe
+// ─────────────────────────────────────────────────────────────────
+export function passwordResetCodeEmail(data: { code: string }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const subject = `Réinitialisation du mot de passe : ${data.code}`;
+  const html = shell(
+    'Réinitialisation du mot de passe',
+    `
+    <h1 class="h1">Réinitialiser votre mot de passe</h1>
+    <p class="muted">Utilisez ce code pour choisir un nouveau mot de passe :</p>
+    <div style="text-align:center;margin:20px 0"><span class="code">${escapeHtml(data.code)}</span></div>
+    <p class="muted">Ce code expire dans <strong>1 heure</strong>. Si vous n'avez pas demandé de réinitialisation, ignorez cet email — votre mot de passe reste inchangé.</p>
+    `,
+  );
+  const text = `Code de réinitialisation YelhaDelivery : ${data.code}\nIl expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`;
+  return { subject, html, text };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 3) Rappel : abonnement / essai qui se termine dans 3 jours
+// ─────────────────────────────────────────────────────────────────
+export interface SubscriptionReminderData {
   restaurantName: string;
+  isTrial: boolean;
+  daysLeft: number;
+  /** Date de fin lisible (ex. « 11 août 2026 »). */
+  endDate: string;
   dashboardUrl: string;
-  customer: { name: string; phone: string; address: string };
-  items: { item_name: string; quantity: number; subtotal: number; note?: string | null }[];
-  subtotal: number;
-  deliveryFee: number;
-  total: number;
-  notes?: string | null;
 }
 
-export function newOrderEmail(data: NewOrderEmailData): { subject: string; html: string; text: string } {
-  const rows = data.items
-    .map(
-      (i) =>
-        `<tr><td>${i.quantity} × ${escapeHtml(i.item_name)}${
-          i.note
-            ? `<br/><em style="color:#666;font-size:12px">« ${escapeHtml(i.note)} »</em>`
-            : ''
-        }</td><td>${formatPrice(i.subtotal)}</td></tr>`,
-    )
-    .join('');
-  const subject = `Nouvelle commande ${data.orderNumber} — ${data.restaurantName}`;
-  const html = shell(
-    subject,
-    `
-    <h1 class="h1">Nouvelle commande reçue</h1>
-    <p class="muted">Commande <strong>${escapeHtml(data.orderNumber)}</strong></p>
-    <table>
-      <tr><td><strong>Client</strong></td><td>${escapeHtml(data.customer.name)}</td></tr>
-      <tr><td><strong>Téléphone</strong></td><td><a href="tel:${escapeHtml(data.customer.phone)}">${escapeHtml(data.customer.phone)}</a></td></tr>
-      <tr><td><strong>Adresse</strong></td><td>${escapeHtml(data.customer.address)}</td></tr>
-    </table>
-    <table>
-      <thead><tr><th>Article</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="row"><span class="muted">Sous-total</span><span>${formatPrice(data.subtotal)}</span></div>
-    <div class="row"><span class="muted">Livraison</span><span>${formatPrice(data.deliveryFee)}</span></div>
-    <div class="row" style="font-weight: 700; font-size: 18px;"><span>Total</span><span>${formatPrice(data.total)}</span></div>
-    ${data.notes ? `<p class="muted" style="margin-top:14px"><em>« ${escapeHtml(data.notes)} »</em></p>` : ''}
-    <p style="margin-top: 22px;"><a class="btn" href="${escapeHtml(data.dashboardUrl)}">Voir dans le dashboard</a></p>
-    <p class="muted">💵 Paiement cash à la livraison.</p>
-    `,
-  );
-  const text =
-    `Nouvelle commande ${data.orderNumber}\n` +
-    `Client : ${data.customer.name} · ${data.customer.phone}\n` +
-    `Adresse : ${data.customer.address}\n` +
-    data.items
-      .map((i) =>
-        `- ${i.quantity}× ${i.item_name} = ${formatPrice(i.subtotal)}` +
-        (i.note ? `\n    note: ${i.note}` : ''),
-      )
-      .join('\n') +
-    `\nTotal : ${formatPrice(data.total)}\n${data.dashboardUrl}`;
-  return { subject, html, text };
-}
-
-export interface WelcomeEmailData {
-  fullName: string;
-  restaurantName: string;
-  slug: string;
-  loginUrl: string;
-  publicUrl: string;
-}
-
-export function welcomeRestaurateurEmail(data: WelcomeEmailData): {
+export function subscriptionReminderEmail(data: SubscriptionReminderData): {
   subject: string;
   html: string;
   text: string;
 } {
-  const subject = `Bienvenue sur YelhaDelivery, ${data.restaurantName}`;
+  const what = data.isTrial ? 'Votre essai gratuit' : 'Votre abonnement';
+  const dayWord = data.daysLeft > 1 ? `${data.daysLeft} jours` : `${data.daysLeft} jour`;
+  const subject = `${what} se termine dans ${dayWord} — ${data.restaurantName}`;
+  const intro = data.isTrial
+    ? `Votre essai gratuit pour <strong>${escapeHtml(data.restaurantName)}</strong> se termine le <strong>${escapeHtml(data.endDate)}</strong>. Pour continuer à recevoir des commandes sans interruption, choisissez une offre dès maintenant.`
+    : `L'abonnement de <strong>${escapeHtml(data.restaurantName)}</strong> arrive à échéance le <strong>${escapeHtml(data.endDate)}</strong>. Renouvelez pour éviter la suspension de votre accès.`;
   const html = shell(
-    subject,
+    'Rappel d’abonnement',
     `
-    <h1 class="h1">Bienvenue ${escapeHtml(data.fullName)} !</h1>
-    <p>Votre compte restaurateur pour <strong>${escapeHtml(data.restaurantName)}</strong> est prêt.</p>
-    <p>Prochaines étapes :</p>
-    <ol>
-      <li>Connectez-vous à votre dashboard</li>
-      <li>Complétez les informations (adresse, horaires, frais de livraison)</li>
-      <li>Créez votre menu</li>
-      <li>Ajoutez vos livreurs</li>
-      <li>Activez « Restaurant ouvert » pour commencer à recevoir des commandes</li>
-    </ol>
-    <p style="margin-top: 22px;"><a class="btn" href="${escapeHtml(data.loginUrl)}">Se connecter</a></p>
-    <p class="muted">Votre page publique : <a href="${escapeHtml(data.publicUrl)}">${escapeHtml(data.publicUrl)}</a></p>
+    <h1 class="h1">${data.isTrial ? 'Votre essai se termine bientôt' : 'Pensez à renouveler'}</h1>
+    <p>${intro}</p>
+    <p class="muted">Sans renouvellement, votre tableau de bord sera verrouillé à l'échéance (votre site public reste en ligne).</p>
+    <p style="margin-top: 22px;"><a class="btn" href="${escapeHtml(data.dashboardUrl)}">Gérer mon abonnement</a></p>
     `,
   );
   const text =
-    `Bienvenue ${data.fullName} !\nVotre compte ${data.restaurantName} est prêt.\nConnexion : ${data.loginUrl}\nPage publique : ${data.publicUrl}`;
-  return { subject, html, text };
-}
-
-export interface LivreurCredsEmailData {
-  ownerFullName: string;
-  restaurantName: string;
-  livreurFullName: string;
-  username: string;
-  loginUrl: string;
-}
-
-export function livreurCreatedEmail(data: LivreurCredsEmailData): {
-  subject: string;
-  html: string;
-  text: string;
-} {
-  const subject = `Livreur créé : ${data.livreurFullName}`;
-  const html = shell(
-    subject,
-    `
-    <h1 class="h1">Livreur créé</h1>
-    <p>${escapeHtml(data.ownerFullName)}, vous avez créé un compte livreur pour <strong>${escapeHtml(data.restaurantName)}</strong>.</p>
-    <table>
-      <tr><td><strong>Nom</strong></td><td>${escapeHtml(data.livreurFullName)}</td></tr>
-      <tr><td><strong>Identifiant</strong></td><td><code>${escapeHtml(data.username)}</code></td></tr>
-    </table>
-    <p class="muted">Le mot de passe ne figure pas dans cet email pour des raisons de sécurité. Communiquez-le directement au livreur via un canal sécurisé.</p>
-    <p style="margin-top: 22px;"><a class="btn" href="${escapeHtml(data.loginUrl)}">Page de connexion livreur</a></p>
-    `,
-  );
-  const text = `Livreur ${data.livreurFullName} créé (identifiant : ${data.username}). Connexion : ${data.loginUrl}`;
+    `${what} pour ${data.restaurantName} se termine dans ${dayWord} (le ${data.endDate}).\n` +
+    `Renouvelez ici : ${data.dashboardUrl}`;
   return { subject, html, text };
 }

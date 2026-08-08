@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRestaurateur } from '@/lib/auth';
 import { livreurCreateSchema } from '@/lib/validators/livreur';
-import { sendLivreurCreated } from '@/lib/emails/send';
 import { computeSubscriptionState, fetchPlatformSettings } from '@/lib/subscription';
 
 export interface LivreurResult {
@@ -21,7 +20,7 @@ export interface LivreurResult {
  * Le livreur se connectera ensuite via username/password (résolu côté login livreur).
  */
 export async function createLivreurAction(formData: FormData): Promise<LivreurResult> {
-  const { restaurant, profile } = await requireRestaurateur();
+  const { restaurant } = await requireRestaurateur();
 
   const parsed = livreurCreateSchema.safeParse({
     username: formData.get('username'),
@@ -124,23 +123,6 @@ export async function createLivreurAction(formData: FormData): Promise<LivreurRe
       return { ok: false, fieldErrors: { username: 'Cet identifiant est déjà utilisé' } };
     }
     return { ok: false, error: profileErr.message };
-  }
-
-  // Email au propriétaire (best-effort, sans le mot de passe)
-  try {
-    const { data: ownerAuth } = await admin.auth.admin.getUserById(profile.id);
-    const ownerEmail = ownerAuth?.user?.email;
-    if (ownerEmail) {
-      await sendLivreurCreated({
-        to: ownerEmail,
-        ownerFullName: profile.full_name ?? 'Restaurateur',
-        restaurantName: restaurant.name,
-        livreurFullName: parsed.data.full_name,
-        username: parsed.data.username,
-      });
-    }
-  } catch (e) {
-    console.error('[emails] livreur creds failed', e);
   }
 
   revalidatePath('/dashboard/livreurs');

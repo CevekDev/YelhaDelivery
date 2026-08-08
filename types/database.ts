@@ -62,6 +62,8 @@ export interface Restaurant {
   subscription_expires_at: string | null;
   subscription_lifetime: boolean;
   subscription_driver_limit: number | null; // null = illimité
+  /** Échéance déjà notifiée par le rappel « J-3 » (dé-doublonnage du cron). */
+  expiry_reminder_sent_for: string | null;
   created_at: string;
   updated_at: string;
 }

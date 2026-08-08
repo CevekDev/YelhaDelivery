@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { slugSchema } from '@/lib/validators/common';
-import { sendRestaurateurWelcome } from '@/lib/emails/send';
 import { revalidatePublicRestaurant } from '@/lib/public-data';
 
 const createRestaurateurSchema = z.object({
@@ -105,14 +104,6 @@ export async function createRestaurateurAccountAction(
     await admin.auth.admin.deleteUser(created.user.id);
     return { ok: false, error: restErr?.message ?? 'Création restaurant échouée' };
   }
-
-  // 4. Email de bienvenue (best-effort, n'annule pas la création si l'email échoue)
-  void sendRestaurateurWelcome({
-    to: parsed.data.owner_email,
-    fullName: parsed.data.owner_full_name,
-    restaurantName: parsed.data.restaurant_name,
-    slug: parsed.data.slug,
-  }).catch((e) => console.error('[emails] welcome failed', e));
 
   revalidatePublicRestaurant(parsed.data.slug);
   revalidatePath('/admin/restaurants');

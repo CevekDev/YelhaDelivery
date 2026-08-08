@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { headers } from 'next/headers';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { checkoutSchema } from '@/lib/validators/order';
-import { sendNewOrderToRestaurateur } from '@/lib/emails/send';
 import { sendPushToUser } from '@/lib/push';
 import { checkOrderRateLimit } from '@/lib/rate-limit';
 
@@ -105,83 +104,42 @@ export async function placeOrderAction(slug: string, formData: FormData): Promis
   const orderNumber = (row as { order_number?: string } | null)?.order_number;
   if (!orderId) return { ok: false, error: 'Commande non créée' };
 
-  // Email best-effort au restaurateur (ne bloque pas la redirection client)
-  void sendOrderEmailBestEffort(orderId, orderNumber ?? '').catch((e) =>
-    console.error('[emails] new order failed', e),
+  // Notification push best-effort au restaurateur (ne bloque pas la redirection
+  // client). Pas d'email de commande : les emails sont réservés à l'auth et aux
+  // rappels d'abonnement.
+  void sendOrderPushBestEffort(orderId, orderNumber ?? '').catch((e) =>
+    console.error('[push] new order failed', e),
   );
 
   return { ok: true, redirectTo: `/r/${slug}/confirmation/${orderId}` };
 }
 
-async function sendOrderEmailBestEffort(orderId: string, orderNumber: string): Promise<void> {
+async function sendOrderPushBestEffort(orderId: string, orderNumber: string): Promise<void> {
   try {
     const admin = await createAdminClient();
-    const [{ data: order }, { data: items }] = await Promise.all([
-      admin
-        .from('orders')
-        .select('*, restaurant:restaurants(name, owner_id)')
-        .eq('id', orderId)
-        .maybeSingle(),
-      admin
-        .from('order_items')
-        .select('item_name, quantity, subtotal, note')
-        .eq('order_id', orderId),
-    ]);
+    const { data: order } = await admin
+      .from('orders')
+      .select('customer_name, restaurant:restaurants(owner_id)')
+      .eq('id', orderId)
+      .maybeSingle();
     if (!order) return;
 
     type OrderRow = {
       customer_name: string;
-      customer_phone: string;
-      customer_address: string;
-      subtotal: number;
-      delivery_fee: number;
-      total: number;
-      notes: string | null;
-      restaurant: { name: string; owner_id: string | null } | null;
+      restaurant: { owner_id: string | null } | null;
     };
     const o = order as unknown as OrderRow;
     const ownerId = o.restaurant?.owner_id;
     if (!ownerId) return;
 
-    // Notification push au restaurateur (best-effort, en plus de l'email)
-    void sendPushToUser(ownerId, {
+    await sendPushToUser(ownerId, {
       title: 'Nouvelle commande',
       body: `${orderNumber || ''} · ${o.customer_name}`.trim(),
       url: '/dashboard/commandes',
       tag: `order-${orderId}`,
     });
-
-    const { data: ownerAuth } = await admin.auth.admin.getUserById(ownerId);
-    const email = ownerAuth?.user?.email;
-    if (!email) return;
-
-    type ItemRow = { item_name: string; quantity: number; subtotal: number; note: string | null };
-    const itemRows = (items as unknown as ItemRow[] | null) ?? [];
-
-    await sendNewOrderToRestaurateur({
-      to: email,
-      restaurantName: o.restaurant?.name ?? 'Votre restaurant',
-      order: {
-        orderNumber,
-        customer: {
-          name: o.customer_name,
-          phone: o.customer_phone,
-          address: o.customer_address,
-        },
-        items: itemRows.map((i) => ({
-          item_name: i.item_name,
-          quantity: i.quantity,
-          subtotal: Number(i.subtotal),
-          note: i.note,
-        })),
-        subtotal: Number(o.subtotal),
-        deliveryFee: Number(o.delivery_fee),
-        total: Number(o.total),
-        notes: o.notes,
-      },
-    });
   } catch (e) {
-    console.error('[emails] sendOrderEmailBestEffort failed', e);
+    console.error('[push] sendOrderPushBestEffort failed', e);
   }
 }
 

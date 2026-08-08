@@ -25,6 +25,7 @@ export function LoginClient() {
   const [state, formAction] = useActionState(loginAction, initial);
   const searchParams = useSearchParams();
   const justCreated = searchParams.get('created') === '1';
+  const justReset = searchParams.get('reset') === '1';
   const errorParam = searchParams.get('error');
 
   return (
@@ -69,6 +70,14 @@ export function LoginClient() {
           ✓ Votre compte a été créé. Connectez-vous pour accéder à votre dashboard.
         </div>
       )}
+      {justReset && (
+        <div
+          role="status"
+          className="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
+        >
+          ✓ Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.
+        </div>
+      )}
       {errorParam === 'compte_inactif' && (
         <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Votre compte est désactivé. Contactez le support.
@@ -99,7 +108,12 @@ export function LoginClient() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Mot de passe</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Mot de passe</Label>
+            <Link href="/mot-de-passe-oublie" className="text-xs text-primary hover:underline">
+              Mot de passe oublié ?
+            </Link>
+          </div>
           <Input
             id="password"
             name="password"
