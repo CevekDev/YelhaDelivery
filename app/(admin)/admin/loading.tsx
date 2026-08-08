@@ -14,7 +14,7 @@ export default function AdminLoading() {
           </div>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
         {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="rounded-2xl border border-border bg-background p-5 shadow-card">
             <div className="h-5 w-48 animate-pulse rounded bg-muted" />

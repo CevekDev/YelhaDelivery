@@ -174,7 +174,7 @@ export default async function LivreurDashboardPage() {
                   </div>
 
                   <div className="grid gap-2">
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                       <a
                         href={`tel:${o.customer_phone}`}
                         className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 hover:bg-muted"

@@ -238,7 +238,7 @@ export default async function DashboardHome() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
         {/* Commandes récentes */}
         <section className="rounded-2xl border border-border bg-background shadow-card">
           <header className="flex items-center justify-between border-b border-border p-5">

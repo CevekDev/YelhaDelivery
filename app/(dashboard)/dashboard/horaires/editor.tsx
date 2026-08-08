@@ -94,7 +94,7 @@ export function HoursEditor({ initialHours }: { initialHours: OpeningHour[] }) {
             <div
               key={d.day_of_week}
               className={
-                'grid grid-cols-[100px_auto_1fr_1fr] items-center gap-3 px-4 py-3 ' +
+                'grid grid-cols-[100px_auto_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 px-4 py-3 ' +
                 (idx < days.length - 1 ? 'border-b border-border ' : '') +
                 (d.is_closed ? 'bg-muted/40' : 'bg-background')
               }

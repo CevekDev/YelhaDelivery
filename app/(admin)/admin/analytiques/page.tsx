@@ -500,7 +500,7 @@ export default async function AdminAnalyticsPage() {
         <Store className="h-5 w-5 text-primary" />
         <h2 className="font-display text-lg font-bold">Croissance des restaurants</h2>
       </div>
-      <div className="grid gap-6 md:grid-cols-[1fr_1.6fr]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.6fr]">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:gap-4">
           <KpiCard label="Nouveaux (30j)" value={newRestos30d.toString()} />
           <KpiCard label="Total restaurants" value={(restaurants?.length ?? 0).toString()} />

@@ -17,7 +17,7 @@ export default function DashboardLoading() {
           </div>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
           <div className="h-5 w-40 animate-pulse rounded bg-muted" />
           <div className="mt-5 space-y-3">
