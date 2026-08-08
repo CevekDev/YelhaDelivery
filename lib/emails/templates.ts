@@ -5,10 +5,10 @@ const baseStyles = `
   .container { max-width: 560px; margin: 0 auto; padding: 32px 20px; }
   .card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   .brand { font-weight: 800; font-size: 22px; color: #1a1916; letter-spacing: -0.3px; }
-  .brand .accent { color: #FF5C1A; }
+  .brand .accent { color: #4F46E5; }
   .h1 { font-size: 22px; font-weight: 700; margin: 18px 0 8px; }
   .muted { color: #777; font-size: 14px; }
-  .btn { display: inline-block; background: #FF5C1A; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; }
+  .btn { display: inline-block; background: #4F46E5; color: #fff !important; text-decoration: none; padding: 12px 22px; border-radius: 8px; font-weight: 600; }
   .code { display: inline-block; font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #1a1916; background: #f5f5f4; border: 1px solid #eee; border-radius: 10px; padding: 16px 24px; margin: 8px 0; }
   .footer { color: #999; font-size: 12px; text-align: center; margin-top: 24px; }
 `;

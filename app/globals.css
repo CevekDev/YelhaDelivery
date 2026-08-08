@@ -4,27 +4,34 @@
 
 @layer base {
   :root {
-    /* YelhaDelivery — palette light food-app (inspiré Deliveroo / UberEats) */
+    /* YelhaDelivery — identité « Encre » : indigo SaaS premium, chrome sombre. */
 
-    /* Accent principal — orange chaleureux YelhaDelivery */
-    --primary: 18 100% 52%; /* #FF5C1A */
-    --primary-light: 19 100% 96%; /* fond hover ultra-clair */
-    --primary-dark: 17 90% 42%; /* #CC3D0A pour hover boutons */
-    --primary-foreground: 0 0% 100%; /* texte sur fond orange = blanc */
+    /* Accent principal — indigo */
+    --primary: 243 75% 59%; /* #4F46E5 */
+    --primary-light: 244 78% 96%; /* #ECEBFD — fond hover ultra-clair */
+    --primary-dark: 244 55% 51%; /* #4338CA — hover boutons */
+    --primary-foreground: 0 0% 100%; /* texte sur fond indigo = blanc */
 
-    /* Surfaces */
-    --bg-base: 0 0% 100%; /* blanc pur */
+    /* Surfaces — neutres légèrement froids (choisis, pas par défaut) */
+    --bg-base: 240 20% 99%; /* presque blanc, nuance froide */
     --bg-card: 0 0% 100%; /* cartes blanches */
-    --bg-input: 30 20% 98%; /* gris très légèrement chaud pour inputs */
-    --bg-muted: 30 14% 96%; /* fond de sections alternées */
-    --border: 30 10% 90%; /* bordures discrètes */
+    --bg-input: 240 24% 98%; /* gris froid très clair pour inputs */
+    --bg-muted: 240 20% 96.5%; /* fond de sections alternées */
+    --border: 240 13% 90%; /* bordures discrètes */
 
     /* Typo */
-    --text-primary: 24 10% 10%; /* presque noir, légèrement chaud */
-    --text-secondary: 25 8% 42%; /* gris medium pour textes secondaires */
+    --text-primary: 240 16% 12%; /* presque noir, nuance froide */
+    --text-secondary: 240 6% 45%; /* gris medium pour textes secondaires */
+
+    /* Chrome sombre « ink » — sidebars / headers premium */
+    --ink: 233 46% 12%; /* #10132E — fond sidebar */
+    --ink-2: 233 40% 18%; /* surface élevée dans le ink (bloc resto, hover) */
+    --ink-line: 233 30% 26%; /* séparateurs sur fond ink */
+    --ink-foreground: 233 40% 94%; /* texte principal sur ink */
+    --ink-muted: 233 18% 68%; /* texte secondaire sur ink */
 
     /* États */
-    --success: 145 63% 38%; /* vert Uber */
+    --success: 145 63% 38%; /* vert */
     --warning: 38 92% 50%; /* jaune ambré */
     --error: 0 75% 50%; /* rouge classique */
   }
@@ -73,12 +80,12 @@
     background-size: 16px 16px;
   }
 
-  /* Ombre douce style food-app */
+  /* Ombres douces — un peu plus de relief pour un rendu premium */
   .shadow-card {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+    box-shadow: 0 1px 2px 0 rgb(17 19 46 / 0.05), 0 4px 14px -8px rgb(17 19 46 / 0.12);
   }
 
   .shadow-card-hover {
-    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+    box-shadow: 0 8px 24px -8px rgb(17 19 46 / 0.16), 0 3px 10px -6px rgb(17 19 46 / 0.10);
   }
 }

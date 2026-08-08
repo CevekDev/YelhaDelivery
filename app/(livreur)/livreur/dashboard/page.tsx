@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { LivreurActions } from './livreur-actions';
@@ -61,33 +60,34 @@ export default async function LivreurDashboardPage() {
     <main className="min-h-screen bg-muted/30 pb-10">
       <LivreurRealtime userId={userId} />
       {/* Header */}
-      <header className="border-b border-border bg-background">
+      <header className="border-b border-ink-line bg-ink text-ink-foreground">
         <div className="container flex items-center justify-between gap-3 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Bike className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <p className="truncate font-display text-base font-bold leading-tight">
                 {profile.full_name}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-ink-muted">
                 {restaurant?.name ?? 'Livreur'}
               </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/livreur/historique">
-                <History className="h-4 w-4" />
-                Historique
-              </Link>
-            </Button>
+            <Link
+              href="/livreur/historique"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ink-line bg-ink-light px-3 py-2 text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-line"
+            >
+              <History className="h-4 w-4" />
+              Historique
+            </Link>
             <form action="/api/auth/signout" method="post">
               <button
                 type="submit"
                 aria-label="Déconnexion"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line bg-ink-light text-ink-muted transition-colors hover:bg-ink-line hover:text-ink-foreground"
               >
                 <LogOut className="h-4 w-4" />
               </button>

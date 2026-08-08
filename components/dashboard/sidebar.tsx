@@ -43,14 +43,14 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 export function Sidebar({ restaurantName }: { restaurantName: string }) {
   const pathname = usePathname();
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
-      <div className="flex h-16 items-center border-b border-border px-6">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-line bg-ink text-ink-foreground md:flex">
+      <div className="flex h-16 items-center border-b border-ink-line px-6">
         <Link href="/dashboard" className="font-display text-lg font-extrabold">
           Yelha<span className="text-primary">Delivery</span>
         </Link>
       </div>
-      <div className="border-b border-border px-6 py-5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="mx-3 mt-3 rounded-xl bg-ink-light px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
           Restaurant
         </p>
         <p className="mt-1 truncate font-display font-bold">{restaurantName}</p>
@@ -64,25 +64,22 @@ export function Sidebar({ restaurantName }: { restaurantName: string }) {
               key={item.href}
               href={item.href}
               className={cn(
-                'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
                 active
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'bg-primary text-primary-foreground shadow-card'
+                  : 'text-ink-muted hover:bg-ink-light hover:text-ink-foreground',
               )}
             >
-              {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
-              )}
-              <Icon className={cn('h-4 w-4', active && 'text-primary')} />
+              <Icon className="h-4 w-4" />
               {item.label}
             </Link>
           );
         })}
       </nav>
-      <form action="/api/auth/signout" method="post" className="border-t border-border p-3">
+      <form action="/api/auth/signout" method="post" className="border-t border-ink-line p-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-ink-light hover:text-ink-foreground"
         >
           <LogOut className="h-4 w-4" />
           Se déconnecter

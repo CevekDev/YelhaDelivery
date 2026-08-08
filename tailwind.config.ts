@@ -36,6 +36,14 @@ const config: Config = {
           DEFAULT: 'hsl(var(--error))',
           foreground: 'hsl(0 0% 100%)',
         },
+        // Chrome sombre « ink » — sidebars et headers premium
+        ink: {
+          DEFAULT: 'hsl(var(--ink))',
+          light: 'hsl(var(--ink-2))',
+          line: 'hsl(var(--ink-line))',
+          foreground: 'hsl(var(--ink-foreground))',
+          muted: 'hsl(var(--ink-muted))',
+        },
         ring: 'hsl(var(--primary))',
       },
       fontFamily: {

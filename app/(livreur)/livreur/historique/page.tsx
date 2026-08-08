@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from '@/lib/order-status';
 import { ArrowLeft, History } from 'lucide-react';
@@ -58,23 +57,24 @@ export default async function HistoriquePage({
 
   return (
     <main className="min-h-screen bg-muted/30 pb-10">
-      <header className="border-b border-border bg-background">
+      <header className="border-b border-ink-line bg-ink text-ink-foreground">
         <div className="container flex items-center justify-between gap-3 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <History className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <p className="truncate font-display text-base font-bold leading-tight">Historique</p>
-              <p className="text-xs text-muted-foreground">Vos livraisons passées</p>
+              <p className="text-xs text-ink-muted">Vos livraisons passées</p>
             </div>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/livreur/dashboard">
-              <ArrowLeft className="h-4 w-4" />
-              Tournée
-            </Link>
-          </Button>
+          <Link
+            href="/livreur/dashboard"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ink-line bg-ink-light px-3 py-2 text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-line"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Tournée
+          </Link>
         </div>
       </header>
 
